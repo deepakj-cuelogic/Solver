@@ -245,7 +245,7 @@ namespace ZS.Math.Optimization
         public int sos_vars; // Number of variables in the sos_priority list
         public int sos_ints; // Number of integers in SOS'es above
         public SOSgroup SOS; // Pointer to record containing all SOS'es
-        
+
         //ORIGINAL LINE: int *sos_priority;
         public int sos_priority; // Priority-sorted list of variables (no duplicates)
 
@@ -942,6 +942,1026 @@ namespace ZS.Math.Optimization
         public const double DEF_PSEUDOCOSTUPDATES = 7;/* The default number of times pseudo-costs are recalculated; experiments indicate that costs tend to stabilize*/
         public const double DEF_PSEUDOCOSTRESTART = 0.15;/* The fraction of price updates required for B&B restart when the mode is NODE_RESTARTMODE*/
         public const double DEF_MAXPRESOLVELOOPS = 0;/* Upper limit to the number of loops during presolve, <= 0 for no limit. */
+
+
+
+
+
+
+
+
+
+
+
+
+        /* Prototypes for user call-back functions                                   */
+        /* ------------------------------------------------------------------------- */
+        
+        
+        
+
+        // ORIGINAL LINE: typedef int    (__WINAPI lphandle_intfunc)(lprec* lp, void* userhandle);
+        public delegate int lphandle_intfunc(lprec lp, object userhandle);
+        // ORIGINAL LINE: typedef void   (__WINAPI lphandlestr_func)(lprec* lp, void* userhandle, char* buf);
+        public delegate int lphandlestr_func(lprec lp, object userhandle, string buf);
+        // ORIGINAL LINE: typedef void   (__WINAPI lphandleint_func)(lprec* lp, void* userhandle, int message);
+        public delegate int lphandleint_func(lprec lp, object userhandle, int message);
+        // ORIGINAL LINE: typedef int    (__WINAPI lphandleint_intfunc)(lprec* lp, void* userhandle, int message);
+        public delegate int lphandleint_intfunc(lprec lp, object userhandle, int message);
+
+        /* User and system function interfaces                                       */
+        /* ------------------------------------------------------------------------- */
+
+        public void lp_solve_version(ref int majorversion, ref int minorversion, ref int release, ref int build)
+        { throw new NotImplementedException(); }
+
+        public lprec make_lp(int rows, int columns)
+        { throw new NotImplementedException(); }
+        public byte resize_lp(lprec lp, int rows, int columns)
+        { throw new NotImplementedException(); }
+        public int get_status(lprec lp)
+        { throw new NotImplementedException(); }
+        public string get_statustext(lprec lp, int statuscode)
+        { throw new NotImplementedException(); }
+        public byte is_obj_in_basis(lprec lp)
+        { throw new NotImplementedException(); }
+        public void set_obj_in_basis(lprec lp, byte obj_in_basis)
+        { throw new NotImplementedException(); }
+        /* Create and initialise a lprec structure defaults */
+
+        public lprec copy_lp(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte dualize_lp(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte memopt_lp(lprec lp, int rowextra, int colextra, int nzextra)
+        { throw new NotImplementedException(); }
+        /* Copy or dualize the lp */
+
+        public void delete_lp(lprec lp)
+        { throw new NotImplementedException(); }
+        public void free_lp(lprec[] plp)
+        { throw new NotImplementedException(); }
+        /* Remove problem from memory */
+
+        public byte set_lp_name(lprec lp, ref string lpname)
+        { throw new NotImplementedException(); }
+        public string get_lp_name(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Set and get the problem name */
+
+        public byte has_BFP(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte is_nativeBFP(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte set_BFP(lprec lp, ref string filename)
+        { throw new NotImplementedException(); }
+        /* Set basis factorization engine */
+
+        public lprec read_XLI(ref string xliname, ref string modelname, ref string dataname, ref string options, int verbose)
+        { throw new NotImplementedException(); }
+        public byte write_XLI(lprec lp, ref string filename, ref string options, byte results)
+        { throw new NotImplementedException(); }
+        public byte has_XLI(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte is_nativeXLI(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte set_XLI(lprec lp, ref string filename)
+        { throw new NotImplementedException(); }
+        /* Set external language interface */
+
+        public byte set_obj(lprec lp, int colnr, double value)
+        { throw new NotImplementedException(); }
+        public byte set_obj_fn(lprec lp, ref double row)
+        { throw new NotImplementedException(); }
+        public byte set_obj_fnex(lprec lp, int count, ref double row, ref int colno)
+        { throw new NotImplementedException(); }
+        /* set the objective function (Row 0) of the matrix */
+        public byte str_set_obj_fn(lprec lp, ref string row_string)
+        { throw new NotImplementedException(); }
+        /* The same, but with string input */
+        public void set_sense(lprec lp, byte maximize)
+        { throw new NotImplementedException(); }
+        public void set_maxim(lprec lp)
+        { throw new NotImplementedException(); }
+        public void set_minim(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte is_maxim(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Set optimization direction for the objective function */
+
+        public byte add_constraint(lprec lp, ref double row, int constr_type, double rh)
+        { throw new NotImplementedException(); }
+        public byte add_constraintex(lprec lp, int count, ref double row, ref int colno, int constr_type, double rh)
+        { throw new NotImplementedException(); }
+        public byte set_add_rowmode(lprec lp, byte turnon)
+        { throw new NotImplementedException(); }
+        public byte is_add_rowmode(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Add a constraint to the problem, row is the constraint row, rh is the right hand side,
+            constr_type is the type of constraint (LE (<=), GE(>=), EQ(=)) */
+        public byte str_add_constraint(lprec lp, ref string row_string, int constr_type, double rh)
+        { throw new NotImplementedException(); }
+        /* The same, but with string input */
+
+        public byte set_row(lprec lp, int rownr, ref double row)
+        { throw new NotImplementedException(); }
+        public byte set_rowex(lprec lp, int rownr, int count, ref double row, ref int colno)
+        { throw new NotImplementedException(); }
+        public byte get_row(lprec lp, int rownr, ref double row)
+        { throw new NotImplementedException(); }
+        public int get_rowex(lprec lp, int rownr, ref double row, ref int colno)
+        { throw new NotImplementedException(); }
+        /* Fill row with the row row_nr from the problem */
+
+        public byte del_constraint(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+        public byte del_constraintex(lprec lp, LLrec rowmap)
+        { throw new NotImplementedException(); }
+        /* Remove constrain nr del_row from the problem */
+
+        public byte add_lag_con(lprec lp, ref double row, int con_type, double rhs)
+        { throw new NotImplementedException(); }
+        /* add a Lagrangian constraint of form Row' x contype Rhs */
+        public byte str_add_lag_con(lprec lp, ref string row_string, int con_type, double rhs)
+        { throw new NotImplementedException(); }
+        /* The same, but with string input */
+        public void set_lag_trace(lprec lp, byte lag_trace)
+        { throw new NotImplementedException(); }
+        public byte is_lag_trace(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Set debugging/tracing mode of the Lagrangean solver */
+
+        public byte set_constr_type(lprec lp, int rownr, int con_type)
+        { throw new NotImplementedException(); }
+        public int get_constr_type(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+        public double get_constr_value(lprec lp, int rownr, int count, ref double primsolution, ref int nzindex)
+        { throw new NotImplementedException(); }
+        public byte is_constr_type(lprec lp, int rownr, int mask)
+        { throw new NotImplementedException(); }
+        public string get_str_constr_type(lprec lp, int con_type)
+        { throw new NotImplementedException(); }
+        public int get_constr_class(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+        public string get_str_constr_class(lprec lp, int con_class)
+        { throw new NotImplementedException(); }
+        /* Set the type of constraint in row Row (LE, GE, EQ) */
+
+        public byte set_rh(lprec lp, int rownr, double value)
+        { throw new NotImplementedException(); }
+        public double get_rh(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+        /* Set and get the right hand side of a constraint row */
+        public byte set_rh_range(lprec lp, int rownr, double deltavalue)
+        { throw new NotImplementedException(); }
+        public double get_rh_range(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+        /* Set the RHS range; i.e. the lower and upper bounds of a constraint row */
+        public void set_rh_vec(lprec lp, ref double rh)
+        { throw new NotImplementedException(); }
+        /* Set the right hand side vector */
+        public byte str_set_rh_vec(lprec lp, ref string rh_string)
+        { throw new NotImplementedException(); }
+        /* The same, but with string input */
+
+
+        public byte add_column(lprec lp, ref double column)
+        { throw new NotImplementedException(); }
+        public byte add_columnex(lprec lp, int count, ref double column, ref int rowno)
+        { throw new NotImplementedException(); }
+        public byte str_add_column(lprec lp, ref string col_string)
+        { throw new NotImplementedException(); }
+        /* Add a column to the problem */
+
+        public byte set_column(lprec lp, int colnr, ref double column)
+        { throw new NotImplementedException(); }
+        public byte set_columnex(lprec lp, int colnr, int count, ref double column, ref int rowno)
+        { throw new NotImplementedException(); }
+        /* Overwrite existing column data */
+
+        public int column_in_lp(lprec lp, ref double column)
+        { throw new NotImplementedException(); }
+        /* Returns the column index if column is already present in lp, otherwise 0.
+            (Does not look at bounds and types, only looks at matrix values */
+
+        public int get_columnex(lprec lp, int colnr, ref double column, ref int nzrow)
+        { throw new NotImplementedException(); }
+        public byte get_column(lprec lp, int colnr, ref double column)
+        { throw new NotImplementedException(); }
+        /* Fill column with the column col_nr from the problem */
+
+        public byte del_column(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        public byte del_columnex(lprec lp, LLrec colmap)
+        { throw new NotImplementedException(); }
+        /* Delete a column */
+
+        public byte set_mat(lprec lp, int rownr, int colnr, double value)
+        { throw new NotImplementedException(); }
+        /* Fill in element (Row,Column) of the matrix
+            Row in [0..Rows] and Column in [1..Columns] */
+        public double get_mat(lprec lp, int rownr, int colnr)
+        { throw new NotImplementedException(); }
+        public double get_mat_byindex(lprec lp, int matindex, byte isrow, byte adjustsign)
+        { throw new NotImplementedException(); }
+        public int get_nonzeros(lprec lp)
+        { throw new NotImplementedException(); }
+        /* get a single element from the matrix */
+        /* Name changed from "mat_elm" by KE */
+
+        public void set_bounds_tighter(lprec lp, byte tighten)
+        { throw new NotImplementedException(); }
+        public byte get_bounds(lprec lp, int column, ref double lower, ref double upper)
+        { throw new NotImplementedException(); }
+        public byte get_bounds_tighter(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte set_upbo(lprec lp, int colnr, double value)
+        { throw new NotImplementedException(); }
+        public double get_upbo(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        public byte set_lowbo(lprec lp, int colnr, double value)
+        { throw new NotImplementedException(); }
+        public double get_lowbo(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        public byte set_bounds(lprec lp, int colnr, double lower, double upper)
+        { throw new NotImplementedException(); }
+        public byte set_unbounded(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        public byte is_unbounded(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        /* Set the upper and lower bounds of a variable */
+
+        public byte set_int(lprec lp, int colnr, byte must_be_int)
+        { throw new NotImplementedException(); }
+        public byte is_int(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        public byte set_binary(lprec lp, int colnr, byte must_be_bin)
+        { throw new NotImplementedException(); }
+        public byte is_binary(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        public byte set_semicont(lprec lp, int colnr, byte must_be_sc)
+        { throw new NotImplementedException(); }
+        public byte is_semicont(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        public byte is_negative(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        public byte set_var_weights(lprec lp, ref double weights)
+        { throw new NotImplementedException(); }
+        public int get_var_priority(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        /* Set the type of variable */
+
+        public byte set_pseudocosts(lprec lp, ref double clower, ref double cupper, ref int updatelimit)
+        { throw new NotImplementedException(); }
+        public byte get_pseudocosts(lprec lp, ref double clower, ref double cupper, ref int updatelimit)
+        { throw new NotImplementedException(); }
+        /* Set initial values for, or get computed pseudocost vectors;
+            note that setting of pseudocosts can only happen in response to a
+            call-back function optionally requesting this */
+
+        public int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, ref int sosvars, ref double weights)
+        { throw new NotImplementedException(); }
+        public byte is_SOS_var(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        /* Add SOS constraints */
+
+        public byte set_row_name(lprec lp, int rownr, ref string new_name)
+        { throw new NotImplementedException(); }
+        public string get_row_name(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+        public string get_origrow_name(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+        /* Set/Get the name of a constraint row */
+        /* Get added by KE */
+
+        public byte set_col_name(lprec lp, int colnr, ref string new_name)
+        { throw new NotImplementedException(); }
+        public string get_col_name(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        public string get_origcol_name(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+        /* Set/Get the name of a variable column */
+        /* Get added by KE */
+
+        public void unscale(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Undo previous scaling of the problem */
+
+        public void set_preferdual(lprec lp, byte dodual)
+        { throw new NotImplementedException(); }
+        public void set_simplextype(lprec lp, int simplextype)
+        { throw new NotImplementedException(); }
+        public int get_simplextype(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Set/Get if lp_solve should prefer the dual simplex over the primal -- added by KE */
+
+        public void default_basis(lprec lp)
+        { throw new NotImplementedException(); }
+        public void set_basiscrash(lprec lp, int mode)
+        { throw new NotImplementedException(); }
+        public int get_basiscrash(lprec lp)
+        { throw new NotImplementedException(); }
+        public int set_basisvar(lprec lp, int basisPos, int enteringCol)
+        { throw new NotImplementedException(); }
+        public byte set_basis(lprec lp, ref int bascolumn, byte nonbasic)
+        { throw new NotImplementedException(); }
+        public byte get_basis(lprec lp, ref int bascolumn, byte nonbasic)
+        { throw new NotImplementedException(); }
+        public void reset_basis(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Set/Get basis for a re-solved system */
+        /* Added by KE */
+        public byte guess_basis(lprec lp, ref double guessvector, ref int basisvector)
+        { throw new NotImplementedException(); }
+
+        public byte is_feasible(lprec lp, ref double values, double threshold)
+        { throw new NotImplementedException(); }
+        /* returns TRUE if the vector in values is a feasible solution to the lp */
+
+        public int solve(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Solve the problem */
+
+        public double time_elapsed(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Return the number of seconds since start of solution process */
+
+
+
+        public void put_bb_nodefunc(lprec lp, lphandleint_intfunc newnode, object bbnodehandle)
+        { throw new NotImplementedException(); }
+        public void put_bb_branchfunc(lprec lp, lphandleint_intfunc newbranch, object bbbranchhandle)
+        { throw new NotImplementedException(); }
+        /* Allow the user to override B&B node and branching decisions */
+
+        public void put_abortfunc(lprec lp, lphandle_intfunc newctrlc, object ctrlchandle)
+        { throw new NotImplementedException(); }
+        /* Allow the user to define an interruption callback function */
+
+        public void put_logfunc(lprec lp, lphandlestr_func newlog, object loghandle)
+        { throw new NotImplementedException(); }
+        /* Allow the user to define a logging function */
+
+        public void put_msgfunc(lprec lp, lphandleint_func newmsg, object msghandle, int mask)
+        { throw new NotImplementedException(); }
+        /* Allow the user to define an event-driven message/reporting */
+
+        public byte get_primal_solution(lprec lp, ref double pv)
+        { throw new NotImplementedException(); }
+        public byte get_ptr_primal_solution(lprec lp, double[][] pv)
+        { throw new NotImplementedException(); }
+        public byte get_dual_solution(lprec lp, ref double rc)
+        { throw new NotImplementedException(); }
+        public byte get_ptr_dual_solution(lprec lp, double[][] rc)
+        { throw new NotImplementedException(); }
+        public byte get_lambda(lprec lp, ref double lambda)
+        { throw new NotImplementedException(); }
+        public byte get_ptr_lambda(lprec lp, double[][] lambda)
+        { throw new NotImplementedException(); }
+        /* Get the primal, dual/reduced costs and Lambda vectors */
+
+        /* Read an MPS file */
+        public lprec read_MPS(ref string filename, int options)
+        { throw new NotImplementedException(); }
+        public lprec read_mps(FILE filename, int options)
+        { throw new NotImplementedException(); }
+        public lprec read_freeMPS(ref string filename, int options)
+        { throw new NotImplementedException(); }
+        public lprec read_freemps(FILE filename, int options)
+        { throw new NotImplementedException(); }
+
+        /* Write a MPS file to output */
+        public byte write_mps(lprec lp, ref string filename)
+        { throw new NotImplementedException(); }
+        public byte write_MPS(lprec lp, FILE output)
+        { throw new NotImplementedException(); }
+        public byte write_freemps(lprec lp, ref string filename)
+        { throw new NotImplementedException(); }
+        public byte write_freeMPS(lprec lp, FILE output)
+        { throw new NotImplementedException(); }
+
+        public byte write_lp(lprec lp, ref string filename)
+        { throw new NotImplementedException(); }
+        public byte write_LP(lprec lp, FILE output)
+        { throw new NotImplementedException(); }
+        /* Write a LP file to output */
+
+        public byte LP_readhandle(lprec[] lp, FILE filename, int verbose, ref string lp_name)
+        { throw new NotImplementedException(); }
+        public lprec read_lp(FILE filename, int verbose, ref string lp_name)
+        { throw new NotImplementedException(); }
+        public lprec read_LP(ref string filename, int verbose, ref string lp_name)
+        { throw new NotImplementedException(); }
+        /* Old-style lp format file parser */
+
+        public byte write_basis(lprec lp, ref string filename)
+        { throw new NotImplementedException(); }
+        public byte read_basis(lprec lp, ref string filename, ref string info)
+        { throw new NotImplementedException(); }
+        /* Read and write basis from/to file in CPLEX BAS format */
+
+        public byte write_params(lprec lp, ref string filename, ref string options)
+        { throw new NotImplementedException(); }
+        public byte read_params(lprec lp, ref string filename, ref string options)
+        { throw new NotImplementedException(); }
+        public void reset_params(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Read and write parameter file */
+
+        public void print_lp(lprec lp)
+        { throw new NotImplementedException(); }
+        public void print_tableau(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Print the current problem, only useful in very small (test) problems */
+
+        public void print_objective(lprec lp)
+        { throw new NotImplementedException(); }
+        public void print_solution(lprec lp, int columns)
+        { throw new NotImplementedException(); }
+        public void print_constraints(lprec lp, int columns)
+        { throw new NotImplementedException(); }
+        /* Print the solution to stdout */
+
+        public void print_duals(lprec lp)
+        { throw new NotImplementedException(); }
+        /* Print the dual variables of the solution */
+
+        public void print_scales(lprec lp)
+        { throw new NotImplementedException(); }
+        /* If scaling is used, print the scaling factors */
+
+        public void print_str(lprec lp, ref string str)
+        { throw new NotImplementedException(); }
+
+        public void set_outputstream(lprec lp, FILE stream)
+        { throw new NotImplementedException(); }
+        public byte set_outputfile(lprec lp, ref string filename)
+        { throw new NotImplementedException(); }
+
+        public void set_verbose(lprec lp, int verbose)
+        { throw new NotImplementedException(); }
+        public int get_verbose(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_timeout(lprec lp, int sectimeout)
+        { throw new NotImplementedException(); }
+        public int get_timeout(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_print_sol(lprec lp, int print_sol)
+        { throw new NotImplementedException(); }
+        public int get_print_sol(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_debug(lprec lp, byte debug)
+        { throw new NotImplementedException(); }
+        public byte is_debug(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_trace(lprec lp, byte trace)
+        { throw new NotImplementedException(); }
+        public byte is_trace(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public byte print_debugdump(lprec lp, ref string filename)
+        { throw new NotImplementedException(); }
+
+        public void set_anti_degen(lprec lp, int anti_degen)
+        { throw new NotImplementedException(); }
+        public int get_anti_degen(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte is_anti_degen(lprec lp, int testmask)
+        { throw new NotImplementedException(); }
+
+        public void set_presolve(lprec lp, int presolvemode, int maxloops)
+        { throw new NotImplementedException(); }
+        public int get_presolve(lprec lp)
+        { throw new NotImplementedException(); }
+        public int get_presolveloops(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte is_presolve(lprec lp, int testmask)
+        { throw new NotImplementedException(); }
+
+        public int get_orig_index(lprec lp, int lp_index)
+        { throw new NotImplementedException(); }
+        public int get_lp_index(lprec lp, int orig_index)
+        { throw new NotImplementedException(); }
+
+        public void set_maxpivot(lprec lp, int max_num_inv)
+        { throw new NotImplementedException(); }
+        public int get_maxpivot(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_obj_bound(lprec lp, double obj_bound)
+        { throw new NotImplementedException(); }
+        public double get_obj_bound(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_mip_gap(lprec lp, byte absolute, double mip_gap)
+        { throw new NotImplementedException(); }
+        public double get_mip_gap(lprec lp, byte absolute)
+        { throw new NotImplementedException(); }
+
+        public void set_bb_rule(lprec lp, int bb_rule)
+        { throw new NotImplementedException(); }
+        public int get_bb_rule(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public byte set_var_branch(lprec lp, int colnr, int branch_mode)
+        { throw new NotImplementedException(); }
+        public int get_var_branch(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+
+        public byte is_infinite(lprec lp, double value)
+        { throw new NotImplementedException(); }
+        public void set_infinite(lprec lp, double infinite)
+        { throw new NotImplementedException(); }
+        public double get_infinite(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_epsint(lprec lp, double epsint)
+        { throw new NotImplementedException(); }
+        public double get_epsint(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_epsb(lprec lp, double epsb)
+        { throw new NotImplementedException(); }
+        public double get_epsb(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_epsd(lprec lp, double epsd)
+        { throw new NotImplementedException(); }
+        public double get_epsd(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_epsel(lprec lp, double epsel)
+        { throw new NotImplementedException(); }
+        public double get_epsel(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public byte set_epslevel(lprec lp, int epslevel)
+        { throw new NotImplementedException(); }
+
+        public void set_scaling(lprec lp, int scalemode)
+        { throw new NotImplementedException(); }
+        public int get_scaling(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte is_scalemode(lprec lp, int testmask)
+        { throw new NotImplementedException(); }
+        public byte is_scaletype(lprec lp, int scaletype)
+        { throw new NotImplementedException(); }
+        public byte is_integerscaling(lprec lp)
+        { throw new NotImplementedException(); }
+        public void set_scalelimit(lprec lp, double scalelimit)
+        { throw new NotImplementedException(); }
+        public double get_scalelimit(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_improve(lprec lp, int improve)
+        { throw new NotImplementedException(); }
+        public int get_improve(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_pivoting(lprec lp, int piv_rule)
+        { throw new NotImplementedException(); }
+        public int get_pivoting(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte set_partialprice(lprec lp, int blockcount, ref int blockstart, byte isrow)
+        { throw new NotImplementedException(); }
+        public void get_partialprice(lprec lp, ref int blockcount, ref int blockstart, byte isrow)
+        { throw new NotImplementedException(); }
+
+        public byte set_multiprice(lprec lp, int multiblockdiv)
+        { throw new NotImplementedException(); }
+        public int get_multiprice(lprec lp, byte getabssize)
+        { throw new NotImplementedException(); }
+
+        public byte is_use_names(lprec lp, byte isrow)
+        { throw new NotImplementedException(); }
+        public void set_use_names(lprec lp, byte isrow, byte use_names)
+        { throw new NotImplementedException(); }
+
+        public int get_nameindex(lprec lp, ref string varname, byte isrow)
+        { throw new NotImplementedException(); }
+
+        public byte is_piv_mode(lprec lp, int testmask)
+        { throw new NotImplementedException(); }
+        public byte is_piv_rule(lprec lp, int rule)
+        { throw new NotImplementedException(); }
+
+        public void set_break_at_first(lprec lp, byte break_at_first)
+        { throw new NotImplementedException(); }
+        public byte is_break_at_first(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_bb_floorfirst(lprec lp, int bb_floorfirst)
+        { throw new NotImplementedException(); }
+        public int get_bb_floorfirst(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_bb_depthlimit(lprec lp, int bb_maxlevel)
+        { throw new NotImplementedException(); }
+        public int get_bb_depthlimit(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_break_at_value(lprec lp, double break_at_value)
+        { throw new NotImplementedException(); }
+        public double get_break_at_value(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_negrange(lprec lp, double negrange)
+        { throw new NotImplementedException(); }
+        public double get_negrange(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_epsperturb(lprec lp, double epsperturb)
+        { throw new NotImplementedException(); }
+        public double get_epsperturb(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public void set_epspivot(lprec lp, double epspivot)
+        { throw new NotImplementedException(); }
+        public double get_epspivot(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public int get_max_level(lprec lp)
+        { throw new NotImplementedException(); }
+        public long get_total_nodes(lprec lp)
+        { throw new NotImplementedException(); }
+        public long get_total_iter(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public double get_objective(lprec lp)
+        { throw new NotImplementedException(); }
+        public double get_working_objective(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public double get_var_primalresult(lprec lp, int index)
+        { throw new NotImplementedException(); }
+        public double get_var_dualresult(lprec lp, int index)
+        { throw new NotImplementedException(); }
+
+        public byte get_variables(lprec lp, ref double @var)
+        { throw new NotImplementedException(); }
+        public byte get_ptr_variables(lprec lp, double[][] @var)
+        { throw new NotImplementedException(); }
+
+        public byte get_constraints(lprec lp, ref double constr)
+        { throw new NotImplementedException(); }
+        public byte get_ptr_constraints(lprec lp, double[][] constr)
+        { throw new NotImplementedException(); }
+
+        public byte get_sensitivity_rhs(lprec lp, ref double duals, ref double dualsfrom, ref double dualstill)
+        { throw new NotImplementedException(); }
+        public byte get_ptr_sensitivity_rhs(lprec lp, double[][] duals, double[][] dualsfrom, double[][] dualstill)
+        { throw new NotImplementedException(); }
+
+
+        public byte get_sensitivity_obj(lprec lp, ref double objfrom, ref double objtill)
+        { throw new NotImplementedException(); }
+        public byte get_sensitivity_objex(lprec lp, ref double objfrom, ref double objtill, ref double objfromvalue, ref double objtillvalue)
+        { throw new NotImplementedException(); }
+        public byte get_ptr_sensitivity_obj(lprec lp, double[][] objfrom, double[][] objtill)
+        { throw new NotImplementedException(); }
+        public byte get_ptr_sensitivity_objex(lprec lp, double[][] objfrom, double[][] objtill, double[][] objfromvalue, double[][] objtillvalue)
+        { throw new NotImplementedException(); }
+
+        public void set_solutionlimit(lprec lp, int limit)
+        { throw new NotImplementedException(); }
+        public int get_solutionlimit(lprec lp)
+        { throw new NotImplementedException(); }
+        public int get_solutioncount(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public int get_Norig_rows(lprec lp)
+        { throw new NotImplementedException(); }
+        public int get_Nrows(lprec lp)
+        { throw new NotImplementedException(); }
+        public int get_Lrows(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public int get_Norig_columns(lprec lp)
+        { throw new NotImplementedException(); }
+        public int get_Ncolumns(lprec lp)
+        { throw new NotImplementedException(); }
+
+        //ORIGINAL LINE: typedef int (__WINAPI read_modeldata_func)(void* userhandle, char* buf, int max_size);
+        public delegate int read_modeldata_func(object userhandle, string buf, int max_size);
+        //ORIGINAL LINE: typedef int (__WINAPI write_modeldata_func)(void* userhandle, char* buf);
+        public delegate int write_modeldata_func(object userhandle, string buf);
+
+
+        public byte MPS_readex(lprec[] newlp, object userhandle, read_modeldata_func read_modeldata, int typeMPS, int options)
+        { throw new NotImplementedException(); }
+
+        public lprec read_lpex(object userhandle, read_modeldata_func read_modeldata, int verbose, ref string lp_name)
+        { throw new NotImplementedException(); }
+        public byte write_lpex(lprec lp, object userhandle, write_modeldata_func write_modeldata)
+        { throw new NotImplementedException(); }
+
+        public lprec read_mpsex(object userhandle, read_modeldata_func read_modeldata, int options)
+        { throw new NotImplementedException(); }
+        public lprec read_freempsex(object userhandle, read_modeldata_func read_modeldata, int options)
+        { throw new NotImplementedException(); }
+
+        public byte MPS_writefileex(lprec lp, int typeMPS, object userhandle, write_modeldata_func write_modeldata)
+        { throw new NotImplementedException(); }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /* Forward definitions of functions used internaly by the lp toolkit */
+        public byte set_callbacks(lprec lp)
+        { throw new NotImplementedException(); }
+        public int yieldformessages(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte userabort(lprec lp, int message)
+        { throw new NotImplementedException(); }
+
+        /* Memory management routines */
+        public byte append_rows(lprec lp, int deltarows)
+        { throw new NotImplementedException(); }
+        public byte append_columns(lprec lp, int deltacolumns)
+        { throw new NotImplementedException(); }
+        public void inc_rows(lprec lp, int delta)
+        { throw new NotImplementedException(); }
+        public void inc_columns(lprec lp, int delta)
+        { throw new NotImplementedException(); }
+        public byte init_rowcol_names(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte inc_row_space(lprec lp, int deltarows)
+        { throw new NotImplementedException(); }
+        public byte inc_col_space(lprec lp, int deltacols)
+        { throw new NotImplementedException(); }
+        public byte shift_rowcoldata(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
+        { throw new NotImplementedException(); }
+        public byte shift_basis(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
+        { throw new NotImplementedException(); }
+        public byte shift_rowdata(lprec lp, int @base, int delta, LLrec usedmap)
+        { throw new NotImplementedException(); }
+        public byte shift_coldata(lprec lp, int @base, int delta, LLrec usedmap)
+        { throw new NotImplementedException(); }
+
+        public byte is_chsign(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+
+        public byte inc_lag_space(lprec lp, int deltarows, byte ignoreMAT)
+        { throw new NotImplementedException(); }
+        public lprec make_lag(lprec server)
+        { throw new NotImplementedException(); }
+
+        public double get_rh_upper(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+        public double get_rh_lower(lprec lp, int rownr)
+        { throw new NotImplementedException(); }
+        public byte set_rh_upper(lprec lp, int rownr, double value)
+        { throw new NotImplementedException(); }
+        public byte set_rh_lower(lprec lp, int rownr, double value)
+        { throw new NotImplementedException(); }
+        public int bin_count(lprec lp, byte working)
+        { throw new NotImplementedException(); }
+        public int MIP_count(lprec lp)
+        { throw new NotImplementedException(); }
+        public int SOS_count(lprec lp)
+        { throw new NotImplementedException(); }
+        public int GUB_count(lprec lp)
+        { throw new NotImplementedException(); }
+        public int identify_GUB(lprec lp, byte mark)
+        { throw new NotImplementedException(); }
+        public int prepare_GUB(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public byte refactRecent(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte check_if_less(lprec lp, double x, double y, int variable)
+        { throw new NotImplementedException(); }
+        public byte feasiblePhase1(lprec lp, double epsvalue)
+        { throw new NotImplementedException(); }
+        public void free_duals(lprec lp)
+        { throw new NotImplementedException(); }
+        public void initialize_solution(lprec lp, byte shiftbounds)
+        { throw new NotImplementedException(); }
+        public void recompute_solution(lprec lp, byte shiftbounds)
+        { throw new NotImplementedException(); }
+        public int verify_solution(lprec lp, byte reinvert, ref string info)
+        { throw new NotImplementedException(); }
+        public int check_solution(lprec lp, int lastcolumn, ref double solution, ref double upbo, ref double lowbo, double tolerance)
+        { throw new NotImplementedException(); }
+        public byte is_fixedvar(lprec lp, int variable)
+        { throw new NotImplementedException(); }
+        public byte is_splitvar(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+
+        public void set_action(ref int actionvar, int actionmask)
+        { throw new NotImplementedException(); }
+        public void clear_action(ref int actionvar, int actionmask)
+        { throw new NotImplementedException(); }
+        public byte is_action(int actionvar, int testmask)
+        { throw new NotImplementedException(); }
+
+        /* INLINE */
+        public byte is_bb_rule(lprec lp, int bb_rule)
+        { throw new NotImplementedException(); }
+        /* INLINE */
+        public byte is_bb_mode(lprec lp, int bb_mask)
+        { throw new NotImplementedException(); }
+        /* INLINE */
+        public int get_piv_rule(lprec lp)
+        { throw new NotImplementedException(); }
+        public string get_str_piv_rule(int rule)
+        { throw new NotImplementedException(); }
+        public byte set_var_priority(lprec lp)
+        { throw new NotImplementedException(); }
+        public int find_sc_bbvar(lprec lp, ref int count)
+        { throw new NotImplementedException(); }
+        public int find_sos_bbvar(lprec lp, ref int count, byte intsos)
+        { throw new NotImplementedException(); }
+        public int find_int_bbvar(lprec lp, ref int count, BBrec BB, ref byte isfeasible)
+        { throw new NotImplementedException(); }
+
+        /* Solution-related functions */
+        public double compute_dualslacks(lprec lp, int target, double[][] dvalues, int[][] nzdvalues, byte dosum)
+        { throw new NotImplementedException(); }
+        public byte solution_is_int(lprec lp, int index, byte checkfixed)
+        { throw new NotImplementedException(); }
+        public byte bb_better(lprec lp, int target, int mode)
+        { throw new NotImplementedException(); }
+        public void construct_solution(lprec lp, ref double target)
+        { throw new NotImplementedException(); }
+        public void transfer_solution_var(lprec lp, int uservar)
+        { throw new NotImplementedException(); }
+        public byte construct_duals(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte construct_sensitivity_duals(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte construct_sensitivity_obj(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public int add_GUB(lprec lp, ref string name, int priority, int count, ref int sosvars)
+        { throw new NotImplementedException(); }
+        public basisrec push_basis(lprec lp, ref int basisvar, ref byte isbasic, ref byte islower)
+        { throw new NotImplementedException(); }
+        public byte compare_basis(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte restore_basis(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte pop_basis(lprec lp, byte restore)
+        { throw new NotImplementedException(); }
+        public byte is_BasisReady(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte is_slackbasis(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte verify_basis(lprec lp)
+        { throw new NotImplementedException(); }
+        public int unload_basis(lprec lp, byte restorelast)
+        { throw new NotImplementedException(); }
+
+        public int perturb_bounds(lprec lp, BBrec perturbed, byte doRows, byte doCols, byte includeFIXED)
+        { throw new NotImplementedException(); }
+        public byte validate_bounds(lprec lp, ref double upbo, ref double lowbo)
+        { throw new NotImplementedException(); }
+        public byte impose_bounds(lprec lp, ref double upbo, ref double lowbo)
+        { throw new NotImplementedException(); }
+        public int unload_BB(lprec lp)
+        { throw new NotImplementedException(); }
+
+        public double feasibilityOffset(lprec lp, byte isdual)
+        { throw new NotImplementedException(); }
+        public byte isP1extra(lprec lp)
+        { throw new NotImplementedException(); }
+        public double get_refactfrequency(lprec lp, byte final)
+        { throw new NotImplementedException(); }
+        public int findBasicFixedvar(lprec lp, int afternr, byte slacksonly)
+        { throw new NotImplementedException(); }
+        public byte isBasisVarFeasible(lprec lp, double tol, int basis_row)
+        { throw new NotImplementedException(); }
+        public byte isPrimalFeasible(lprec lp, double tol, int[] infeasibles, ref double feasibilitygap)
+        { throw new NotImplementedException(); }
+        public byte isDualFeasible(lprec lp, double tol, ref int boundflips, int[] infeasibles, ref double feasibilitygap)
+        { throw new NotImplementedException(); }
+
+        /* Main simplex driver routines */
+        public int preprocess(lprec lp)
+        { throw new NotImplementedException(); }
+        public void postprocess(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte performiteration(lprec lp, int rownr, int varin, double theta, byte primal, byte allowminit, ref double prow, ref int nzprow, ref double pcol, ref int nzpcol, ref int boundswaps)
+        { throw new NotImplementedException(); }
+        public void transfer_solution(lprec lp, byte dofinal)
+        { throw new NotImplementedException(); }
+
+        /* Scaling utilities */
+        public double scaled_floor(lprec lp, int colnr, double value, double epsscale)
+        { throw new NotImplementedException(); }
+        public double scaled_ceil(lprec lp, int colnr, double value, double epsscale)
+        { throw new NotImplementedException(); }
+
+        /* Variable mapping utility routines */
+        public void varmap_lock(lprec lp)
+        { throw new NotImplementedException(); }
+        public void varmap_clear(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte varmap_canunlock(lprec lp)
+        { throw new NotImplementedException(); }
+        public void varmap_addconstraint(lprec lp)
+        { throw new NotImplementedException(); }
+        public void varmap_addcolumn(lprec lp)
+        { throw new NotImplementedException(); }
+        public void varmap_delete(lprec lp, int @base, int delta, LLrec varmap)
+        { throw new NotImplementedException(); }
+        public void varmap_compact(lprec lp, int prev_rows, int prev_cols)
+        { throw new NotImplementedException(); }
+        public byte varmap_validate(lprec lp, int varno)
+        { throw new NotImplementedException(); }
+        /*  unsigned char del_varnameex(lprec *lp, hashelem **namelist, hashtable *ht, int varnr, LLrec *varmap){} */
+        public byte del_varnameex(lprec lp, hashelem[] namelist, int items, hashtable ht, int varnr, LLrec varmap)
+        { throw new NotImplementedException(); }
+
+        /* Pseudo-cost routines (internal) */
+        public BBPSrec init_pseudocost(lprec lp, int pseudotype)
+        { throw new NotImplementedException(); }
+        public void free_pseudocost(lprec lp)
+        { throw new NotImplementedException(); }
+        public double get_pseudorange(BBPSrec pc, int mipvar, int varcode)
+        { throw new NotImplementedException(); }
+        public void update_pseudocost(BBPSrec pc, int mipvar, int varcode, byte capupper, double varsol)
+        { throw new NotImplementedException(); }
+        public double get_pseudobranchcost(BBPSrec pc, int mipvar, byte dofloor)
+        { throw new NotImplementedException(); }
+        public double get_pseudonodecost(BBPSrec pc, int mipvar, int vartype, double varsol)
+        { throw new NotImplementedException(); }
+
+        /* Matrix access and equation solving routines */
+        public void set_OF_override(lprec lp, ref double ofVector)
+        { throw new NotImplementedException(); }
+        public void set_OF_p1extra(lprec lp, double p1extra)
+        { throw new NotImplementedException(); }
+        public void unset_OF_p1extra(lprec lp)
+        { throw new NotImplementedException(); }
+        public byte modifyOF1(lprec lp, int index, ref double ofValue, double mult)
+        { throw new NotImplementedException(); }
+        public double get_OF_active(lprec lp, int varnr, double mult)
+        { throw new NotImplementedException(); }
+        public byte is_OF_nz(lprec lp, int colnr)
+        { throw new NotImplementedException(); }
+
+        public int get_basisOF(lprec lp, int[] coltarget, double[] crow, int[] colno)
+        { throw new NotImplementedException(); }
+        public int get_basiscolumn(lprec lp, int j, int[] rn, double[] bj)
+        { throw new NotImplementedException(); }
+        public int obtain_column(lprec lp, int varin, ref double pcol, ref int nzlist, ref int maxabs)
+        { throw new NotImplementedException(); }
+        public int compute_theta(lprec lp, int rownr, double theta, int isupbound, double HarrisScalar, byte primal)
+        { throw new NotImplementedException(); }
+
+        /* Pivot utility routines */
+        public int findBasisPos(lprec lp, int notint, ref int var_basic)
+        { throw new NotImplementedException(); }
+        public byte check_degeneracy(lprec lp, ref double pcol, ref int degencount)
+        { throw new NotImplementedException(); }
+
+
+
 
 
     }

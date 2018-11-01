@@ -80,7 +80,6 @@ namespace ZS.Math.Optimization
         public static int SOS_memberships(SOSgroup group, int column)
         {
         throw new NotImplementedException();}
-        //C++ TO C# CONVERTER WARNING: C# has no equivalent to methods returning pointers to value types:
         //ORIGINAL LINE: int *SOS_get_candidates(SOSgroup *group, int sosindex, int column, byte excludetarget, double *upbound, double *lobound)
         public static int SOS_get_candidates(SOSgroup group, int sosindex, int column, byte excludetarget, ref double upbound, ref double lobound)
         {
