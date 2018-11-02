@@ -404,6 +404,170 @@ namespace ZS.Math.Optimization
         string ex_status;
 
         /// Start convert from 1636 to 1710
+        /* Prototypes for basis inverse/factorization libraries                      */
+        /* ------------------------------------------------------------------------- */
+        // ORIGINAL LINE: typedef char   *(BFP_CALLMODEL BFPchar)(void);
+        public delegate string BFPchar();
+        // ORIGINAL LINE: typedef MYBOOL(BFP_CALLMODEL BFPbool_lpintintint)(lprec* lp, int size, int deltasize, int sizeofvar);
+        public delegate byte BFPbool_lpintintint(lprec lp, int size, int deltasize, int sizeofvar);
+        // ORIGINAL LINE: typedef MYBOOL(BFP_CALLMODEL BFPbool_lpintintchar)(lprec* lp, int size, int deltasize, char* options);
+        public delegate byte BFPbool_lpintintchar(lprec lp, int size, int deltasize, ref string options);
+        // ORIGINAL LINE: typedef void   (BFP_CALLMODEL BFP_lp)(lprec *lp);
+        public delegate void BFP_lp(lprec lp);
+        // ORIGINAL LINE: typedef MYBOOL(BFP_CALLMODEL BFPbool_lpint)(lprec* lp, int size);
+        public delegate byte BFPbool_lpint(lprec lp, int size);
+        // ORIGINAL LINE: typedef int    (BFP_CALLMODEL BFPint_lp)(lprec* lp);
+        public delegate int BFPint_lp(lprec lp);
+        // ORIGINAL LINE: typedef MYBOOL(BFP_CALLMODEL BFPbool_lp)(lprec* lp);
+        public delegate byte BFPbool_lp(lprec lp);
+        // ORIGINAL LINE: typedef int    (BFP_CALLMODEL BFPint_lpintintboolbool)(lprec* lp, int uservars, int Bsize, MYBOOL *usedpos, MYBOOL final);
+        public delegate int BFPint_lpintintboolbool(lprec lp, int uservars, int Bsize, ref byte usedpos, byte final);
+        // ORIGINAL LINE: typedef LREAL(BFP_CALLMODEL BFPlreal_lpintintreal)(lprec* lp, int row_nr, int col_nr, REAL *pcol);
+        //dComments: uncertain about using long or double instead of long double datatype in C, hence used double
+        //dComments: long is signed 64 bit integer, double is 64 bit floating value, use according to the requirement
+        public delegate double BFPlreal_lpintintreal(lprec lp, int row_nr, int col_nr, ref double pcol);
+        // ORIGINAL LINE: typedef REAL(BFP_CALLMODEL BFPreal_lplrealreal)(lprec* lp, LREAL theta, REAL* pcol);
+        public delegate double BFPreal_lplrealreal(lprec lp, double theta, ref double pcol);
+        // ORIGINAL LINE: typedef MYBOOL(BFP_CALLMODEL BFPbool_lpbool)(lprec* lp, MYBOOL changesign);
+        public delegate byte BFPbool_lpbool(lprec lp, byte changesign);
+        // ORIGINAL LINE: typedef void   (BFP_CALLMODEL BFP_lprealint)(lprec* lp, REAL *pcol, int* nzidx);
+        public delegate void BFP_lprealint(lprec lp, ref double pcol, int nzidx);
+        // ORIGINAL LINE: typedef void   (BFP_CALLMODEL BFP_lprealintrealint)(lprec* lp, REAL *prow, int* pnzidx, REAL *drow, int* dnzidx);
+        public delegate void BFP_lprealintrealint(lprec lp, ref double prow, int pnzidx, double drow, int dnzidx);
+        // ORIGINAL LINE: typedef int    (BFP_CALLMODEL BFPint_lpbool)(lprec* lp, MYBOOL maximum);
+        public delegate int BFPint_lpbool(lprec lp, byte maximum);
+        // ORIGINAL LINE: typedef REAL(BFP_CALLMODEL BFPreal_lp)(lprec* lp);
+        public delegate double BFPreal_lp(lprec lp);
+        // ORIGINAL LINE: typedef REAL   *(BFP_CALLMODEL BFPrealp_lp)(lprec* lp);
+        public delegate double BFPrealp_lp(lprec lp);
+        // ORIGINAL LINE: typedef int    (BFP_CALLMODEL BFPint_lpint)(lprec* lp, int kind);
+        public delegate int BFPint_lpint(lprec lp, int kind);
+        // ORIGINAL LINE: typedef int    (BFP_CALLMODEL getcolumnex_func)(lprec* lp, int colnr, REAL *nzvalues, int* nzrows, int* mapin);
+        public delegate int getcolumnex_func(lprec lp, int colnr, ref double nzvalues, ref int nzrows, ref int mapin);
+        // ORIGINAL LINE: typedef int    (BFP_CALLMODEL BFPint_lpintrealcbintint)(lprec* lp, int items, getcolumnex_func cb, int* maprow, int* mapcol);
+        public delegate int BFPint_lpintrealcbintint(lprec lp, int items, getcolumnex_func cb, ref int maprow, int mapcol);
+        /* Prototypes for external language libraries                                */
+        /* ------------------------------------------------------------------------- */
+
+        /* Refactorization engine interface routines (for dynamic DLL/SO BFPs) */
+        BFPchar bfp_name;
+        BFPbool_lpintintint bfp_compatible;
+        BFPbool_lpintintchar bfp_init;
+        BFP_lp bfp_free;
+        BFPbool_lpint bfp_resize;
+        BFPint_lp bfp_memallocated;
+        BFPbool_lp bfp_restart;
+        BFPbool_lp bfp_mustrefactorize;
+        BFPint_lp bfp_preparefactorization;
+        BFPint_lpintintboolbool bfp_factorize;
+        BFP_lp bfp_finishfactorization;
+        BFP_lp bfp_updaterefactstats;
+        BFPlreal_lpintintreal bfp_prepareupdate;
+        BFPreal_lplrealreal bfp_pivotRHS;
+        BFPbool_lpbool bfp_finishupdate;
+        BFP_lprealint bfp_ftran_prepare;
+        BFP_lprealint bfp_ftran_normal;
+        BFP_lprealint bfp_btran_normal;
+        BFP_lprealintrealint bfp_btran_double;
+        BFPint_lp bfp_status;
+        BFPint_lpbool bfp_nonzeros;
+        BFPbool_lp bfp_implicitslack;
+        BFPint_lp bfp_indexbase;
+        BFPint_lp bfp_rowoffset;
+        BFPint_lp bfp_pivotmax;
+        BFPbool_lpint bfp_pivotalloc;
+        BFPint_lp bfp_colcount;
+        BFPbool_lp bfp_canresetbasis;
+        BFPreal_lp bfp_efficiency;
+        BFPrealp_lp bfp_pivotvector;
+        BFPint_lp bfp_pivotcount;
+        BFPint_lpint bfp_refactcount;
+        BFPbool_lp bfp_isSetI;
+        BFPint_lpintrealcbintint bfp_findredundant;
+
+        /* Prototypes for external language libraries                                */
+        /* ------------------------------------------------------------------------- */
+        // ORIGINAL LINE: typedef char*(XLI_CALLMODEL XLIchar)(void);
+        public delegate string XLIchar();
+        // ORIGINAL LINE: typedef MYBOOL(XLI_CALLMODEL XLIbool_lpintintint)(lprec* lp, int size, int deltasize, int sizevar);
+        public delegate byte XLIbool_lpintintint(lprec lp, int size, int deltasize, int sizevar);
+        // ORIGINAL LINE: typedef MYBOOL(XLI_CALLMODEL XLIbool_lpcharcharcharint)(lprec* lp, char* modelname, char* dataname, char* options, int verbose);
+        public delegate byte XLIbool_lpcharcharcharint(lprec lp, ref string modelname, ref string dataname, ref string options, int verbose);
+        // ORIGINAL LINE: typedef MYBOOL(XLI_CALLMODEL XLIbool_lpcharcharbool)(lprec* lp, char* filename, char* options, MYBOOL results);
+        public delegate byte XLIbool_lpcharcharbool(lprec lp, ref string filename, ref string options, byte results);
+
+        /* External language interface routines (for dynamic DLL/SO XLIs) */
+        XLIchar xli_name;
+        XLIbool_lpintintint xli_compatible;
+        XLIbool_lpcharcharcharint xli_readmodel;
+        XLIbool_lpcharcharbool xli_writemodel;
+
+        /* Prototypes for callbacks from basis inverse/factorization libraries       */
+        /* ------------------------------------------------------------------------- */
+        // ORIGINAL LINE: typedef MYBOOL(__WINAPI userabortfunc)(lprec* lp, int level);
+        public delegate byte userabortfunc(lprec lp, int level);
+        // ORIGINAL LINE: typedef void   (__VACALL reportfunc)(lprec* lp, int level, char* format, ...);
+        //dComments: '...' is used to provide variable number of arguments to the function; ref: http://c-faq.com/varargs/varargs1.html
+        public delegate void reportfunc(lprec lp, int level, ref string format, params object[] reportfuncvar);
+        // ORIGINAL LINE: typedef char* (__VACALL explainfunc)(lprec* lp, char* format, ...);
+        public delegate string explainfunc(lprec lp, int level, ref string format, params object[] explainfuncvar);
+        // ORIGINAL LINE: typedef int    (__WINAPI getvectorfunc)(lprec* lp, int varin, REAL *pcol, int* nzlist, int* maxabs);
+        public delegate int getvectorfunc(lprec lp, int varin, ref double pcol, ref int nzlist, ref int maxabs);
+        // ORIGINAL LINE: typedef int    (__WINAPI getpackedfunc)(lprec* lp, int j, int rn[], double bj[]);
+        public delegate int getpackedfunc(lprec lp, int j, int[] rn, double[] bj);
+        // ORIGINAL LINE: typedef REAL(__WINAPI get_OF_activefunc)(lprec* lp, int varnr, REAL mult);
+        public delegate double get_OF_activefunc(lprec lp, int varnr, double mult);
+        // ORIGINAL LINE: typedef int    (__WINAPI getMDOfunc)(lprec* lp, MYBOOL *usedpos, int* colorder, int* size, MYBOOL symmetric);
+        public delegate int getMDOfunc(lprec lp, ref byte usedpos, ref int colorder, ref int size, byte symmetric);
+        // ORIGINAL LINE: typedef MYBOOL(__WINAPI invertfunc)(lprec* lp, MYBOOL shiftbounds, MYBOOL final);
+        public delegate byte invertfunc(lprec lp, byte shiftbounds, byte final);
+        // ORIGINAL LINE: typedef void   (__WINAPI set_actionfunc)(int* actionvar, int actionmask);
+        public delegate void set_actionfunc(ref int actionvar, int actionmask);
+        // ORIGINAL LINE: typedef MYBOOL(__WINAPI is_actionfunc)(int actionvar, int testmask);
+        public delegate byte is_actionfunc(int actionvar, int testmask);
+        // ORIGINAL LINE: typedef void   (__WINAPI clear_actionfunc)(int* actionvar, int actionmask);
+        public delegate void clear_actionfunc(ref int actionvar, int actionmask);
+
+        /* Miscellaneous internal functions made available externally */
+        userabortfunc userabort;
+        reportfunc report;
+        explainfunc explain;
+        getvectorfunc get_lpcolumn;
+        getpackedfunc get_basiscolumn;
+        get_OF_activefunc get_OF_active;
+        getMDOfunc getMDO;
+        invertfunc invert;
+        set_actionfunc set_action;
+        is_actionfunc is_action;
+        clear_actionfunc clear_action;
+
+        /* Prototypes for user call-back functions                                   */
+        /* ------------------------------------------------------------------------- */
+        // ORIGINAL LINE: typedef int    (__WINAPI lphandle_intfunc)(lprec* lp, void* userhandle);
+        public delegate int lphandle_intfunc(lprec lp, object userhandle);
+        // ORIGINAL LINE: typedef void   (__WINAPI lphandlestr_func)(lprec* lp, void* userhandle, char* buf);
+        public delegate void lphandlestr_func(lprec lp, object userhandle, ref string buf);
+        // ORIGINAL LINE: typedef void   (__WINAPI lphandleint_func)(lprec* lp, void* userhandle, int message);
+        public delegate void lphandleint_func(lprec lp, object userhandle, int message);
+        // ORIGINAL LINE: typedef int    (__WINAPI lphandleint_intfunc)(lprec* lp, void* userhandle, int message);
+        public delegate int lphandleint_intfunc(lprec lp, object userhandle, int message);
+
+        /* User program interface callbacks */
+        private lphandle_intfunc ctrlc; //dComments: delegate instnace??
+        private object ctrlchandle;     /* User-specified "owner process ID" */
+        private lphandlestr_func writelog;
+        private object loghandle;       // User-specified "owner process ID"
+        private lphandlestr_func debuginfo;
+        private lphandleint_func usermessage;
+        int msgmask;
+        private object msghandle;       /* User-specified "owner process ID" */
+        private lphandleint_intfunc bb_usenode;
+        private object bb_nodehandle; // User-specified "owner process ID"
+        private lphandleint_intfunc bb_usebranch;
+        private object bb_branchhandle; // User-specified "owner process ID"
+
+
+
 
 
         /* replacement of static variables */
