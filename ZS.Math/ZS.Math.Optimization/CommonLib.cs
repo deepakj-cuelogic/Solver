@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ZS.Math.Optimization
 {
@@ -15,36 +11,36 @@ namespace ZS.Math.Optimization
         public const double MATHPREC = 1.0e-16;
         public const double ERRLIMIT = 1.0e-06;
 
-        static Func<dynamic, dynamic, dynamic> MIN = (x, y) => ((x) < (y) ? (x) : (y));
-        static Func<dynamic, dynamic, dynamic> MAX = (x, y) => ((x) > (y) ? (x) : (y));
+        static Func<double,double, double> MIN = (x, y) => ((x) < (y) ? (x) : (y));
+        static Func<double,double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
 
-        static Action<dynamic, dynamic> SETMIN = delegate (dynamic x, dynamic y) { if (x > y) x = y; };
-        static Action<dynamic, dynamic> SETMAX = delegate (dynamic x, dynamic y) { if (x < y) x = y; };
+        static Action<int, int> SETMIN = delegate (int x, int y) { if (x > y) x = y; };
+        static Action<int, int> SETMAX = delegate (int x, int y) { if (x < y) x = y; };
 
-        static Func<dynamic, dynamic, dynamic, dynamic> LIMIT = (lo, x, hi) => ((x < (lo) ? lo : ((x) > hi ? hi : x)));
-        static Func<dynamic, dynamic, dynamic, dynamic> BETWEEN = (x, a, b) => (byte)(((x) - (a)) * ((x) - (b)) <= 0);
-        static Func<dynamic, dynamic, dynamic, dynamic> IF = (t, x, y) => ((t) ? (x) : (y));
-        static Func<dynamic, dynamic> SIGN = (x) => ((x) < 0 ? -1 : 1);
+        static Func<int,int,int,int> LIMIT = (lo, x, hi) => ((x < (lo) ? lo : ((x) > hi ? hi : x)));
+        static Func<int,int,int,bool> BETWEEN = (x, a, b) => ((x - a) * (x - b) <= 0);
+        static Func<bool,int,int,int> IF = (t, x, y) => ((t) ? (x) : (y));
+        static Func<object, object> SIGN = (x) => ((int)(x) < 0 ? -1 : 1);
 
-        static Func<dynamic, dynamic, dynamic> DELTA_SIZE = (newSize, oldSize) =>
-            (int)((newSize) * MIN(1.33, System.Math.Pow(1.5, System.Math.Abs((double)newSize) / ((oldSize + newSize) + 1))));
+        static Func<double, double, double> DELTA_SIZE = (newSize, oldSize) =>
+            (double)((newSize) * MIN(1.33, System.Math.Pow(1.5, System.Math.Abs(newSize) / ((oldSize + newSize) + 1))));
 
         // ORIGINAL LINE: typedef int (CMP_CALLMODEL findCompare_func)(const void* current, const void* candidate);
-        public delegate int findCompare_func(dynamic current, dynamic candidate);
+        public delegate int findCompare_func(object current, object candidate);
 
-        static Func<dynamic, dynamic, dynamic> CMP_COMPARE = (current, candidate) => (current < candidate ? -1 : (current > candidate ? 1 : 0));
+        static Func<int, int, object> CMP_COMPARE = (current, candidate) => (current < candidate ? -1 : (current > candidate ? 1 : 0));
         /// <summary>
         /// Not able to find variables in file i.e. attributes, recsize
         /// Please check usage and do changes appropriately 
         /// </summary>
         // ORIGINAL LINE: #define CMP_ATTRIBUTES(item)            (((char *) attributes)+(item)*recsize)
-        static Func<dynamic, dynamic, dynamic, dynamic> CMP_ATTRIBUTES = (attributes, item, recsize) => (((string)attributes) + (item) * recsize);
+        static Func<object, object, object, object> CMP_ATTRIBUTES = (attributes, item, recsize) => (((string)attributes) + ((double)item) * (double)recsize);
         /// <summary>
         /// Not able to find variables in file i.e. tags, tagsize
         /// Please check usage and do changes appropriately 
         /// </summary>
         // ORIGINAL LINE: #define CMP_TAGS(item)                  (((char *) tags)+(item)*tagsize)
-        static Func<dynamic, dynamic, dynamic, dynamic> CMP_TAGS = (tags, item, tagsize) => (((string)tags) + (item) * tagsize);
+        static Func<object, object, object, object> CMP_TAGS = (tags, item, tagsize) => (((string)tags) + ((double)item) * (double)tagsize);
 
 
         private static int intpow(int @base, int exponent)

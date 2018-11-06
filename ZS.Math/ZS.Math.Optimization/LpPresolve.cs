@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+
 
 namespace ZS.Math.Optimization
 {
@@ -75,9 +75,9 @@ namespace ZS.Math.Optimization
         public const double PRESOLVE_EPSPIVOT = 1.0e-3; // Looses robustness at values smaller than ~1.0e-3
         public const int PRESOLVE_BOUNDSLACK = 10; // Extra error recovery/tolerance margin
 
-        public static dynamic DivisorIntegralityLogicEQ2;          /* Always prefer integer divisors */
-        public static dynamic FindImpliedEqualities;       /* Detect equalities (default is enabled) */
-        public static dynamic Eq2Reldiff;
+        public static object DivisorIntegralityLogicEQ2;          /* Always prefer integer divisors */
+        public static object FindImpliedEqualities;       /* Detect equalities (default is enabled) */
+        public static object Eq2Reldiff;
 
 
 

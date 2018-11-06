@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+
 
 namespace ZS.Math.Optimization
 {
@@ -190,7 +190,7 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: double *vLU6L;
         public double vLU6L;
 
-        /* List of singular columns, with dynamic size allocation */
+        /* List of singular columns, with object size allocation */
         //ORIGINAL LINE: int *isingular;
         public int isingular;
 
