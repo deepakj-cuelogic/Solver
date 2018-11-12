@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{0DD74F67-97DA-4380-BAB5-B93A7D01063A}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ZS.Math.Optimization</RootNamespace>
     <AssemblyName>ZS.Math.Optimization</AssemblyName>
@@ -35,19 +35,22 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommonLib.cs" />
+    <Compile Include="corecrt_wstdio.cs" />
     <Compile Include="Ini.cs" />
+    <Compile Include="LpCls.cs" />
     <Compile Include="LpMatrix.cs" />
     <Compile Include="LpMipBb.cs" />
     <Compile Include="LpPresolve.cs" />

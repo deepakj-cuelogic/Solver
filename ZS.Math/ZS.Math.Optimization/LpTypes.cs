@@ -2,7 +2,14 @@
 
 namespace ZS.Math.Optimization
 {
-
+    internal static class DefineConstants
+    {
+        /* Byte-sized Booleans and extended options */
+        public const int FALSE = 0;
+        public const int TRUE = 1;
+        public const int AUTOMATIC = 2;
+        public const int DYNAMIC = 4;
+    }
     /* B4 factorization optimization data */
     public class B4rec
     {

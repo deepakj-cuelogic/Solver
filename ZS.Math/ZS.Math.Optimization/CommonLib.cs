@@ -11,15 +11,15 @@ namespace ZS.Math.Optimization
         public const double MATHPREC = 1.0e-16;
         public const double ERRLIMIT = 1.0e-06;
 
-        static Func<double,double, double> MIN = (x, y) => ((x) < (y) ? (x) : (y));
-        static Func<double,double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
+        static Func<double, double, double> MIN = (x, y) => ((x) < (y) ? (x) : (y));
+        static Func<double, double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
 
         static Action<int, int> SETMIN = delegate (int x, int y) { if (x > y) x = y; };
         static Action<int, int> SETMAX = delegate (int x, int y) { if (x < y) x = y; };
 
-        static Func<int,int,int,int> LIMIT = (lo, x, hi) => ((x < (lo) ? lo : ((x) > hi ? hi : x)));
-        static Func<int,int,int,bool> BETWEEN = (x, a, b) => ((x - a) * (x - b) <= 0);
-        static Func<bool,int,int,int> IF = (t, x, y) => ((t) ? (x) : (y));
+        static Func<int, int, int, int> LIMIT = (lo, x, hi) => ((x < (lo) ? lo : ((x) > hi ? hi : x)));
+        static Func<int, int, int, bool> BETWEEN = (x, a, b) => ((x - a) * (x - b) <= 0);
+        static Func<bool, int, int, int> IF = (t, x, y) => ((t) ? (x) : (y));
         static Func<object, object> SIGN = (x) => ((int)(x) < 0 ? -1 : 1);
 
         static Func<double, double, double> DELTA_SIZE = (newSize, oldSize) =>
@@ -272,5 +272,4 @@ throw new NotImplementedException();
         public QSORTrec6 real2 = new QSORTrec6();
         public QSORTrec7 int4 = new QSORTrec7();
     }
-
 }

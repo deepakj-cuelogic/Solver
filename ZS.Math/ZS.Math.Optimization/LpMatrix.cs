@@ -89,7 +89,7 @@ namespace ZS.Math.Optimization
 
     public static class lp_matrix
     {
-        static MATrec mat_create(lprec lp, int rows, int columns, double epsvalue)
+        internal static MATrec mat_create(lprec lp, int rows, int columns, double epsvalue)
         {
             throw new NotImplementedException();
         }
