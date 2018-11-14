@@ -112,11 +112,15 @@ namespace ZS.Math.Optimization
 
         internal static void swapINT(ref int item1, ref int item2)
         {
-            throw new NotImplementedException();
+            int hold = item1;
+            item1 = item2;
+            item2 = hold;
         }
         internal static void swapREAL(ref double item1, ref double item2)
         {
-            throw new NotImplementedException();
+            double hold = item1;
+            item1 = item2;
+            item2 = hold;
         }
         internal static void swapPTR(object[] item1, object[] item2)
         {

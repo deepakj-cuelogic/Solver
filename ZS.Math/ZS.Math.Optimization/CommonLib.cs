@@ -15,7 +15,7 @@ namespace ZS.Math.Optimization
         static Func<double, double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
 
         static Action<int, int> SETMIN = delegate (int x, int y) { if (x > y) x = y; };
-        static Action<int, int> SETMAX = delegate (int x, int y) { if (x < y) x = y; };
+        public static Action<int, int> SETMAX = delegate (int x, int y) { if (x < y) x = y; };
 
         static Func<int, int, int, int> LIMIT = (lo, x, hi) => ((x < (lo) ? lo : ((x) > hi ? hi : x)));
         static Func<int, int, int, bool> BETWEEN = (x, a, b) => ((x - a) * (x - b) <= 0);
@@ -167,9 +167,39 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        private static double sortREALByINT(ref double item, ref int weight, int size, int offset, byte unique)
+        public static double sortREALByINT(ref double item, ref int? weight, int size, int offset, bool unique)
         {
-            throw new NotImplementedException();
+            int i;
+            int ii;
+            int saveW;
+            double saveI;
+
+            for (i = 1; i < size; i++)
+            {
+                ii = i + offset - 1;
+                while ((ii >= offset) && (weight[ii] >= weight[ii + 1]))
+                {
+                    if (weight[ii] == weight[ii + 1])
+                    {
+                        if (unique)
+                        {
+                            return (item[ii]);
+                        }
+                    }
+                    else
+                    {
+                        saveI = item[ii];
+                        saveW = weight[ii];
+                        item[ii] = item[ii + 1];
+                        weight[ii] = weight[ii + 1];
+                        item[ii + 1] = saveI;
+                        weight[ii + 1] = saveW;
+                    }
+                    ii--;
+                }
+            }
+            return (0);
+
         }
 
         private static double timeNow()
@@ -223,7 +253,7 @@ throw new NotImplementedException();
 
 
     /* This defines a 16 byte sort record (in both 32 and 64 bit OS-es) */
-    public class QSORTrec1
+        public class QSORTrec1
     {
         public object ptr;
         public object ptr2;

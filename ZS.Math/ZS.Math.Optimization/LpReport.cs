@@ -13,9 +13,49 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
+        /// <summary>
+        /// changed ref string format to string format on 12/11/18
+        /// </summary>
         public void report(lprec lp, int level, ref string format, params object[] LegacyParamArray)
         {
-            throw new NotImplementedException();
+            string buff = "";        //NOT REQUIRED: = new string(new char[DEF_STRBUFSIZE + 1]);
+            //  va_list ap;
+            int ParamCount = -1;
+            if (lp == null)
+            {   
+                //	va_start(ap, format);
+                vfprintf(stderr, format, ap);
+                //	va_end(ap);
+            }
+            else if (level <= lp.verbose)
+            {
+                if (lp.writelog != null)
+                {
+                    ParamCount = -1;
+                    //	  va_start(ap, format);
+                    vsnprintf(buff, DEF_STRBUFSIZE, format, ap);
+                    //	  va_end(ap);
+                    lp.writelog(lp, lp.loghandle, buff);
+                }
+                if (lp.outstream != null)
+                {
+                    ParamCount = -1;
+                    //	  va_start(ap, format);
+                    vfprintf(lp.outstream, format, ap);
+                    //	  va_end(ap);
+                    if (lp.outstream != stdout)
+                    {
+                        fflush(lp.outstream);
+                    }
+                }
+            }
+            /*#if xParanoia
+              if (level == CRITICAL)
+              {
+	            raise(SIGSEGV);
+              }
+            #endif*/
+
         }
 
         /* Prototypes for debugging and general data dumps */

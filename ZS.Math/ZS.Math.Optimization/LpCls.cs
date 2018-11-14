@@ -170,7 +170,7 @@ namespace ZS.Math.Optimization
             lp.writelog = newlog;
             lp.loghandle = loghandle; // User-specified "owner process ID"
         }
-        private  void put_msgfunc(lprec lp, lphandleint_func newmsg, object msghandle, int mask)
+        private void put_msgfunc(lprec lp, lphandleint_func newmsg, object msghandle, int mask)
         {
             lp.usermessage = newmsg;
             lp.msghandle = msghandle; // User-specified "owner process ID"
@@ -201,6 +201,11 @@ namespace ZS.Math.Optimization
             }
         }
 
+        internal new void set_maxim(lprec lp)
+        {
+            set_sense(lp, true);
+        }
+
         internal lprec make_lp(int rows, int columns)
         {
             lprec lp;
@@ -220,7 +225,7 @@ namespace ZS.Math.Optimization
             }
             string name = "";
             set_lp_name(lp, ref name);
-            lp.names_used = 0;
+            lp.names_used = false;
             lp.use_row_names = 1;
             lp.use_col_names = 1;
             lp.rowcol_name = null;
@@ -251,7 +256,7 @@ namespace ZS.Math.Optimization
             /* Define the defaults for key user-settable values --------------------------------------- */
             reset_params(lp);
             /* Do other initializations --------------------------------------------------------------- */
-            lp.source_is_file = 0;
+            lp.source_is_file = false;
             lp.model_is_pure = 1;
             lp.model_is_valid = 0;
             lp.spx_status = lp_lib.NOTRUN;
@@ -259,7 +264,7 @@ namespace ZS.Math.Optimization
 
             lp.workarrays = lp_utils.mempool_create(lp);
             lp.wasPreprocessed = 0;
-            lp.wasPresolved = 0;
+            lp.wasPresolved = false;
             lp_presolve.presolve_createUndo(lp);
 
             lp.bb_varactive = null;
@@ -308,8 +313,8 @@ namespace ZS.Math.Optimization
 
             lp.basis_valid = 0;
             lp.simplex_mode = SIMPLEX_DYNAMIC;
-            lp.scaling_used = 0;
-            lp.columns_scaled = 0;
+            lp.scaling_used = false;
+            lp.columns_scaled = false;
             lp.P1extraDim = 0;
             lp.P1extraVal = 0.0;
             lp.bb_strongbranches = 0;
@@ -350,7 +355,7 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
 
-        private new bool set_lp_name(lprec lp, ref string name)
+        public new bool set_lp_name(lprec lp, ref string name)
         {
             if (name == "")
                 lp.lp_name = null;
@@ -377,5 +382,730 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
+        public new bool add_constraint(lprec lp, ref double row, int constr_type, double rh)
+        {
+            return (add_constraintex(lp, 0, ref row, null, constr_type, rh));
+        }
+        internal new void set_minim(lprec lp)
+        {
+            set_sense(lp, false);
+        }
+
+        /// <summary>
+        /// changed from ref int colno to ref object colno on 12/11/18
+        /// </summary>
+        private bool add_constraintex(lprec lp, int count, ref double row, object colno, int constr_type, double rh)
+        {
+            int n;
+            bool status = false;
+            lp_report objlp_report = new lp_report();
+
+            if (!(constr_type == LE || constr_type == GE || constr_type == EQ))
+            {
+                string msg = "add_constraintex: Invalid {0} constraint type\n";
+                objlp_report.report(lp, IMPORTANT, ref msg, constr_type);
+                return (status);
+            }
+
+            /* Prepare for a new row */
+            if (!append_rows(lp, 1))
+            {
+                return (status);
+            }
+
+            /* Set constraint parameters, fix the slack */
+            if ((constr_type & ROWTYPE_CONSTRAINT) == EQ)
+            {
+                lp.equalities++;
+                lp.orig_upbo[lp.rows] = 0;
+                lp.upbo[lp.rows] = 0;
+            }
+            lp.row_type[lp.rows] = constr_type;
+
+            if (is_chsign(lp, lp.rows) && (rh != 0))
+            {
+                lp.orig_rhs[lp.rows] = -rh;
+            }
+            else
+            {
+                lp.orig_rhs[lp.rows] = rh;
+            }
+
+            /* Insert the non-zero constraint values */
+            if (colno == null && row != null)
+            {
+                n = lp.columns;
+            }
+            else
+            {
+                n = count;
+            }
+            lp_matrix.mat_appendrow(lp.matA, n, row, colno, lp_types.my_chsign(is_chsign(lp, lp.rows), 1.0), true);
+            if (!lp.varmap_locked)
+            {
+               lp_presolve.presolve_setOrig(lp, lp.rows, lp.columns);
+            }
+
+            //#if Paranoia
+            if (lp.matA.is_roworder)
+            {
+                n = lp.matA.columns;
+            }
+            else
+            {
+                n = lp.matA.rows;
+            }
+            if (lp.rows != n)
+            {
+                string msg = "add_constraintex: Row count mismatch {0} vs {1}\n";
+                report(lp, SEVERE, ref msg , lp.rows, n);
+            }
+            else if (is_BasisReady(lp) && !verify_basis(lp))
+            {
+                string msg = "add_constraintex: Invalid basis detected for row {0}\n";
+                report(lp, SEVERE, ref msg, lp.rows);
+            }
+            else
+            {
+                //#endif
+                status = true;
+            }
+            return (status);
+        }
+        internal bool set_unbounded(lprec lp, int colnr)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "set_unbounded: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            return (set_bounds(lp, colnr, -lp.infinite, lp.infinite));
+        }
+        int get_nonzeros(lprec lp)
+        {
+            return (lp_matrix.mat_nonzeros(lp.matA));
+        }
+
+        internal bool set_bounds(lprec lp, int colnr, double lower, double upper)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "set_bounds: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+            /// <summary>
+            /// changed from lp.epsvalue to lprec.epsvalue on 13/11/18
+            /// </summary>
+            if (System.Math.Abs(upper - lower) < lprec.epsvalue)
+            {
+                if (lower < 0)
+                {
+                    lower = upper;
+                }
+                else
+                {
+                    upper = lower;
+                }
+            }
+            else if (lower > upper)
+            {
+                string msg = "set_bounds: Column {0} upper bound must be >= lower bound\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            colnr += lp.rows;
+
+            if (lower < -lp.infinite)
+            {
+                lower = -lp.infinite;
+            }
+            else if (lp.scaling_used)
+            {
+                lower = scaled_value(lp, lower, colnr);
+            /*#if DoBorderRounding
+	            lower = my_avoidtiny(lower, lp.matA.epsvalue);
+            #endif*/
+            }
+
+            if (upper > lp.infinite)
+            {
+                upper = lp.infinite;
+            }
+            else if (lp.scaling_used)
+            {
+                upper = scaled_value(lp, upper, colnr);
+            /*#if DoBorderRounding
+	            upper = my_avoidtiny(upper, lp.matA.epsvalue);
+            #endif*/
+            }
+
+            lp.orig_lowbo[colnr] = lower;
+            lp.orig_upbo[colnr] = upper;
+            set_action(ref lp.spx_action, ACTION_REBASE);
+
+            return true;
+        }
+
+
+        internal new bool set_lowbo(lprec lp, int colnr, double value)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "set_lowbo: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            /*#if DoBorderRounding
+              if (Math.Abs(value) < lp.infinite)
+              {
+	            value = my_avoidtiny(value, lp.matA.epsvalue);
+              }
+            #endif*/
+            value = scaled_value(lp, value, lp.rows + colnr);
+            if (lp.tighten_on_set)
+            {
+                if (value > lp.orig_upbo[lp.rows + colnr])
+                {
+                    string msg = "set_lowbo: Upper bound must be >= lower bound\n";
+                    report(lp, IMPORTANT, ref msg);
+                    return false;
+                }
+                if ((value < 0) || (value > lp.orig_lowbo[lp.rows + colnr]))
+                {
+                    set_action(ref lp.spx_action, ACTION_REBASE);
+                    lp.orig_lowbo[lp.rows + colnr] = value;
+                }
+            }
+            else
+            {
+                set_action(ref lp.spx_action, ACTION_REBASE);
+                if (value < -lp.infinite)
+                {
+                    value = -lp.infinite;
+                }
+                lp.orig_lowbo[lp.rows + colnr] = value;
+            }
+            return true;
+        }
+
+        internal new double get_lowbo(lprec lp, int colnr)
+        {
+            double value;
+
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "get_lowbo: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return (0);
+            }
+
+            value = lp.orig_lowbo[lp.rows + colnr];
+            value = lp_scale.unscaled_value(lp, value, lp.rows + colnr);
+            return (value);
+        }
+
+
+        internal new bool is_int(lprec lp, int colnr)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                lp_report objlp_report = new lp_report();
+                string msg = "is_int: Column {0} out of range\n";
+                objlp_report.report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+            return ((lp.var_type[colnr] && ISINTEGER));
+        }
+
+        internal new bool set_rh(lprec lp, int rownr, double value)
+        {
+            if ((rownr > lp.rows) || (rownr < 0))
+            {
+                string msg = "set_rh: Row {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, rownr);
+                return false;
+            }
+
+            if (((rownr == 0) && (!is_maxim(lp))) || ((rownr > 0) && is_chsign(lp, rownr))) // setting of RHS of OF IS meaningful
+            {
+                value = lp_types.my_flipsign(value);
+            }
+            if (System.Math.Abs(value) > lp.infinite)
+            {
+                if (value < 0)
+                {
+                    value = -lp.infinite;
+                }
+                else
+                {
+                    value = lp.infinite;
+                }
+            }
+            /*#if DoBorderRounding
+              else
+              {
+	            value = my_avoidtiny(value, lp.matA.epsvalue);
+              }
+            #endif*/
+            value = scaled_value(lp, value, rownr);
+            lp.orig_rhs[rownr] = value;
+            set_action(ref lp.spx_action, ACTION_RECOMPUTE);
+            return true;
+        }
+
+        internal new bool set_row_name(lprec lp, int rownr, ref string new_name)
+        {
+            if ((rownr < 0) || (rownr > lp.rows + 1))
+            {
+                lp_report objlp_report = new lp_report();
+                string msg = "set_row_name: Row {0} out of range";
+                objlp_report.report(lp, IMPORTANT, ref msg, rownr);
+                return false;
+            }
+
+            /* Prepare for a new row */
+            if ((rownr > lp.rows) && !append_rows(lp, rownr - lp.rows))
+            {
+                return false;
+            }
+            if (!lp.names_used)
+            {
+                if (!init_rowcol_names(lp))
+                {
+                    return false;
+                }
+            }
+            rename_var(lp, rownr, ref new_name, lp.row_name, lp.rowname_hashtab);
+
+            return true;
+        }
+
+        private new bool rename_var(lprec lp, int varindex, ref string new_name, hashelem[] list, hashtable[] ht)
+        {
+            hashelem hp;
+            bool newitem;
+
+            hp = list[varindex];
+            newitem = (bool)(hp == null);
+            if (newitem)
+            {
+                hp = lp_Hash.puthash(new_name, varindex, list, ht[0]);
+            }
+            else if ((hp.name.Length != new_name.Length) || (string.Compare(hp.name, new_name) != 0))
+            {
+                hashtable newht;
+                hashtable oldht;
+
+                //NOT REQUIRED: allocCHAR(lp, hp.name, (int)(new_name.Length + 1), AUTOMATIC);
+                hp.name = new_name;
+                oldht = ht[0];
+                newht = lp_Hash.copy_hash_table(oldht, list, oldht.size);
+                ht[0] = newht;
+                lp_Hash.free_hash_table(oldht);
+            }
+            return (newitem);
+        }
+
+        private void varmap_add(lprec lp, int @base, int delta)
+        {
+            int i;
+            int ii;
+            presolveundorec psundo = lp.presolve_undo;
+
+            /* Don't do anything if variables aren't locked yet */
+            if (!lp.varmap_locked)
+            {
+                return;
+            }
+
+            /* Set new constraints/columns to have an "undefined" mapping to original
+               constraints/columns (assumes that counters have NOT yet been updated) */
+            for (i = lp.sum; i >= @base; i--)
+            {
+                ii = i + delta;
+                psundo.var_to_orig[ii] = psundo.var_to_orig[i];
+            }
+
+            /* Initialize map of added rows/columns */
+            for (i = 0; i < delta; i++)
+            {
+                ii = @base + i;
+                psundo.var_to_orig[ii] = 0;
+            }
+        }
+
+        internal new bool append_rows(lprec lp, int deltarows)
+        {
+            if (!inc_row_space(lp, deltarows))
+            {
+                return false;
+            }
+            varmap_add(lp, lp.rows + 1, deltarows);
+            shift_rowdata(lp, lp.rows + 1, deltarows, null);
+
+            return true;
+        }
+
+        internal new bool is_infinite(lprec lp, double value)
+        {
+            /// <summary>
+            /// commented on 12/11/18
+            /// </summary>
+            /*#if 1
+            return (System.Math.Abs(value) >= lp.infinite);
+            #else*/
+            if (System.Math.Abs(value) >= lp.infinite)
+                return true;
+            else
+                return false;
+            //#endif
+        }
+
+        internal new int SOS_count(lprec lp)
+        {
+            if (lp.SOS == null)
+            {
+                return (0);
+            }
+            else
+            {
+                return (lp.SOS.sos_count);
+            }
+        }
+
+        internal new int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, ref int[] sosvars, ref double weights)
+        {
+            SOSrec SOS;
+            int k;
+            lp_report objlp_report = new lp_report();
+
+            if ((sostype < 1) || (count < 0))
+            {
+                string msg = "add_SOS: Invalid SOS type definition {0}\n";
+                objlp_report.report(lp, IMPORTANT, ref msg, sostype);
+                return (0);
+            }
+
+            /* Make sure SOSes of order 3 and higher are properly defined */
+            if (sostype > 2)
+            {
+                int j;
+                for (k = 0; k < count; k++)
+                {
+                    j = sosvars[k];
+                    if (!is_int(lp, j) || !is_semicont(lp, j))
+                    {
+                        string msg = "add_SOS: SOS3+ members all have to be integer or semi-continuous.\n";
+                        objlp_report.report(lp, IMPORTANT, ref msg);
+                        return 0;
+                    }
+                }
+            }
+
+            /* Make size in the list to handle another SOS record */
+            if (lp.SOS == null)
+            {
+                lp.SOS = lp_SOS.create_SOSgroup(lp);
+            }
+
+            /* Create and append SOS to list */
+            SOS = lp_SOS.create_SOSrec(lp.SOS, ref name, sostype, priority, count, ref sosvars, ref weights);
+            k = lp_SOS.append_SOSgroup(lp.SOS, SOS);
+
+            return (k);
+        }
+
+        internal new byte is_semicont(lprec lp, int colnr)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                lp_report objlp_report = new lp_report();
+                string msg = "is_semicont: Column {0} out of range\n";
+                objlp_report.report(lp, IMPORTANT, ref msg, colnr);
+                return (0);
+            }
+
+            return ((lp.var_type[colnr] & ISSEMI) != 0);
+
+        }
+
+        internal new bool is_maxim(lprec lp)
+        {
+            return ((bool)((lp.row_type != null) && ((lp.row_type[0] & ROWTYPE_CHSIGN) == ROWTYPE_GE)));
+        }
+
+        internal new void set_sense(lprec lp, bool maximize)
+        {
+            maximize = (bool)(maximize != false);
+            if (is_maxim(lp) != maximize)
+            {
+                int i;
+                if (is_infinite(lp, lp.bb_heuristicOF))
+                {
+                    lp.bb_heuristicOF = lp_types.my_chsign(maximize, lp.infinite);
+                }
+                if (is_infinite(lp, lp.bb_breakOF))
+                {
+                    lp.bb_breakOF = lp_types.my_chsign(maximize, -lp.infinite);
+                }
+                lp.orig_rhs[0] = lp_types.my_flipsign(lp.orig_rhs[0]);
+                for (i = 1; i <= lp.columns; i++)
+                {
+                    lp.orig_obj[i] = lp_types.my_flipsign(lp.orig_obj[i]);
+                }
+                set_action(ref lp.spx_action, ACTION_REINVERT | ACTION_RECOMPUTE);
+            }
+            if (maximize)
+            {
+                lp.row_type[0] = ROWTYPE_OFMAX;
+            }
+            else
+            {
+                lp.row_type[0] = ROWTYPE_OFMIN;
+            }
+        }
+
+        private bool set_semicont(lprec lp, int colnr, bool must_be_sc)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "set_semicont: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            if (lp.sc_lobound[colnr] != 0)
+            {
+                lp.sc_vars--;
+                lp.var_type[colnr] &= ~ISSEMI;
+            }
+            lp.sc_lobound[colnr] = must_be_sc;
+            if (must_be_sc)
+            {
+                lp.var_type[colnr] |= ISSEMI;
+                lp.sc_vars++;
+            }
+            return true;
+        }
+
+        internal new bool set_constr_type(lprec lp, int rownr, int con_type)
+        {
+            bool oldchsign;
+
+            if (rownr > lp.rows + 1 || rownr < 1)
+            {
+                string msg = "set_constr_type: Row {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, rownr);
+                return false;
+            }
+
+            /* Prepare for a new row */
+            if ((rownr > lp.rows) && !append_rows(lp, rownr - lp.rows))
+            {
+                return false;
+            }
+
+            /* Update the constraint type data */
+            if (is_constr_type(lp, rownr, EQ))
+            {
+                lp.equalities--;
+            }
+
+            if ((con_type & ROWTYPE_CONSTRAINT) == EQ)
+            {
+                lp.equalities++;
+                lp.orig_upbo[rownr] = 0;
+            }
+            else if (((con_type & LE) > 0) || ((con_type & GE) > 0) || (con_type == FR))
+            {
+                lp.orig_upbo[rownr] = lp.infinite;
+            }
+            else
+            {
+                string msg = "set_constr_type: Constraint type {0} not implemented (row {1})\n";
+                report(lp, IMPORTANT, ref msg, con_type, rownr);
+                return false;
+            }
+
+            /* Change the signs of the row, if necessary */
+            oldchsign = is_chsign(lp, rownr);
+            if (con_type == FR)
+            {
+                lp.row_type[rownr] = LE;
+            }
+            else
+            {
+                lp.row_type[rownr] = con_type;
+            }
+            if (oldchsign != is_chsign(lp, rownr))
+            {
+                MATrec mat = lp.matA;
+
+                if (mat.is_roworder)
+                {
+                   lp_matrix.mat_multcol(mat, rownr, -1, 0);
+                }
+                else
+                {
+                    lp_matrix.mat_multrow(mat, rownr, -1);
+                }
+                if (lp.orig_rhs[rownr] != 0)
+                {
+                    lp.orig_rhs[rownr] *= -1;
+                }
+                set_action(ref lp.spx_action, ACTION_RECOMPUTE);
+            }
+            if (con_type == FR)
+            {
+                lp.orig_rhs[rownr] = lp.infinite;
+            }
+
+            set_action(ref lp.spx_action, ACTION_REINVERT);
+            lp.basis_valid = 0;
+
+            return true;
+        }
+
+        private int get_Lrows(lprec lp)
+        {
+            if (lp.matL == null)
+            {
+                return (0);
+            }
+            else
+            {
+                return (lp.matL.rows);
+            }
+        }
+
+
+        private bool is_constr_type(lprec lp, int rownr, int mask)
+        {
+            if ((rownr < 0) || (rownr > lp.rows))
+            {
+                string msg = "is_constr_type: Row {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, rownr);
+                return false;
+            }
+            return (((lp.row_type[rownr] & ROWTYPE_CONSTRAINT) == mask));
+        }
+
+
+
+        private bool set_int(lprec lp, int colnr, bool var_type)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "set_int: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            if ((lp.var_type[colnr] & ISINTEGER) != 0)
+            {
+                lp.int_vars--;
+                lp.var_type[colnr] &= ~ISINTEGER;
+            }
+            if (var_type)
+            {
+                lp.var_type[colnr] |= ISINTEGER;
+                lp.int_vars++;
+                if (lp.columns_scaled && !is_integerscaling(lp))
+                {
+                    lp_scale.unscale_columns(lp);
+                }
+            }
+            return true;
+        }
+
+
+        public new bool set_upbo(lprec lp, int colnr, double value)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "set_upbo: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            /*#if DoBorderRounding
+              if (Math.Abs(value) < lp.infinite)
+              {
+	            value = my_avoidtiny(value, lp.matA.epsvalue);
+              }
+            #endif*/
+        value = lp_scale.scaled_value(lp, value, lp.rows + colnr);
+        if (lp.tighten_on_set)
+        {
+            if (value < lp.orig_lowbo[lp.rows + colnr])
+            {
+                    string msg = "set_upbo: Upperbound must be >= lowerbound\n";
+                report(lp, IMPORTANT, ref msg);
+                return false;
+            }
+            if (value < lp.orig_upbo[lp.rows + colnr])
+            {
+                set_action(ref lp.spx_action, ACTION_REBASE);
+                lp.orig_upbo[lp.rows + colnr] = value;
+            }
+        }
+        else
+        {
+            set_action(ref lp.spx_action, ACTION_REBASE);
+            if (value > lp.infinite)
+            {
+                value = lp.infinite;
+            }
+            lp.orig_upbo[lp.rows + colnr] = value;
+        }
+        return true;
+    }
+
+        internal bool str_add_constraint(lprec lp, ref string row_string, int constr_type, double rh)
+        {
+            int i;
+            string p;
+            string newp = "";
+            double[] aRow = null;
+            bool status = false;
+            lp_report objlp_report = new lp_report();
+            LpCls objLpCls = new LpCls();
+
+            /*NOT REQUIRED IN C#
+            allocREAL(lp, aRow, lp.columns + 1, 0);
+            */
+            p = row_string;
+
+            for (i = 1; i <= lp.columns; i++)
+            {
+                aRow[i] = Convert.ToDouble(p);  //ORIGINAL CODE: 	aRow[i] = (double) strtod(p, newp);
+                if (p == newp)
+                {
+                    string msg = "str_add_constraint: Bad string '{0}'\n";
+                    objlp_report.report(lp, lp_lib.IMPORTANT, ref msg, p);
+                    lp.spx_status = lp_lib.DATAIGNORED;
+                    break;
+                }
+                else
+                {
+                    p = newp;
+                }
+            }
+            if (lp.spx_status != lp_lib.DATAIGNORED)
+            {
+                status = objLpCls.add_constraint(lp, ref aRow[0], constr_type, rh);
+            }
+            //NOT REQUIRED IN C#
+            //FREE(aRow);
+
+            return (status);
+        }
+
+
     }
 }

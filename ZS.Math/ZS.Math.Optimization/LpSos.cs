@@ -22,13 +22,62 @@ namespace ZS.Math.Optimization
         /* SOS storage structure */
         internal static SOSgroup create_SOSgroup(lprec lp)
         {
-        throw new NotImplementedException();}
+            SOSgroup group = null;
+            //C++ TO C# CONVERTER TODO TASK: The memory management function 'calloc' has no equivalent in C#:
+            /*NOT REQUIRED
+            group = (SOSgroup)calloc(1, sizeof(SOSgroup));*/
+            group.lp = lp;
+            group.sos_alloc = SOS_START_SIZE;
+            //C++ TO C# CONVERTER TODO TASK: The memory management function 'malloc' has no equivalent in C#:
+            /*NOT REQUIRED
+            group.sos_list = (SOSrec)malloc((group.sos_alloc) * sizeof(*group.sos_list));*/
+            return (group);
+        }
         internal static void resize_SOSgroup(SOSgroup group)
         {
         throw new NotImplementedException();}
         internal static int append_SOSgroup(SOSgroup group, SOSrec SOS)
         {
-        throw new NotImplementedException();}
+            int i;
+            int k;
+            SOSrec SOSHold;
+
+            /* Check if we should resize */
+            resize_SOSgroup(group);
+
+            /* First append to the end of the list */
+            group.sos_list[group.sos_count] = SOS;
+            group.sos_count++;
+            i = System.Math.Abs(SOS.type);
+           commonlib.SETMAX(group.maxorder, i);
+            if (i == 1)
+            {
+                group.sos1_count++;
+            }
+            k = group.sos_count;
+            SOS.tagorder = k;
+
+            /* Sort the SOS list by given priority */
+            for (i = group.sos_count - 1; i > 0; i--)
+            {
+                if (group.sos_list[i].priority < group.sos_list[i - 1].priority)
+                {
+                    SOSHold = group.sos_list[i];
+                    group.sos_list[i] = group.sos_list[i - 1];
+                    group.sos_list[i - 1] = SOSHold;
+                    if (SOSHold == SOS)
+                    {
+                        k = i; // This is the index in the [1..> range
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+            /* Return the list index of the new SOS */
+            return (k);
+        }
         internal static int clean_SOSgroup(SOSgroup group, byte forceupdatemap)
         {
         throw new NotImplementedException();}

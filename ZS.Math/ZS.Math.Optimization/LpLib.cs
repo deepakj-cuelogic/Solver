@@ -34,6 +34,7 @@ namespace ZS.Math.Optimization
     /* typedef */
     public class SOSgroup
     {
+        public lprec lp;                         // Pointer to owner 
         public SOSrec[] sos_list;          // Array of pointers to SOS lists
         public int sos_alloc;               // Size allocated to specially ordered sets (SOS1, SOS2...)
         public int sos_count;               // Number of specially ordered sets (SOS1, SOS2...)
@@ -368,11 +369,11 @@ namespace ZS.Math.Optimization
         public int columns_alloc;           // The allocated memory for column-sized data
 
         /* Model status and solver result variables */
-        public byte source_is_file;     // The base model was read from a file
+        public bool source_is_file;     // The base model was read from a file
         public byte model_is_pure;      // The model has been built entirely from row and column additions
         public byte model_is_valid;     // Has this lp pased the 'test'
-        public byte tighten_on_set;     // Specify if bounds will be tightened or overriden at bound setting
-        public byte names_used;         // Flag to indicate if names for rows and columns are used
+        public bool tighten_on_set;     // Specify if bounds will be tightened or overriden at bound setting
+        public bool names_used;         // Flag to indicate if names for rows and columns are used
         public byte use_row_names;      // Flag to indicate if names for rows are used
         public byte use_col_names;      // Flag to indicate if names for columns are used
 
@@ -415,7 +416,7 @@ namespace ZS.Math.Optimization
                                    of the last LP */
         public double? objfromvalue; /* columns_alloc+1 :The value of the variables when objective value
                                    is at its from value of the last LP */
-        public double orig_obj; // Unused pointer - Placeholder for OF not part of B
+        public double[] orig_obj; // Unused pointer - Placeholder for OF not part of B
         public double obj; // Special vector used to temporarily change the OF vector
 
         public ulong current_iter; // Number of iterations in the current/last simplex
@@ -467,7 +468,7 @@ namespace ZS.Math.Optimization
         public partialrec colblocks;
 
         /* Row and column type codes */
-        public byte var_type; // sum_alloc+1 : TRUE if variable must be integer
+        public bool[] var_type; // sum_alloc+1 : TRUE if variable must be integer
 
         /* Data for multiple pricing */
         public multirec multivars;
@@ -478,7 +479,7 @@ namespace ZS.Math.Optimization
         public int int_vars; // Number of variables required to be integer
 
         public int sc_vars; // Number of semi-continuous variables
-        public double sc_lobound; /* sum_columns+1 : TRUE if variable is semi-continuous;
+        public double[] sc_lobound; /* sum_columns+1 : TRUE if variable is semi-continuous;
                                    value replaced by conventional lower bound during solve */
                                   //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                   //ORIGINAL LINE: int *var_is_free;
@@ -509,7 +510,7 @@ namespace ZS.Math.Optimization
         public int bsolveIdx; // rows+1: Non-zero indeces of bsolveVal
 
         /* RHS storage */
-        public double orig_rhs; /* rows_alloc+1 : The RHS after scaling and sign
+        public double[] orig_rhs; /* rows_alloc+1 : The RHS after scaling and sign
                                    changing, but before 'Bound transformation' */
         /// <summary>
         /// 1501
@@ -518,14 +519,14 @@ namespace ZS.Math.Optimization
 
         /* Row (constraint) parameters */
         //ORIGINAL LINE: int *row_type;
-        public int row_type; // rows_alloc+1 : Row/constraint type coding
+        public int[] row_type; // rows_alloc+1 : Row/constraint type coding
 
         /* Optionally specify data for dual long-step */
         public multirec longsteps;
 
         /* Original and working row and variable bounds */
-        public double orig_upbo; // sum_alloc+1 : Bound before transformations
-        public double upbo; //  " " : Upper bound after transformation and B&B work
+        public double[] orig_upbo; // sum_alloc+1 : Bound before transformations
+        public double[] upbo; //  " " : Upper bound after transformation and B&B work
         /// <summary>
         /// changed from double to double[] as required in LpCls.cs
         /// </summary>
@@ -546,11 +547,11 @@ namespace ZS.Math.Optimization
         OBJmonrec monitor;           /* Objective monitoring record for stalling/degeneracy handling */
 
         /* Scaling parameters */
-        double[] scalars;           /* sum_alloc+1:0..Rows the scaling of the rows,
+        internal double[] scalars;           /* sum_alloc+1:0..Rows the scaling of the rows,
                                    Rows+1..Sum the scaling of the columns */
-        internal byte scaling_used;       /* TRUE if scaling is used */
-        internal byte columns_scaled;     /* TRUE if the columns are scaled too */
-        byte varmap_locked;      /* Determines whether the var_to_orig and orig_to_var are fixed */
+        internal bool scaling_used;       /* TRUE if scaling is used */
+        internal bool columns_scaled;     /* TRUE if the columns are scaled too */
+        internal bool varmap_locked;      /* Determines whether the var_to_orig and orig_to_var are fixed */
 
         /* Variable state information */
         internal byte basis_valid;        /* TRUE is the basis is still valid */
@@ -575,14 +576,14 @@ namespace ZS.Math.Optimization
         internal double bigM;               /* Original objective weighting in primal phase 1 */
         internal double P1extraVal;         /* Phase 1 OF/RHS offset for feasibility */
         internal int P1extraDim;         /* Phase 1 additional columns/rows for feasibility */
-        int spx_action;         /* ACTION_ variables for the simplex routine */
+        internal int spx_action;         /* ACTION_ variables for the simplex routine */
         byte spx_perturbed;      /* The variable bounds were relaxed/perturbed into this simplex */
         /// <summary>
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// </summary>
         internal byte bb_break;           /* Solver working variable; signals break of the B&B */
         internal byte wasPreprocessed;    /* The solve preprocessing was performed */
-        internal byte wasPresolved;       /* The solve presolver was invoked */
+        internal bool wasPresolved;       /* The solve presolver was invoked */
         int INTfuture2;
 
         /* Lagragean solver storage and parameters */
@@ -594,7 +595,7 @@ namespace ZS.Math.Optimization
         double lag_accept;         /* The Lagrangian convergence criterion */
 
         /* Solver thresholds */
-        double infinite;           /* Limit for object range */
+        internal double infinite;           /* Limit for object range */
         double negrange;           /* Limit for negative variable range */
         double epsmachine;         /* Default machine accuracy */
 
@@ -640,16 +641,16 @@ namespace ZS.Math.Optimization
 
         internal double bb_deltaOF;         /* Minimum OF step value; computed at beginning of solve() */
 
-        double bb_breakOF;         /* User-settable value for the objective function deemed
+        internal double bb_breakOF;         /* User-settable value for the objective function deemed
                                to be sufficiently good in an integer problem */
         double bb_limitOF;         /* "Dual" bound / limit to final optimal MIP solution */
-        double bb_heuristicOF;     /* Set initial "at least better than" guess for objective function
+        internal double bb_heuristicOF;     /* Set initial "at least better than" guess for objective function
                                (can significantly speed up B&B iterations) */
         double bb_parentOF;        /* The OF value of the previous BB simplex */
         double bb_workOF;          /* The unadjusted OF value for the current best solution */
 
         /* Internal work arrays allocated as required */
-        presolveundorec presolve_undo;
+        internal presolveundorec presolve_undo;
         internal workarraysrec workarrays;
 
         /* MIP parameters */
@@ -797,7 +798,7 @@ namespace ZS.Math.Optimization
 
         /* Miscellaneous internal functions made available externally */
         userabortfunc userabort;
-        reportfunc report;
+        internal reportfunc report;
         explainfunc explain;
         getvectorfunc get_lpcolumn;
         getpackedfunc get_basiscolumn;
@@ -1420,7 +1421,10 @@ namespace ZS.Math.Optimization
 
         /* Variable codes (internal) */
         public const int ISREAL = 0;
-        public const int ISINTEGER = 1;
+        /// <summary>
+        /// changed from int to bool on 14/11/18
+        /// </summary>
+        public const bool ISINTEGER = true;
         public const int ISSEMI = 2;
         public const int ISSOS = 4;
         public const int ISSOSTEMPINT = 8;
@@ -1939,7 +1943,11 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         /* Remove problem from memory */
 
-        public byte set_lp_name(lprec lp, ref string lpname)
+        /// <summary>
+        /// changed from ref string to char on 12/11/18;
+        /// changed return type from byte to bool on 12/11/18 
+        /// </summary>
+        public bool set_lp_name(lprec lp, char lpname)
         { throw new NotImplementedException(); }
         public string get_lp_name(lprec lp)
         { throw new NotImplementedException(); }
@@ -1975,19 +1983,33 @@ namespace ZS.Math.Optimization
         public byte str_set_obj_fn(lprec lp, ref string row_string)
         { throw new NotImplementedException(); }
         /* The same, but with string input */
-        public void set_sense(lprec lp, byte maximize)
-        { throw new NotImplementedException(); }
+        /// <summary>
+        /// changed byte maximize to bool maximize on 12/11/18
+        /// </summary>
+        public void set_sense(lprec lp, bool maximize)
+        {
+            throw new NotImplementedException();
+        }
         public void set_maxim(lprec lp)
         { throw new NotImplementedException(); }
         public void set_minim(lprec lp)
         { throw new NotImplementedException(); }
-        public byte is_maxim(lprec lp)
-        { throw new NotImplementedException(); }
+        /// <summary>
+        /// changed retrun type from byte bool on 12/11/18
+        /// </summary>
+        public bool is_maxim(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
         /* Set optimization direction for the objective function */
 
-        public byte add_constraint(lprec lp, ref double row, int constr_type, double rh)
+        public bool add_constraint(lprec lp, ref double row, int constr_type, double rh)
         { throw new NotImplementedException(); }
-        public byte add_constraintex(lprec lp, int count, ref double row, ref int colno, int constr_type, double rh)
+
+        /// <summary>
+        /// changed from ref int colno to ref int? colno on 12/11/18
+        /// </summary>
+        public byte add_constraintex(lprec lp, int count, ref double row, ref int? colno, int constr_type, double rh)
         { throw new NotImplementedException(); }
         public byte set_add_rowmode(lprec lp, byte turnon)
         { throw new NotImplementedException(); }
@@ -2129,8 +2151,10 @@ namespace ZS.Math.Optimization
 
         public byte set_int(lprec lp, int colnr, byte must_be_int)
         { throw new NotImplementedException(); }
-        public byte is_int(lprec lp, int colnr)
-        { throw new NotImplementedException(); }
+        public bool is_int(lprec lp, int colnr)
+        {
+            throw new NotImplementedException();
+        }
         public byte set_binary(lprec lp, int colnr, byte must_be_bin)
         { throw new NotImplementedException(); }
         public byte is_binary(lprec lp, int colnr)
@@ -2138,7 +2162,9 @@ namespace ZS.Math.Optimization
         public byte set_semicont(lprec lp, int colnr, byte must_be_sc)
         { throw new NotImplementedException(); }
         public byte is_semicont(lprec lp, int colnr)
-        { throw new NotImplementedException(); }
+        {
+            throw new NotImplementedException();
+        }
         public byte is_negative(lprec lp, int colnr)
         { throw new NotImplementedException(); }
         public byte set_var_weights(lprec lp, ref double weights)
@@ -2155,14 +2181,18 @@ namespace ZS.Math.Optimization
             note that setting of pseudocosts can only happen in response to a
             call-back function optionally requesting this */
 
-        public int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, ref int sosvars, ref double weights)
-        { throw new NotImplementedException(); }
+        public int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, ref int[] sosvars, ref double weights)
+        {
+            throw new NotImplementedException();
+        }
         public byte is_SOS_var(lprec lp, int colnr)
         { throw new NotImplementedException(); }
         /* Add SOS constraints */
 
-        public byte set_row_name(lprec lp, int rownr, ref string new_name)
-        { throw new NotImplementedException(); }
+        public bool set_row_name(lprec lp, int rownr, ref string new_name)
+        {
+            throw new NotImplementedException();
+        }
         public string get_row_name(lprec lp, int rownr)
         { throw new NotImplementedException(); }
         public string get_origrow_name(lprec lp, int rownr)
@@ -2408,8 +2438,13 @@ namespace ZS.Math.Optimization
         public int get_var_branch(lprec lp, int colnr)
         { throw new NotImplementedException(); }
 
-        public byte is_infinite(lprec lp, double value)
-        { throw new NotImplementedException(); }
+        /// <summary>
+        /// changed return type from byte to bool on 12/11/18
+        /// </summary>
+        public bool is_infinite(lprec lp, double value)
+        {
+            throw new NotImplementedException();
+        }
         public void set_infinite(lprec lp, double infinite)
         { throw new NotImplementedException(); }
         public double get_infinite(lprec lp)
@@ -2446,7 +2481,10 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte is_scaletype(lprec lp, int scaletype)
         { throw new NotImplementedException(); }
-        public byte is_integerscaling(lprec lp)
+        /// <summary>
+        /// changed from byte to bool on 13/11/18
+        /// </summary>
+        public bool is_integerscaling(lprec lp)
         { throw new NotImplementedException(); }
         public void set_scalelimit(lprec lp, double scalelimit)
         { throw new NotImplementedException(); }
@@ -2655,17 +2693,19 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
 
         /* Memory management routines */
-        public byte append_rows(lprec lp, int deltarows)
-        { throw new NotImplementedException(); }
+        public bool append_rows(lprec lp, int deltarows)
+        {
+            throw new NotImplementedException();
+        }
         public byte append_columns(lprec lp, int deltacolumns)
         { throw new NotImplementedException(); }
         public void inc_rows(lprec lp, int delta)
         { throw new NotImplementedException(); }
         public void inc_columns(lprec lp, int delta)
         { throw new NotImplementedException(); }
-        public byte init_rowcol_names(lprec lp)
+        public bool init_rowcol_names(lprec lp)
         { throw new NotImplementedException(); }
-        public byte inc_row_space(lprec lp, int deltarows)
+        public bool inc_row_space(lprec lp, int deltarows)
         { throw new NotImplementedException(); }
         public byte inc_col_space(lprec lp, int deltacols)
         { throw new NotImplementedException(); }
@@ -2678,7 +2718,7 @@ namespace ZS.Math.Optimization
         public byte shift_coldata(lprec lp, int @base, int delta, LLrec usedmap)
         { throw new NotImplementedException(); }
 
-        public byte is_chsign(lprec lp, int rownr)
+        public bool is_chsign(lprec lp, int rownr)
         { throw new NotImplementedException(); }
 
         public byte inc_lag_space(lprec lp, int deltarows, byte ignoreMAT)
@@ -2699,7 +2739,9 @@ namespace ZS.Math.Optimization
         public int MIP_count(lprec lp)
         { throw new NotImplementedException(); }
         public int SOS_count(lprec lp)
-        { throw new NotImplementedException(); }
+        {
+            throw new NotImplementedException();
+        }
         public int GUB_count(lprec lp)
         { throw new NotImplementedException(); }
         public int identify_GUB(lprec lp, byte mark)
@@ -2783,11 +2825,17 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte pop_basis(lprec lp, byte restore)
         { throw new NotImplementedException(); }
-        public byte is_BasisReady(lprec lp)
+        /// <summary>
+        /// changed retrun type from byte to bool on 13/11/18
+        /// </summary>
+        public bool is_BasisReady(lprec lp)
         { throw new NotImplementedException(); }
         public byte is_slackbasis(lprec lp)
         { throw new NotImplementedException(); }
-        public byte verify_basis(lprec lp)
+        /// <summary>
+        /// changed retrun type from byte to bool on 13/11/18
+        /// </summary>
+        public bool verify_basis(lprec lp)
         { throw new NotImplementedException(); }
         public int unload_basis(lprec lp, byte restorelast)
         { throw new NotImplementedException(); }
@@ -2896,8 +2944,15 @@ namespace ZS.Math.Optimization
         public byte check_degeneracy(lprec lp, ref double pcol, ref int degencount)
         { throw new NotImplementedException(); }
 
+        private void varmap_add(lprec lp, int @base, int delta)
+        {
+            throw new NotImplementedException();
+        }
 
-
+        private bool rename_var(lprec lp, int varindex, ref string new_name, hashelem[] list, hashtable[] ht)
+        {
+            throw new NotImplementedException();
+        }
 
 
     }

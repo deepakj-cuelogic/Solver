@@ -2,6 +2,17 @@
 
 namespace ZS.Math.Optimization
 {
+    public static class lp_types
+    {
+        //ORIGINAL LINE: #define my_chsign(t, x)       ( ((t) && ((x) != 0)) ? -(x) : (x))
+        public static Func<bool, double, double> my_chsign = (t, x) => ((t) && (x != 0)) ? -(x) : (x);
+
+        //ORIGINAL LINE: #define my_flipsign(x)          ( fabs((REAL) (x)) == 0 ? 0 : -(x) )
+        public static Func<double, double> my_flipsign = (x) => System.Math.Abs((x == 0) ? 0 : -(x));
+
+        //ORIGINAL LINE: #define my_sign(x)              ((x) < 0 ? -1 : 1)
+        public static Func<double, double> my_sign = (x) => ((x) < 0 ? -1 : 1);
+    }
     internal static class DefineConstants
     {
         /* Byte-sized Booleans and extended options */

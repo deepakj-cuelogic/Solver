@@ -94,9 +94,27 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public static byte presolve_setOrig(lprec lp, int orig_rows, int orig_cols)
+
+        /// <summary>
+        /// changed return type from byte to bool on 13/11/18
+        /// </summary>
+        public static bool presolve_setOrig(lprec lp, int orig_rows, int orig_cols)
         {
-            throw new NotImplementedException();
+            presolveundorec psundo = lp.presolve_undo;
+
+            if (psundo == null)
+            {
+                return false;
+            }
+            psundo.orig_rows = orig_rows;
+            psundo.orig_columns = orig_cols;
+            psundo.orig_sum = orig_rows + orig_cols;
+            if (lp.wasPresolved)
+            {
+                presolve_fillUndo(lp, orig_rows, orig_cols, 0);
+            }
+            return true;
+
         }
         public static byte presolve_colfix(presolverec psdata, int colnr, double newvalue, byte remove, ref int tally)
         {
