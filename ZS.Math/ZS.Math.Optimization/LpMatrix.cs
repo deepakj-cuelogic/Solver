@@ -12,6 +12,8 @@ namespace ZS.Math.Optimization
         public const int CAM_Vector = 1;
         public const int CAM = 0;
 
+
+
 #if CAM == CAM_Record
         public const int MatrixColAccess = CAM_Record;
 #else
@@ -33,6 +35,10 @@ namespace ZS.Math.Optimization
         /* Sparse problem matrix storage */
 #if MatrixColAccess == CAM_Record
         public MATitem col_mat; // mat_alloc : The sparse data storage
+
+        public int[] col_mat_rownr;
+        public int[] col_mat_colnr;
+        public double[] col_mat_value;
 #else
             //ORIGINAL LINE: int *col_mat_colnr;
             public int[] col_mat_colnr;
@@ -94,6 +100,47 @@ namespace ZS.Math.Optimization
     {
         public const int matRowColStep = 1;
         public const int matValueStep = 1;
+        static MATrec mat;
+
+        //ORIGINAL CODE: #define COL_MAT_ROWNR(item)       (mat->col_mat_rownr[item])
+        static Func<int, int> COL_MAT_ROWNR = (item) => (mat.col_mat_rownr[item]);
+
+        /*ORIGINAL CODE: 
+        #define SET_MAT_ijA(item,i,j,A)   mat->col_mat_rownr[item] = i; \
+                                          mat->col_mat_colnr[item] = j; \
+                                          mat->col_mat_value[item] = A
+        */
+        /*static Action<int[], int[], int[], int[]> _SET_MAT_ijA = delegate (int[] item, int[] i, int[] j, int[] A)
+        {
+            /// <summary>
+            /// Cannot implicitly convert type 'int[]' to 'int' 
+            /// col_mat_rownr is of type int[], item is of type int[], i is of type int[]
+            /// </summary>
+            mat.col_mat_rownr[item] = i;
+            mat.col_mat_colnr[item] = j;
+            mat.col_mat_value[item] = A;
+        };*/
+
+        //ORIGINAL CODE: #define COL_MAT_VALUE(item)       (mat->col_mat_value[item])
+        /// <summary>
+        ///  Cannot convert lambda expression to intended delegate type 
+        ///  because some of the return types in the block are not implicitly convertible to the 
+        ///  delegate return type 
+        /// </summary>
+        static Func<int, double> COL_MAT_VALUE = (item) => (mat.col_mat_value[item]);
+
+
+        //ORIGINAL CODE: #define ROW_MAT_VALUE(item)       COL_MAT_VALUE(mat->row_mat[item])
+        static Func<int, double> ROW_MAT_VALUE = (item) => COL_MAT_VALUE(mat.row_mat[item]);
+
+        //ORIGINAL CODE: #define COL_MAT_COLNR(item)       (mat->col_mat_colnr[item])
+        static Func<int, double> COL_MAT_COLNR = (item) => (mat.col_mat_colnr[item]);
+
+        /*static Action<int[]> ROW_MAT_VALUE = delegate (int[] item)
+        {
+            mat.row_mat[item];
+        };*/
+
         internal static MATrec mat_create(lprec lp, int rows, int columns, double epsvalue)
         {
             throw new NotImplementedException();
@@ -329,7 +376,7 @@ namespace ZS.Math.Optimization
 
                 /* First tally row counts and then cumulate them */
                 j = mat_nonzeros(mat);
-                rownr = &COL_MAT_ROWNR(0);
+                rownr = COL_MAT_ROWNR(0);
                 for (i = 0; i < j; i++, rownr += matRowColStep)
                 {
                     mat.row_end[rownr]++;
@@ -344,8 +391,8 @@ namespace ZS.Math.Optimization
                 {
                     j = mat.col_end[i - 1];
                     je = mat.col_end[i];
-                    rownr = &COL_MAT_ROWNR(j);
-                    colnr = &COL_MAT_COLNR(j);
+                    rownr = COL_MAT_ROWNR(j);
+                    colnr = COL_MAT_COLNR(j);
                     for (; j < je; j++, rownr += matRowColStep, colnr += matRowColStep)
                     {
 /*#if Paranoia
@@ -387,31 +434,28 @@ namespace ZS.Math.Optimization
         {
             int i;
             int ie;
-            bool? isA = false;
+            bool isA;
             LpCls objLpCls = new LpCls();
 
-        /*#if Paranoia
-          if ((col_nr < 1) || (col_nr > mat.columns))
-          {
-	        report(mat.lp, IMPORTANT, "mult_column: Column %d out of range\n", col_nr);
-	        return;
-          }
-        #endif*/
+#if Paranoia
+  if ((col_nr < 1) || (col_nr > mat.columns))
+  {
+	report(mat.lp, IMPORTANT, "mult_column: Column %d out of range\n", col_nr);
+	return;
+  }
+#endif
             if (mult == 1.0)
-            {
                 return;
-            }
 
-            //C++ TO C# CONVERTER TODO TASK: The following line was determined to be a copy assignment (rather than a reference assignment) - this should be verified and a 'CopyFrom' method should be created:
-            //ORIGINAL LINE: isA = (MYBOOL)(mat == mat->lp->matA);
-            isA.CopyFrom((bool)(mat == mat.lp.matA));
+            isA = (mat == mat.lp.matA);
 
             ie = mat.col_end[col_nr];
             for (i = mat.col_end[col_nr - 1]; i < ie; i++)
             {
-                COL_MAT_VALUE(i) *= mult;
+                //WORKING: mat.col_mat_value[i] *= mult;
+                COL_MAT_mat.VALUE(i) *= mult;
             }
-            if (isA != null)
+            if (isA)
             {
                 if (DoObj)
                 {
@@ -422,8 +466,8 @@ namespace ZS.Math.Optimization
                     mat_multcol(mat.lp.matL, col_nr, mult, DoObj);
                 }
             }
-
         }
+
         static double mat_getitem(MATrec mat, int row, int column) { throw new NotImplementedException(); }
         static byte mat_setitem(MATrec mat, int row, int column, double value) { throw new NotImplementedException(); }
         static byte mat_additem(MATrec mat, int row, int column, double delta) { throw new NotImplementedException(); }

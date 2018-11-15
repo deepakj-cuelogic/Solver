@@ -19,12 +19,13 @@ namespace ZS.Math.Optimization
         public void report(lprec lp, int level, ref string format, params object[] LegacyParamArray)
         {
             string buff = "";        //NOT REQUIRED: = new string(new char[DEF_STRBUFSIZE + 1]);
-            //  va_list ap;
+            string ap;
             int ParamCount = -1;
             if (lp == null)
-            {   
+            {
                 //	va_start(ap, format);
-                vfprintf(stderr, format, ap);
+                //ORIGINAL CODE: vfprintf(stderr, format, ap);
+                throw new Exception(string.Format(format, LegacyParamArray));
                 //	va_end(ap);
             }
             else if (level <= lp.verbose)
@@ -33,7 +34,8 @@ namespace ZS.Math.Optimization
                 {
                     ParamCount = -1;
                     //	  va_start(ap, format);
-                    vsnprintf(buff, DEF_STRBUFSIZE, format, ap);
+                    //ORIGINAL CODE: vsnprintf(buff, DEF_STRBUFSIZE, format, ap);
+                    string.Format(format, LegacyParamArray);
                     //	  va_end(ap);
                     lp.writelog(lp, lp.loghandle, buff);
                 }
@@ -41,6 +43,7 @@ namespace ZS.Math.Optimization
                 {
                     ParamCount = -1;
                     //	  va_start(ap, format);
+                    //string.Format()
                     vfprintf(lp.outstream, format, ap);
                     //	  va_end(ap);
                     if (lp.outstream != stdout)

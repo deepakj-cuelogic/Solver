@@ -525,7 +525,7 @@ namespace ZS.Math.Optimization
             }
             else if (lp.scaling_used)
             {
-                lower = scaled_value(lp, lower, colnr);
+                lower = lp_scale.scaled_value(lp, lower, colnr);
             /*#if DoBorderRounding
 	            lower = my_avoidtiny(lower, lp.matA.epsvalue);
             #endif*/
@@ -537,7 +537,7 @@ namespace ZS.Math.Optimization
             }
             else if (lp.scaling_used)
             {
-                upper = scaled_value(lp, upper, colnr);
+                upper = lp_scale.scaled_value(lp, upper, colnr);
             /*#if DoBorderRounding
 	            upper = my_avoidtiny(upper, lp.matA.epsvalue);
             #endif*/
@@ -566,7 +566,7 @@ namespace ZS.Math.Optimization
 	            value = my_avoidtiny(value, lp.matA.epsvalue);
               }
             #endif*/
-            value = scaled_value(lp, value, lp.rows + colnr);
+            value = lp_scale.scaled_value(lp, value, lp.rows + colnr);
             if (lp.tighten_on_set)
             {
                 if (value > lp.orig_upbo[lp.rows + colnr])
