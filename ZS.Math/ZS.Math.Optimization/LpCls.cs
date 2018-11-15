@@ -9,7 +9,7 @@ namespace ZS.Math.Optimization
     class LpCls : lprec
 
     {
-        //test
+        //test1
         /* Return lp_solve version information */
         public new void lp_solve_version(ref int? majorversion, ref int? minorversion, ref int? release, ref int? build)
         {
