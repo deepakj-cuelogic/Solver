@@ -9,7 +9,6 @@ namespace ZS.Math.Optimization
     class LpCls : lprec
 
     {
-        //test1
         /* Return lp_solve version information */
         public new void lp_solve_version(ref int? majorversion, ref int? minorversion, ref int? release, ref int? build)
         {
@@ -444,7 +443,7 @@ namespace ZS.Math.Optimization
             lp_matrix.mat_appendrow(lp.matA, n, row, colno, lp_types.my_chsign(is_chsign(lp, lp.rows), 1.0), true);
             if (!lp.varmap_locked)
             {
-               lp_presolve.presolve_setOrig(lp, lp.rows, lp.columns);
+                lp_presolve.presolve_setOrig(lp, lp.rows, lp.columns);
             }
 
             //#if Paranoia
@@ -459,7 +458,7 @@ namespace ZS.Math.Optimization
             if (lp.rows != n)
             {
                 string msg = "add_constraintex: Row count mismatch {0} vs {1}\n";
-                report(lp, SEVERE, ref msg , lp.rows, n);
+                report(lp, SEVERE, ref msg, lp.rows, n);
             }
             else if (is_BasisReady(lp) && !verify_basis(lp))
             {
@@ -527,9 +526,9 @@ namespace ZS.Math.Optimization
             else if (lp.scaling_used)
             {
                 lower = lp_scale.scaled_value(lp, lower, colnr);
-            /*#if DoBorderRounding
-	            lower = my_avoidtiny(lower, lp.matA.epsvalue);
-            #endif*/
+                /*#if DoBorderRounding
+                    lower = my_avoidtiny(lower, lp.matA.epsvalue);
+                #endif*/
             }
 
             if (upper > lp.infinite)
@@ -539,9 +538,9 @@ namespace ZS.Math.Optimization
             else if (lp.scaling_used)
             {
                 upper = lp_scale.scaled_value(lp, upper, colnr);
-            /*#if DoBorderRounding
-	            upper = my_avoidtiny(upper, lp.matA.epsvalue);
-            #endif*/
+                /*#if DoBorderRounding
+                    upper = my_avoidtiny(upper, lp.matA.epsvalue);
+                #endif*/
             }
 
             lp.orig_lowbo[colnr] = lower;
@@ -949,7 +948,7 @@ namespace ZS.Math.Optimization
 
                 if (mat.is_roworder)
                 {
-                   lp_matrix.mat_multcol(mat, rownr, -1, 0);
+                    lp_matrix.mat_multcol(mat, rownr, -1, 0);
                 }
                 else
                 {
@@ -1040,32 +1039,32 @@ namespace ZS.Math.Optimization
 	            value = my_avoidtiny(value, lp.matA.epsvalue);
               }
             #endif*/
-        value = lp_scale.scaled_value(lp, value, lp.rows + colnr);
-        if (lp.tighten_on_set)
-        {
-            if (value < lp.orig_lowbo[lp.rows + colnr])
+            value = lp_scale.scaled_value(lp, value, lp.rows + colnr);
+            if (lp.tighten_on_set)
             {
+                if (value < lp.orig_lowbo[lp.rows + colnr])
+                {
                     string msg = "set_upbo: Upperbound must be >= lowerbound\n";
-                report(lp, IMPORTANT, ref msg);
-                return false;
+                    report(lp, IMPORTANT, ref msg);
+                    return false;
+                }
+                if (value < lp.orig_upbo[lp.rows + colnr])
+                {
+                    set_action(ref lp.spx_action, ACTION_REBASE);
+                    lp.orig_upbo[lp.rows + colnr] = value;
+                }
             }
-            if (value < lp.orig_upbo[lp.rows + colnr])
+            else
             {
                 set_action(ref lp.spx_action, ACTION_REBASE);
+                if (value > lp.infinite)
+                {
+                    value = lp.infinite;
+                }
                 lp.orig_upbo[lp.rows + colnr] = value;
             }
+            return true;
         }
-        else
-        {
-            set_action(ref lp.spx_action, ACTION_REBASE);
-            if (value > lp.infinite)
-            {
-                value = lp.infinite;
-            }
-            lp.orig_upbo[lp.rows + colnr] = value;
-        }
-        return true;
-    }
 
         internal bool str_add_constraint(lprec lp, ref string row_string, int constr_type, double rh)
         {
@@ -1107,6 +1106,232 @@ namespace ZS.Math.Optimization
             return (status);
         }
 
+        internal int get_rowex(lprec lp, int rownr, ref double[] row, ref int?[] colno)
+        {
+            lp_report objlp_report = new lp_report();
 
+
+            if ((rownr < 0) || (rownr > lp.rows))
+            {
+                string msg = "get_rowex: Row {0} out of range\n";
+                objlp_report.report(lp, IMPORTANT, ref msg, rownr);
+                return (-1);
+            }
+
+            if (rownr != 0 && lp.matA.is_roworder)
+            {
+                return (mat_getcolumn(lp, rownr, ref row, ref colno));
+            }
+            else
+            {
+                return (mat_getrow(lp, rownr, ref row, ref colno));
+            }
+        }
+
+        internal static int mat_getcolumn(lprec lp, int colnr, ref double[] column, ref int?[] nzrow)
+        {
+            int n = 0;
+            int i;
+            int ii;
+            int ie;
+            //ORIGINAL LINE: int *rownr;
+            int rownr;
+            double hold;
+            //ORIGINAL LINE: double *value;
+            double value;
+            MATrec mat = lp.matA;
+
+            if (nzrow == null)
+            {
+                //NOT REQUIRED
+                // MEMCLEAR(column, lp.rows + 1);
+            }
+            if (!mat.is_roworder)
+            {
+                /* Add the objective function */
+                hold = lp.get_mat(lp, 0, colnr);
+                if (nzrow == null)
+                {
+                    column[n] = hold;
+                    if (hold != 0)
+                    {
+                        n++;
+                    }
+                }
+                else if (hold != 0)
+                {
+                    column[n] = hold;
+                    nzrow[n] = 0;
+                    n++;
+                }
+            }
+
+            i = lp.matA.col_end[colnr - 1];
+            ie = lp.matA.col_end[colnr];
+            if (nzrow == null)
+            {
+                n += ie - i;
+            }
+            rownr = lp_matrix.COL_MAT_ROWNR(i);
+            value = lp_matrix.COL_MAT_VALUE(i);
+            for (; i < ie; i++, rownr += lp_matrix.matRowColStep, value += lp_matrix.matValueStep)
+            {
+                ii = rownr;
+
+                hold = lp_types.my_chsign(lp.is_chsign(lp, (mat.is_roworder) ? colnr : ii), value);
+                hold = lp_scale.unscaled_mat(lp, hold, ii, colnr);
+                if (nzrow == null)
+                {
+                    column[ii] = hold;
+                }
+                else if (hold != 0)
+                {
+                    column[n] = hold;
+                    nzrow[n] = ii;
+                    n++;
+                }
+            }
+            return (n);
+        }
+
+        public new double get_mat(lprec lp, int rownr, int colnr)
+        {
+            double value;
+            int elmnr;
+            int colnr1 = colnr;
+            int rownr1 = rownr;
+
+            lp_report objlp_report = new lp_report();
+
+            if ((rownr < 0) || (rownr > lp.rows))
+            {
+                string msg = "get_mat: Row {0} out of range";
+                objlp_report.report(lp, IMPORTANT, ref msg, rownr);
+                return (0);
+            }
+            if ((colnr < 1) || (colnr > lp.columns))
+            {
+                string msg = "get_mat: Row {0} out of range";
+                objlp_report.report(lp, IMPORTANT, ref msg, colnr);
+                return (0);
+            }
+            if (rownr == 0)
+            {
+                value = lp.orig_obj[colnr];
+                value = lp_types.my_chsign(is_chsign(lp, rownr), value);
+                value = lp_scale.unscaled_mat(lp, value, rownr, colnr);
+            }
+            else
+            {
+                if (lp.matA.is_roworder)
+                {
+                    lp_utils.swapINT(ref colnr1, ref rownr1);
+                }
+                elmnr = lp_matrix.mat_findelm(lp.matA, rownr1, colnr1);
+                if (elmnr >= 0)
+                {
+                    MATrec mat = lp.matA;
+                    value = lp_types.my_chsign(is_chsign(lp, rownr), lp_matrix.COL_MAT_VALUE(elmnr));
+                    value = lp_scale.unscaled_mat(lp, value, rownr, colnr);
+                }
+                else
+                {
+                    value = 0;
+                }
+            }
+            return (value);
+        }
+
+        internal static int mat_getrow(lprec lp, int rownr, ref double[] row, ref int?[] colno)
+        {
+            bool isnz;
+            int j;
+            int countnz = 0;
+            double a;
+
+            if ((rownr == 0) || !lp_matrix.mat_validate(lp.matA))
+            {
+                for (j = 1; j <= lp.columns; j++)
+                {
+                    a = lp.get_mat(lp, rownr, j);
+                    isnz = (a != 0);
+                    if (colno == null)
+                    {
+                        row[j] = a;
+                    }
+                    else if (isnz)
+                    {
+                        row[countnz] = a;
+                        colno[countnz] = j;
+                    }
+                    if (isnz)
+                    {
+                        countnz++;
+                    }
+                }
+            }
+            else
+            {
+                bool chsign = false;
+                int ie;
+                int i;
+                MATrec mat = lp.matA;
+
+                if (colno == null)
+                {
+                    /*
+                     * NOT REQUIRED
+                    MEMCLEAR(row, lp.columns + 1);
+                    */
+                }
+                if (mat.is_roworder)
+                {
+                    /* Add the objective function */
+                    a = lp.get_mat(lp, 0, rownr);
+                    if (colno == null)
+                    {
+                        row[countnz] = a;
+                        if (a != 0)
+                        {
+                            countnz++;
+                        }
+                    }
+                    else if (a != 0)
+                    {
+                        row[countnz] = a;
+                        colno[countnz] = 0;
+                        countnz++;
+                    }
+                }
+                i = mat.row_end[rownr - 1];
+                ie = mat.row_end[rownr];
+                if (!lp.matA.is_roworder)
+                {
+                    chsign = lp.is_chsign(lp, rownr);
+                }
+                for (; i < ie; i++)
+                {
+                    j = lp_matrix.ROW_MAT_COLNR(i);
+                    a = lp.get_mat_byindex(lp, i, 1, 0);
+                    if (lp.matA.is_roworder)
+                    {
+                        chsign = lp.is_chsign(lp, j);
+                    }
+                    a = lp_types.my_chsign(chsign, a);
+                    if (colno == null)
+                    {
+                        row[j] = a;
+                    }
+                    else
+                    {
+                        row[countnz] = a;
+                        colno[countnz] = j;
+                    }
+                    countnz++;
+                }
+            }
+            return (countnz);
+         }
+
+        }
     }
-}

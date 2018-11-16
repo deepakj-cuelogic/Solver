@@ -1081,7 +1081,7 @@ namespace ZS.Math.Optimization
         // ORIGINAL LINE: typedef MYBOOL (__WINAPI is_scaletype_func)(lprec *lp, int scaletype);
         public delegate byte is_scaletype_func(lprec lp, int scaletype);
         // ORIGINAL LINE: typedef MYBOOL (__WINAPI is_semicont_func)(lprec *lp, int colnr);
-        public delegate byte is_semicont_func(lprec lp, int colnr);
+        public delegate bool is_semicont_func(lprec lp, int colnr);
         // ORIGINAL LINE: typedef MYBOOL (__WINAPI is_SOS_var_func)(lprec *lp, int colnr);
         public delegate byte is_SOS_var_func(lprec lp, int colnr);
         // ORIGINAL LINE: typedef MYBOOL (__WINAPI is_trace_func)(lprec *lp);
@@ -1950,7 +1950,9 @@ namespace ZS.Math.Optimization
         public bool set_lp_name(lprec lp, char lpname)
         { throw new NotImplementedException(); }
         public string get_lp_name(lprec lp)
-        { throw new NotImplementedException(); }
+        {
+            return ((lp.lp_name != null) ? lp.lp_name : (String)"");
+        }
         /* Set and get the problem name */
 
         public byte has_BFP(lprec lp)
@@ -2161,7 +2163,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte set_semicont(lprec lp, int colnr, byte must_be_sc)
         { throw new NotImplementedException(); }
-        public byte is_semicont(lprec lp, int colnr)
+        public bool is_semicont(lprec lp, int colnr)
         {
             throw new NotImplementedException();
         }
@@ -2767,7 +2769,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte is_fixedvar(lprec lp, int variable)
         { throw new NotImplementedException(); }
-        public byte is_splitvar(lprec lp, int colnr)
+        public bool is_splitvar(lprec lp, int colnr)
         { throw new NotImplementedException(); }
 
         public void set_action(ref int actionvar, int actionmask)
@@ -2953,7 +2955,6 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-
-
+        
     }
 }

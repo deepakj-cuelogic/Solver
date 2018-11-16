@@ -115,9 +115,13 @@ namespace ZS.Math.Optimization
             return (value);
 
         }
-        private static double unscaled_mat(lprec lp, double value, int rownr, int colnr)
+        internal static double unscaled_mat(lprec lp, double value, int rownr, int colnr)
         {
-            throw new NotImplementedException();
+            if (lp.scaling_used)
+            {
+                value /= lp.scalars[rownr] * lp.scalars[lp.rows + colnr];
+            }
+            return (value);
         }
         internal static double unscaled_value(lprec lp, double value, int index)
         {
