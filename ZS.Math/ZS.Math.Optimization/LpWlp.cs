@@ -125,10 +125,11 @@ namespace ZS.Math.Optimization
             String ptr;
 
             lp_report objlpReport = new lp_report();
+            string msg = "";
 
             if (!lp_matrix.mat_validate(lp.matA))
             {
-                string msg = "LP_writefile: Could not validate the data matrix.\n";
+                msg = "LP_writefile: Could not validate the data matrix.\n";
                 objlpReport.report(lp, lp_lib.IMPORTANT, ref msg);
                 return false;
             }
@@ -148,7 +149,7 @@ namespace ZS.Math.Optimization
             }
 
             /* Write the objective function */
-            string msg = "Objective function";
+            msg = "Objective function";
             write_lpcomment(userhandle, write_modeldata, ref msg, (bool)(ptr != null));
             if (lp.is_maxim(lp))
             {

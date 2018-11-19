@@ -85,7 +85,12 @@ namespace ZS.Math.Optimization
         {
         throw new NotImplementedException();}
 
-        internal static SOSrec create_SOSrec(SOSgroup group, ref string name, int type, int priority, int size, ref int variables, ref double weights)
+        /// <summary>
+        /// FIX_1e4d8424-dcfd-4e3a-9936-fda7b883b7d8 19/11/18
+        /// changed from 'ref int variables' to 'ref int?[] variables'
+        /// changed from 'ref double weights' to 'ref double? weights'
+        /// </summary>
+        internal static SOSrec create_SOSrec(SOSgroup group, ref string name, int type, int priority, int size, ref int?[] variables, ref double? weights)
         {
         throw new NotImplementedException();}
         internal static byte delete_SOSrec(SOSgroup group, int sosindex)

@@ -588,7 +588,7 @@ namespace ZS.Math.Optimization
                                     {
                                         break;
                                     }
-                                    objLpCls.set_semicont(lp, @var, 1);
+                                    objLpCls.set_semicont(lp, @var, true);
                                 }
                                 ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
                                 /// changed from 'field1' to 'field1.ToString()' on 15/11/18
@@ -606,7 +606,7 @@ namespace ZS.Math.Optimization
                                         break;
                                     }
                                     objLpCls.set_int(lp, @var, 1);
-                                    objLpCls.set_semicont(lp, @var, 1);
+                                    objLpCls.set_semicont(lp, @var, true);
                                 }
                                 ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
                                 /// changed from 'field1' to 'field1.ToString()' on 15/11/18

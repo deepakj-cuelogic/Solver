@@ -382,7 +382,11 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public new bool add_constraint(lprec lp, ref double row, int constr_type, double rh)
+
+        /// <summary>
+        /// changed from 'ref double row' to 'ref double[] row' FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
+        /// </summary>
+        public new bool add_constraint(lprec lp, ref double[] row, int constr_type, double rh)
         {
             return (add_constraintex(lp, 0, ref row, null, constr_type, rh));
         }
@@ -393,8 +397,10 @@ namespace ZS.Math.Optimization
 
         /// <summary>
         /// changed from ref int colno to ref object colno on 12/11/18
+        /// changed from 'ref double row' to ref double[] row FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
+        /// changed from 'object colno' to 'int?[] colno' FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
         /// </summary>
-        private bool add_constraintex(lprec lp, int count, ref double row, object colno, int constr_type, double rh)
+        private bool add_constraintex(lprec lp, int count, ref double[] row, int?[] colno, int constr_type, double rh)
         {
             int n;
             bool status = false;
@@ -440,6 +446,13 @@ namespace ZS.Math.Optimization
             {
                 n = count;
             }
+            ///<summary> FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
+            /// PREVIOUS: lp_matrix.mat_appendrow(lp.matA, n, row, colno, lp_types.my_chsign(is_chsign(lp, lp.rows), 1.0), true);
+            /// ERROR IN PREVIOUS: cannot convert from 'double' to 'double[]'
+            /// FIX 1: changed parameter from 'ref double row' to ref double[] row
+            /// ERROR 2: cannot convert from 'object' to 'int?[]'
+            /// FIX 2: changed colno type from object to int?[]
+            ///</summary>
             lp_matrix.mat_appendrow(lp.matA, n, row, colno, lp_types.my_chsign(is_chsign(lp, lp.rows), 1.0), true);
             if (!lp.varmap_locked)
             {
@@ -652,7 +665,7 @@ namespace ZS.Math.Optimization
 	            value = my_avoidtiny(value, lp.matA.epsvalue);
               }
             #endif*/
-            value = scaled_value(lp, value, rownr);
+            value = lp_scale.scaled_value(lp, value, rownr);
             lp.orig_rhs[rownr] = value;
             set_action(ref lp.spx_action, ACTION_RECOMPUTE);
             return true;
@@ -680,12 +693,17 @@ namespace ZS.Math.Optimization
                     return false;
                 }
             }
+            ///<summary> FIX_6cf0db98-4dd5-40fa-9afe-ddc2e2c94eb2 19/11/18
+            /// PREVIOUS: private bool rename_var(lprec lp, int varindex, ref string new_name, hashelem[] list, hashtable[] ht)
+            /// ERROR IN PREVIOUS: cannot convert from 'ZS.Math.Optimization.hashtable' to 'ZS.Math.Optimization.hashtable[]'
+            /// FIX 1: changed rename_var parameter from 'hashtable[] ht' to 'hashtable ht'
+            /// </summary>
             rename_var(lp, rownr, ref new_name, lp.row_name, lp.rowname_hashtab);
 
             return true;
         }
 
-        private new bool rename_var(lprec lp, int varindex, ref string new_name, hashelem[] list, hashtable[] ht)
+        private bool rename_var(lprec lp, int varindex, ref string new_name, hashelem[] list, hashtable ht)
         {
             hashelem hp;
             bool newitem;
@@ -694,7 +712,8 @@ namespace ZS.Math.Optimization
             newitem = (bool)(hp == null);
             if (newitem)
             {
-                hp = lp_Hash.puthash(new_name, varindex, list, ht[0]);
+                // chanegd from 'ht[0]' to 'ht' FIX_6cf0db98-4dd5-40fa-9afe-ddc2e2c94eb2 19/11/18
+                hp = lp_Hash.puthash(new_name, varindex, list, ht);
             }
             else if ((hp.name.Length != new_name.Length) || (string.Compare(hp.name, new_name) != 0))
             {
@@ -703,9 +722,16 @@ namespace ZS.Math.Optimization
 
                 //NOT REQUIRED: allocCHAR(lp, hp.name, (int)(new_name.Length + 1), AUTOMATIC);
                 hp.name = new_name;
-                oldht = ht[0];
-                newht = lp_Hash.copy_hash_table(oldht, list, oldht.size);
-                ht[0] = newht;
+                // chanegd from 'ht[0]' to 'ht' FIX_6cf0db98-4dd5-40fa-9afe-ddc2e2c94eb2 19/11/18
+                oldht = ht;
+                ///<summary> 19/11/18
+                /// PREVIOUS: newht = lp_Hash.copy_hash_table(oldht, list, oldht.size);
+                /// ERROR IN PREVIOUS: cannot convert from 'ZS.Math.Optimization.hashelem[]' to 'ZS.Math.Optimization.hashelem'
+                /// FIX 1: changed from 'list' to 'lis[0]'
+                /// </summary>
+                newht = lp_Hash.copy_hash_table(oldht, list[0], oldht.size);
+                // chanegd from 'ht[0]' to 'ht' FIX_6cf0db98-4dd5-40fa-9afe-ddc2e2c94eb2 19/11/18
+                ht = newht;
                 lp_Hash.free_hash_table(oldht);
             }
             return (newitem);
@@ -797,7 +823,16 @@ namespace ZS.Math.Optimization
                 int j;
                 for (k = 0; k < count; k++)
                 {
-                    j = sosvars[k];
+                    ///<summary>
+                    /// PREVIOUS: j = sosvars[k];
+                    /// ERROR IN PREVIOUS: Cannot implicitly convert type 'int?' to 'int'.An explicit conversion exists (are you missing a cast?)
+                    /// </summary>
+                    j = (sosvars[k] != null) ? Convert.ToInt32(sosvars[k]) : 0;
+                    ///<summary> FIX_77f08594-fb68-4eb9-9ded-bfcd976801ba 19/11/18
+                    /// PREVIOUS: if (!is_int(lp, j) || !is_semicont(lp, j))
+                    /// ERROR IN PREVIOUS: Operator '!' cannot be applied to operand of type 'byte'
+                    /// FIX 1: changed is_semicont return type from byte to bool
+                    /// </summary>
                     if (!is_int(lp, j) || !is_semicont(lp, j))
                     {
                         string msg = "add_SOS: SOS3+ members all have to be integer or semi-continuous.\n";
@@ -814,23 +849,37 @@ namespace ZS.Math.Optimization
             }
 
             /* Create and append SOS to list */
+            ///<summary> FIX_1e4d8424-dcfd-4e3a-9936-fda7b883b7d8 19/11/18
+            /// PREVIOUS: SOS = lp_SOS.create_SOSrec(lp.SOS, ref name, sostype, priority, count, ref sosvars, ref weights);
+            /// ERROR IN PREVIOUS: cannot convert from 'ref int?[]' to 'ref int'.
+            /// FIX 1: changed create_SOSrec parameter from 'ref int variables' to 'ref int?[] variables'
+            /// ERROR 2: cannot convert from 'ref double?' to 'ref double'
+            /// FIX 2: changed create_SOSrec parameter from 'ref double weights' to 'ref double? weights'
+            /// </summary>
             SOS = lp_SOS.create_SOSrec(lp.SOS, ref name, sostype, priority, count, ref sosvars, ref weights);
             k = lp_SOS.append_SOSgroup(lp.SOS, SOS);
 
             return (k);
         }
 
-        internal new byte is_semicont(lprec lp, int colnr)
+        /// <summary>
+        /// changed return type from byte to bool FIX_77f08594-fb68-4eb9-9ded-bfcd976801ba 19/11/18
+        /// </summary>
+        internal new bool is_semicont(lprec lp, int colnr)
         {
             if ((colnr > lp.columns) || (colnr < 1))
             {
                 lp_report objlp_report = new lp_report();
                 string msg = "is_semicont: Column {0} out of range\n";
                 objlp_report.report(lp, IMPORTANT, ref msg, colnr);
-                return (0);
+                return (false);
             }
-
-            return ((lp.var_type[colnr] & ISSEMI) != 0);
+            ///<summary> 19/11/18
+            /// PREVIOUS: return ((lp.var_type[colnr] && ISSEMI));
+            /// ERROR IN PREVIOUS: Operator '!=' cannot be applied to operands of type 'bool' and 'int'
+            /// FIX 1: ISSEMI > 0; need to changed at the time of testing based on the situation
+            /// </summary>
+            return ((lp.var_type[colnr] && ISSEMI > 0));
 
         }
 
@@ -870,7 +919,7 @@ namespace ZS.Math.Optimization
             }
         }
 
-        private bool set_semicont(lprec lp, int colnr, bool must_be_sc)
+        private new bool set_semicont(lprec lp, int colnr, bool must_be_sc)
         {
             if ((colnr > lp.columns) || (colnr < 1))
             {
@@ -882,12 +931,29 @@ namespace ZS.Math.Optimization
             if (lp.sc_lobound[colnr] != 0)
             {
                 lp.sc_vars--;
-                lp.var_type[colnr] &= ~ISSEMI;
+                ///<summary>
+                /// PREVIOUS: lp.var_type[colnr] &= ~ISSEMI;
+                /// ERROR IN PREVIOUS: Operator '&=' cannot be applied to operands of type 'bool' and 'int'
+                /// FIX 1: lp.var_type[colnr] &= ~ISSEMI > 0;
+                /// unclear; need to check while implementing
+                /// </summary>
+                lp.var_type[colnr] &= ~ISSEMI > 0;
             }
+            ///<summary> 19/11/18
+            /// PREVIOUS: lp.sc_lobound[colnr] = must_be_sc;
+            /// ERROR IN PREVIOUS: Cannot implicitly convert type 'bool' to 'double'
+            /// FIX 1: 
+            /// </summary>
             lp.sc_lobound[colnr] = must_be_sc;
             if (must_be_sc)
             {
-                lp.var_type[colnr] |= ISSEMI;
+                ///<summary> 19/11/18
+                /// PREVIOUS: lp.var_type[colnr] |= ISSEMI;
+                /// ERROR IN PREVIOUS: Operator '|=' cannot be applied to operands of type 'bool' and 'int'
+                /// FIX 1: changed '|=' to '= ||'
+                /// unclear; need to check while implementing
+                /// </summary>
+                lp.var_type[colnr] = lp.var_type[colnr] || ISSEMI > 0;
                 lp.sc_vars++;
             }
             return true;
@@ -948,7 +1014,7 @@ namespace ZS.Math.Optimization
 
                 if (mat.is_roworder)
                 {
-                    lp_matrix.mat_multcol(mat, rownr, -1, 0);
+                    lp_matrix.mat_multcol(mat, rownr, -1, false);
                 }
                 else
                 {
@@ -1005,11 +1071,15 @@ namespace ZS.Math.Optimization
                 report(lp, IMPORTANT, ref msg, colnr);
                 return false;
             }
-
-            if ((lp.var_type[colnr] & ISINTEGER) != 0)
+            ///<summary> 19/11/18
+            /// PREVIOUS: lp.var_type[colnr] &= ~ISINTEGER;
+            /// ERROR IN PREVIOUS: Operator '~' cannot be applied to operand of type 'bool'
+            /// FIX 1: changed from '&= ~ISINTEGER' to '&= ISINTEGER'
+            /// </summary>
+            if ((lp.var_type[colnr] & ISINTEGER))
             {
                 lp.int_vars--;
-                lp.var_type[colnr] &= ~ISINTEGER;
+                lp.var_type[colnr] &= ISINTEGER;                  
             }
             if (var_type)
             {

@@ -139,8 +139,11 @@ namespace ZS.Math.Optimization
         //ORIGINAL CODE: #define ROW_MAT_VALUE(item)       COL_MAT_VALUE(mat->row_mat[item])
         static Func<int, double> ROW_MAT_VALUE = (item) => COL_MAT_VALUE(mat.row_mat[item]);
 
+        /// <summary> 
+        /// FIX_0693941b-e4fc-458f-bb39-e6c3540a30fc 19/11/18
+        /// </summary>
         //ORIGINAL CODE: #define COL_MAT_COLNR(item)       (mat->col_mat_colnr[item])
-        internal static Func<int, double> COL_MAT_COLNR = (item) => (mat.col_mat_colnr[item]);
+        internal static Func<int, int> COL_MAT_COLNR = (item) => (mat.col_mat_colnr[item]);
 
         /*static Action<int[]> ROW_MAT_VALUE = delegate (int[] item)
         {
@@ -195,6 +198,11 @@ namespace ZS.Math.Optimization
                the matrix will be transposed at a later stage */
             if (checkrowmode && mat.is_roworder)
             {
+                ///<summary> FIX_7092efd5-8395-4e93-b63c-1412df391d55 on 19/11/18
+                /// PREVIOUS: return (mat_appendcol(mat, count, row, colno, mult, false));
+                /// ERROR IN PREVIOUS: cannot convert from 'int?[]' to 'int'
+                /// FIX 1: changed mat_appendcol parameter type from int to int?[]
+                /// </summary>
                 return (mat_appendcol(mat, count, row, colno, mult, false));
             }
 
@@ -354,8 +362,10 @@ namespace ZS.Math.Optimization
                 row[0] = saved;
             return (newnr);
         }
-        
-        private static int mat_appendcol(MATrec mat, int count, double[] column, int rowno, double mult, bool checkrowmode)
+
+        /// <summary> FIX_7092efd5-8395-4e93-b63c-1412df391d55 on 19/11/18
+        /// </summary>
+        private static int mat_appendcol(MATrec mat, int count, double[] column, int?[] rowno, double mult, bool checkrowmode)
         {
             throw new NotImplementedException();
         }
@@ -398,6 +408,11 @@ namespace ZS.Math.Optimization
                     j = mat.col_end[i - 1];
                     je = mat.col_end[i];
                     rownr = COL_MAT_ROWNR(j);
+                    /// <summary> FIX_0693941b-e4fc-458f-bb39-e6c3540a30fc 19/11/18
+                    /// PREVIOUS: colnr = COL_MAT_COLNR(j);
+                    /// ERROR IN PREVIOUS: Cannot implicitly convert type 'double' to 'int'.An explicit conversion exists (are you missing a cast?)
+                    /// FIX 1: changed Func return type from double to int
+                    /// </summary>
                     colnr = COL_MAT_COLNR(j);
                     for (; j < je; j++, rownr += matRowColStep, colnr += matRowColStep)
                     {

@@ -830,7 +830,10 @@ namespace ZS.Math.Optimization
         // ORIGINAL LINE: typedef MYBOOL(__WINAPI add_constraint_func)(lprec* lp, REAL *row, int constr_type, REAL rh);
         public delegate byte add_constraint_func(lprec lp, ref double row, int constr_type, double rh);
         // ORIGINAL LINE: typedef MYBOOL(__WINAPI add_constraintex_func)(lprec* lp, int count, REAL *row, int* colno, int constr_type, REAL rh);
-        public delegate byte add_constraintex_func(lprec lp, int count, ref double row, ref int colno, int constr_type, double rh);
+        /// <summary>
+        /// changed from 'ref double row' to 'ref double[] row' FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
+        /// </summary>
+        public delegate byte add_constraintex_func(lprec lp, int count, ref double[] row, ref int colno, int constr_type, double rh);
         // ORIGINAL LINE: typedef MYBOOL(__WINAPI add_lag_con_func)(lprec* lp, REAL *row, int con_type, REAL rhs);
         public delegate byte add_lag_con_func(lprec lp, ref double row, int con_type, double rhs);
         // ORIGINAL LINE: typedef int (__WINAPI add_SOS_func)(lprec* lp, char* name, int sostype, int priority, int count, int* sosvars, REAL *weights);
@@ -2161,7 +2164,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte is_binary(lprec lp, int colnr)
         { throw new NotImplementedException(); }
-        public byte set_semicont(lprec lp, int colnr, byte must_be_sc)
+        public byte set_semicont(lprec lp, int colnr, bool must_be_sc)
         { throw new NotImplementedException(); }
         public bool is_semicont(lprec lp, int colnr)
         {
