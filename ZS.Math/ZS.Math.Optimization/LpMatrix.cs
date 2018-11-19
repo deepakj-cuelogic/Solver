@@ -64,6 +64,7 @@ namespace ZS.Math.Optimization
             public double row_mat_value;
 #endif
 
+
         //ORIGINAL LINE: int *row_end;
         public int[] row_end; /* rows_alloc+1 : row_end[i] is the index of the first element in row_mat after row i */
         //ORIGINAL LINE: int *row_tag;
@@ -433,7 +434,92 @@ namespace ZS.Math.Optimization
         }
 
         static byte mat_equalRows(MATrec mat, int baserow, int comprow) { throw new NotImplementedException(); }
-        static int mat_findelm(MATrec mat, int row, int column) { throw new NotImplementedException(); }
+
+        /* Implement combined binary/linear sub-search for matrix look-up */
+        internal static int mat_findelm(MATrec mat, int row, int column)
+        {
+            int low;
+            int high;
+            int mid;
+            int item;
+
+            ///#if false
+            //  if(mat->row_end_valid && (row > 0) &&
+            //     (ROW_MAT_COLNR(mat->row_mat[(low = mat->row_end[row-1])]) == column))
+            //    return(low);
+            ///#endif
+
+            lp_report objlpReport = new lp_report();
+
+            if ((column < 1) || (column > mat.columns))
+            {
+                string msg = "mat_findelm: Column {0} out of range\n";
+               objlpReport.report(mat.lp, lp_lib.IMPORTANT, ref msg , column);
+                return (-1);
+            }
+            if ((row < 0) || (row > mat.rows))
+            {
+                string msg = "mat_findelm: Row {0} out of range\n";
+                objlpReport.report(mat.lp, lp_lib.IMPORTANT, ref msg , row);
+                return (-1);
+            }
+
+            low = mat.col_end[column - 1];
+            high = mat.col_end[column] - 1;
+            if (low > high)
+            {
+                return (-2);
+            }
+
+            /* Do binary search logic */
+            mid = (low + high) / 2;
+            item = COL_MAT_ROWNR(mid);
+            while (high - low > commonlib.LINEARSEARCH)
+            {
+                if (item < row)
+                {
+                    low = mid + 1;
+                    mid = (low + high) / 2;
+                    item = COL_MAT_ROWNR(mid);
+                }
+                else if (item > row)
+                {
+                    high = mid - 1;
+                    mid = (low + high) / 2;
+                    item = COL_MAT_ROWNR(mid);
+                }
+                else
+                {
+                    low = mid;
+                    high = mid;
+                }
+            }
+
+            /* Do linear scan search logic */
+            if ((high > low) && (high - low <= commonlib.LINEARSEARCH))
+            {
+                item = COL_MAT_ROWNR(low);
+                while ((low < high) && (item < row))
+                {
+                    low++;
+                    item = COL_MAT_ROWNR(low);
+                }
+                if (item == row)
+                {
+                    high = low;
+                }
+            }
+
+            if ((low == high) && (row == item))
+            {
+                return (low);
+            }
+            else
+            {
+                return (-2);
+            }
+
+        }
         static int mat_findins(MATrec mat, int row, int column, int insertpos, byte validate) { throw new NotImplementedException(); }
         static internal void mat_multcol(MATrec mat, int col_nr, double mult, bool DoObj)
         {
@@ -442,13 +528,13 @@ namespace ZS.Math.Optimization
             bool isA;
             LpCls objLpCls = new LpCls();
 
-#if Paranoia
-  if ((col_nr < 1) || (col_nr > mat.columns))
-  {
-	report(mat.lp, IMPORTANT, "mult_column: Column %d out of range\n", col_nr);
-	return;
-  }
-#endif
+            #if Paranoia
+              if ((col_nr < 1) || (col_nr > mat.columns))
+              {
+	            report(mat.lp, IMPORTANT, "mult_column: Column %d out of range\n", col_nr);
+	            return;
+              }
+            #endif
             if (mult == 1.0)
                 return;
 
