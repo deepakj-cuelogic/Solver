@@ -2180,8 +2180,11 @@ namespace ZS.Math.Optimization
         /* Set initial values for, or get computed pseudocost vectors;
             note that setting of pseudocosts can only happen in response to a
             call-back function optionally requesting this */
-
-        public int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, ref int[] sosvars, ref double weights)
+        /// <summary>
+        /// changed from 'ref int[] sosvars, ref double weights' to int?[] sosvars, double? weights 
+        /// on 15/11/18
+        /// </summary>
+        public int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, int?[] sosvars, double? weights)
         {
             throw new NotImplementedException();
         }

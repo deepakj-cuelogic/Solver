@@ -7,7 +7,10 @@ using System.Text;
 
 namespace ZS.Math.Optimization
 {
-    public delegate int scan_lineDelegate(lprec lp, int section, ref string line, ref string field1, ref string field2, ref string field3, ref double field4, ref string field5, ref double field6);
+    /// <summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+    /// changed from 'ref string field1' to 'ref char[] field1' on 15/11/18
+    /// </summary>
+    public delegate int scan_lineDelegate(lprec lp, int section, ref string line, ref char[] field1, ref string field2, ref string field3, ref double field4, ref string field5, ref double field6);
     
     public class FILE
     {
@@ -31,7 +34,12 @@ namespace ZS.Math.Optimization
             if (fpin != null)
             {
                 status = MPS_readhandle(newlp, fpin, typeMPS, verbose);
-                fclose(fpin);
+                ///<summary>
+                /// PREVIOUS: fclose(fpin);
+                /// ERROR IN PREVIOUS: The name 'fclose' does not exist in the current context
+                /// FIX 1: fpin.Close();
+                ///</summary>
+                fpin.Close();
             }
             return (status);
         }
@@ -43,7 +51,8 @@ namespace ZS.Math.Optimization
 
         private bool MPS_readex(lprec[] newlp, object userhandle, lp_lib.read_modeldata_func read_modeldata, int typeMPS, int verbose)
         {
-            string field1 = new string(new char[lp_lib.BUFSIZ]);    //can use string instead??
+
+            char[] field1 = null;    //can use string instead?? FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
             string field2 = new string(new char[lp_lib.BUFSIZ]);
             string field3 = new string(new char[lp_lib.BUFSIZ]);
             string field5 = new string(new char[lp_lib.BUFSIZ]);
@@ -73,7 +82,12 @@ namespace ZS.Math.Optimization
             //ORIGINAL LINE: double *Last_column = null;
             double?[] Last_column = null;
             int count = 0;
-            int?[] Last_columnno = 0;
+            ///<summary>
+            /// PREVIOUS: int?[] Last_columnno = 0;
+            /// ERROR IN PREVIOUS: Cannot implicitly convert type 'int' to 'int?[]'
+            /// FIX 1: int?[] Last_columnno = null; NO ERROR
+            /// </summary>
+            int?[] Last_columnno = null;
             int OBJSENSE = lp_lib.ROWTYPE_EMPTY;
             lprec lp;
             //lp_lib objlpLib = new lp_lib();
@@ -268,12 +282,18 @@ namespace ZS.Math.Optimization
                                     objlp_report.report(lp, lp_lib.IMPORTANT, ref msg);
                                     break;
                                 }
-                                if ((string.Compare(field1, "MAXIMIZE") == 0) || (string.Compare(field1, "MAX") == 0))
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                if ((string.Compare(field1.ToString(), "MAXIMIZE") == 0) || (string.Compare(field1.ToString(), "MAX") == 0))
                                 {
                                     OBJSENSE = lp_lib.ROWTYPE_OFMAX;
                                     objLpCls.set_maxim(lp);
                                 }
-                                else if ((string.Compare(field1, "MINIMIZE") == 0) || (string.Compare(field1, "MIN") == 0))
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if ((string.Compare(field1.ToString(), "MINIMIZE") == 0) || (string.Compare(field1.ToString(), "MIN") == 0))
                                 {
                                     OBJSENSE = lp_lib.ROWTYPE_OFMIN;
                                     objLpCls.set_minim(lp);
@@ -293,7 +313,10 @@ namespace ZS.Math.Optimization
                                     objlp_report.report(lp, lp_lib.IMPORTANT, ref msg);
                                     break;
                                 }
-                                OBJNAME = field1;
+                                /// <summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                /// </summary>
+                                OBJNAME = field1.ToString();
                                 continue;
 
                             /* Process entries in the ROWS section */
@@ -301,8 +324,10 @@ namespace ZS.Math.Optimization
                                 /* field1: rel. operator; field2: name of constraint */
                                 msg = "Row   {0}: {1} {2}\n";
                                 objlp_report.report(lp, lp_lib.FULL, ref msg, lp.rows + 1, field1, field2);
-
-                                if (string.Compare(field1, "N") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                if (string.Compare(field1.ToString(), "N") == 0)
                                 {
                                     if ((OBJNAME == "") && (string.Compare(field2, OBJNAME) > 0))   //TODO:Need to check this condition later
                                     {
@@ -326,7 +351,10 @@ namespace ZS.Math.Optimization
                                         Unconstrained_rows_found = true;
                                     }
                                 }
-                                else if (string.Compare(field1, "L") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "L") == 0)
                                 {
                                     msg = "";
                                     if ((!objLpCls.str_add_constraint(lp, ref msg, lp_lib.LE, 0)) || (!objLpCls.set_row_name(lp, lp.rows, ref field2)))
@@ -334,7 +362,10 @@ namespace ZS.Math.Optimization
                                         break;
                                     }
                                 }
-                                else if (string.Compare(field1, "G") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "G") == 0)
                                 {
                                     msg = "";
                                     if ((!objLpCls.str_add_constraint(lp, ref msg, lp_lib.GE, 0)) || (!objLpCls.set_row_name(lp, lp.rows, ref field2)))
@@ -342,7 +373,10 @@ namespace ZS.Math.Optimization
                                         break;
                                     }
                                 }
-                                else if (string.Compare(field1, "E") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "E") == 0)
                                 {
                                     msg = "";
                                     if ((!objLpCls.str_add_constraint(lp, ref msg, lp_lib.EQ, 0)) || (!objLpCls.set_row_name(lp, lp.rows, ref field2)))
@@ -527,7 +561,10 @@ namespace ZS.Math.Optimization
                                 {
                                     ;
                                 }
-                                else if (string.Compare(field1, "UP") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "UP") == 0)
                                 {
                                     /* upper bound */
                                     /* if(!set_bounds(lp, var, get_lowbo(lp, var), field4)) */
@@ -536,7 +573,10 @@ namespace ZS.Math.Optimization
                                         break;
                                     }
                                 }
-                                else if (string.Compare(field1, "SC") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "SC") == 0)
                                 {
                                     /* upper bound */
                                     if (field4 == 0)
@@ -550,7 +590,10 @@ namespace ZS.Math.Optimization
                                     }
                                     objLpCls.set_semicont(lp, @var, 1);
                                 }
-                                else if (string.Compare(field1, "SI") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "SI") == 0)
                                 {
                                     /* upper bound */
                                     if (field4 == 0)
@@ -565,7 +608,10 @@ namespace ZS.Math.Optimization
                                     objLpCls.set_int(lp, @var, 1);
                                     objLpCls.set_semicont(lp, @var, 1);
                                 }
-                                else if (string.Compare(field1, "LO") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "LO") == 0)
                                 {
                                     /* lower bound */
                                     /* if(!set_bounds(lp, var, field4, get_upbo(lp, var))) */
@@ -574,7 +620,10 @@ namespace ZS.Math.Optimization
                                         break;
                                     }
                                 }
-                                else if (string.Compare(field1, "PL") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "PL") == 0)
                                 { // plus-ranged variable
                                   /* if(!set_bounds(lp, var, get_lowbo(lp, var), lp->infinite)) */
                                     if (!objLpCls.set_upbo(lp, @var, lp.infinite))
@@ -582,7 +631,10 @@ namespace ZS.Math.Optimization
                                         break;
                                     }
                                 }
-                                else if (string.Compare(field1, "MI") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "MI") == 0)
                                 { // minus-ranged variable
                                   /* if(!set_bounds(lp, var, -lp->infinite, get_upbo(lp, var))) */
                                     if (!objLpCls.set_lowbo(lp, @var, -lp.infinite))
@@ -590,11 +642,17 @@ namespace ZS.Math.Optimization
                                         break;
                                     }
                                 }
-                                else if (string.Compare(field1, "FR") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "FR") == 0)
                                 { // free variable
                                     objLpCls.set_unbounded(lp, @var);
                                 }
-                                else if (string.Compare(field1, "FX") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "FX") == 0)
                                 {
                                     /* fixed, upper _and_ lower  */
                                     if (!objLpCls.set_bounds(lp, @var, field4, field4))
@@ -602,12 +660,18 @@ namespace ZS.Math.Optimization
                                         break;
                                     }
                                 }
-                                else if (string.Compare(field1, "BV") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "BV") == 0)
                                 { // binary variable
                                     objLpCls.set_binary(lp, @var, 1);
                                 }
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
                                 /* AMPL bounds type UI and LI added by E.Imamura (CRIEPI)  */
-                                else if (string.Compare(field1, "UI") == 0)
+                                else if (string.Compare(field1.ToString(), "UI") == 0)
                                 { // upper bound for integer variable
                                   /* if(!set_bounds(lp, var, get_lowbo(lp, var), field4)) */
                                     if (!objLpCls.set_upbo(lp, @var, field4))
@@ -616,7 +680,10 @@ namespace ZS.Math.Optimization
                                     }
                                     objLpCls.set_int(lp, @var, 1);
                                 }
-                                else if (string.Compare(field1, "LI") == 0)
+                                ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                /// changed from 'field1' to 'field1.ToString()' on 15/11/18
+                                ///</summary>
+                                else if (string.Compare(field1.ToString(), "LI") == 0)
                                 { // lower bound for integer variable - corrected by KE
                                   /* if(!set_bounds(lp, var, field4, get_upbo(lp, var))) */
                                     if (!objLpCls.set_lowbo(lp, @var, field4))
@@ -801,6 +868,12 @@ namespace ZS.Math.Optimization
                                         objlp_report.report(lp, lp_lib.IMPORTANT, ref msg, field1, Lineno);
                                         break;
                                     }
+                                    ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+                                    /// PREVIOUS: field1[0] = '\0';
+                                    /// ERROR IN PREVIOUS: Property or indexer 'string.this[int]' cannot be assigned to --it is read only
+                                    /// FIX 1: changed from 'string field1 = new string(new char[lp_lib.BUFSIZ]);' to 
+                                    /// char[] field1 = null; 
+                                    ///</summary>
                                     field1[0] = '\0'; // fix scanline anomoly!
 
                                     /* lp_solve needs a name for the SOS */
@@ -813,7 +886,7 @@ namespace ZS.Math.Optimization
                                     }
                                     else
                                     { // Remap XPRESS format name
-                                        field3 = field1;
+                                        field3 = field1.ToString();
                                     }
                                     /* Obtain the SOS priority */
                                     if (items == 4)
@@ -834,7 +907,7 @@ namespace ZS.Math.Optimization
                                 {
                                     string field = (items == 3) ? field3 : field2;
 
-                                    @var = lp_Hash.find_var(lp, field, 0); // Native lp_solve and XPRESS formats
+                                    @var = lp_Hash.find_var(lp, field, false); // Native lp_solve and XPRESS formats
                                     if (@var < 0)
                                     { // SOS on undefined var in COLUMNS section ...
                                         Column_ready = true;
@@ -843,7 +916,7 @@ namespace ZS.Math.Optimization
                                             break;
                                         }
                                         Column_ready = true;
-                                        @var = lp_Hash.find_var(lp, field, 1);
+                                        @var = lp_Hash.find_var(lp, field, true);
                                     }
                                     if ((@var < 0) || (SOS < 1))
                                     {
@@ -913,7 +986,12 @@ namespace ZS.Math.Optimization
                         }
                     }
                 }
-                newlp = lp;
+                ///<summary>
+                /// PREVIOUS: newlp = lp;
+                /// ERROR IN PREVIOUS: Cannot implicitly convert type 'ZS.Math.Optimization.lprec' to 'ZS.Math.Optimization.lprec[]'
+                /// FIX 1: changed to 'newlp[0] = lp;'
+                ///</summary>
+                newlp[0] = lp;
             //}
                 /*NOT REQUIRED
                 if (Last_column != null)
@@ -943,8 +1021,26 @@ namespace ZS.Math.Optimization
             /* Move the element so that the index list is sorted ascending */
             while ((i > 0) && (rowIndex[i] < rowIndex[i - 1]))
             {
-                lp_utils.swapINT(rowIndex + i, rowIndex + i - 1);
-                lp_utils.swapREAL(rowValue + i, rowValue + i - 1);
+                ///<summary>
+                /// PREVIOUS: lp_utils.swapINT(rowIndex + i, rowIndex + i - 1);
+                /// ERROR IN PREVIOUS: Operator '+' cannot be applied to operands of type 'int?[]' and 'int' 
+                /// FIX 1: int param1 = (rowIndex != null) ? Convert.ToInt32(rowIndex) + i : 0 + i;
+                ///        int param2 = (rowIndex != null) ? Convert.ToInt32(rowIndex) + i - 1 : 0 + i - 1;
+                /// lp_utils.swapINT(ref param1, ref param2);
+                /// </summary>
+                int intParam1 = (rowIndex != null) ? Convert.ToInt32(rowIndex) + i : 0 + i;
+                int intParam2 = (rowIndex != null) ? Convert.ToInt32(rowIndex) + i - 1 : 0 + i - 1;
+                lp_utils.swapINT(ref intParam1, ref intParam2);
+                ///<summary>
+                /// PREVIOUS: lp_utils.swapREAL(rowValue + i, rowValue + i - 1);
+                /// ERROR IN PREVIOUS: Operator '+' cannot be applied to operands of type 'double?[]' and 'int'
+                /// FIX 1: double doubleParam1 = (rowValue != null) ? Convert.ToInt32(rowValue) + i : 0 + i;
+                /// double doubleParam2 = (rowValue != null) ? Convert.ToInt32(rowValue) + i - 1 : 0 + i - 1;
+                /// lp_utils.swapREAL(ref doubleParam1, ref doubleParam2);
+                /// </summary>
+                double doubleParam1 = (rowValue != null) ? Convert.ToInt32(rowValue) + i : 0 + i;
+                double doubleParam2 = (rowValue != null) ? Convert.ToInt32(rowValue) + i - 1 : 0 + i - 1;
+                lp_utils.swapREAL(ref doubleParam1, ref doubleParam2);
                 i--;
             }
 
@@ -967,7 +1063,11 @@ namespace ZS.Math.Optimization
             return true;
         }
 
-        private static int MPS_input(object fpin, ref string buf, int max_size)
+
+        /// <summary>
+        /// changed from 'ref string buf' to 'string buf' on 15/11/18 
+        /// </summary>
+        private static int MPS_input(object fpin, string buf, int max_size)
         {
             //ORIGINAL LINE: return (fgets(buf, max_size, (FILE*)fpin) != NULL);
             int count = 0;
@@ -1002,12 +1102,18 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
 
-        private int scan_lineFIXED(lprec lp, int section, ref string line, ref string field1, ref string field2, ref string field3, ref double field4, ref string field5, ref double field6)
+        /// <summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+        /// changed from 'ref string field1' to 'ref char[] field1' on 15/11/18
+        /// </summary>
+        private int scan_lineFIXED(lprec lp, int section, ref string line, ref char[] field1, ref string field2, ref string field3, ref double field4, ref string field5, ref double field6)
         {
             throw new NotImplementedException();
         }
 
-        private int scan_lineFREE(lprec lp, int section, ref string line, ref string field1, ref string field2, ref string field3, ref double field4, ref string field5, ref double field6)
+        /// <summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
+        /// changed from 'ref string field1' to 'ref char[] field1' on 15/11/18
+        /// </summary>
+        private int scan_lineFREE(lprec lp, int section, ref string line, ref char[] field1, ref string field2, ref string field3, ref double field4, ref string field5, ref double field6)
         {
             throw new NotImplementedException();
         }

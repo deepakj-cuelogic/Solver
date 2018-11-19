@@ -54,8 +54,13 @@ namespace ZS.Math.Optimization
            lp_matrix.mat_validate(mat);
             nz = objLpCls.get_nonzeros(lp);
             value = (lp_matrix.COL_MAT_VALUE(0));
-            rownr = (COL_MAT_ROWNR(0));
-            colnr = (COL_MAT_COLNR(0));
+            rownr = (lp_matrix.COL_MAT_ROWNR(0));
+            ///<summary>
+            /// PREVIOUS: colnr = (lp_matrix.COL_MAT_COLNR(0));
+            /// ERROR IN PREVIOUS: Cannot implicitly convert type 'double' to 'int'.An explicit conversion exists (are you missing a cast?)
+            /// FIX 1: colnr = (int)(lp_matrix.COL_MAT_COLNR(0));
+            /// </summary>
+            colnr = (int)(lp_matrix.COL_MAT_COLNR(0));
             for (j = 0; j < nz; j++, value += lp_matrix.matValueStep, rownr += lp_matrix.matRowColStep, colnr += lp_matrix.matRowColStep)
             {
                 value = unscaled_mat(lp, value, rownr, colnr);

@@ -180,7 +180,7 @@ namespace ZS.Math.Optimization
         /* ---------------------------------------------------------------------------------- */
         /* DLL exported function                                                              */
         /* ---------------------------------------------------------------------------------- */
-        private lprec[] read_MPS(ref string filename, int options)
+        private new lprec[] read_MPS(ref string filename, int options)
         {
             lprec[] lp = null;
             int typeMPS;
@@ -778,7 +778,7 @@ namespace ZS.Math.Optimization
             }
         }
 
-        internal new int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, ref int[] sosvars, ref double weights)
+        internal new int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, int?[] sosvars, double? weights)
         {
             SOSrec SOS;
             int k;

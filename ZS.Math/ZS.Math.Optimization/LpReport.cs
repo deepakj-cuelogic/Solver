@@ -37,7 +37,7 @@ namespace ZS.Math.Optimization
                     //ORIGINAL CODE: vsnprintf(buff, DEF_STRBUFSIZE, format, ap);
                     string.Format(format, LegacyParamArray);
                     //	  va_end(ap);
-                    lp.writelog(lp, lp.loghandle, buff);
+                    lp.writelog(lp, lp.loghandle, ref buff);
                 }
                 if (lp.outstream != null)
                 {

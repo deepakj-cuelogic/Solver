@@ -50,7 +50,7 @@ namespace ZS.Math.Optimization
         public int[] col_end; /* columns_alloc+1 : col_end[i] is the index of the first element after column i; column[i] is stored in elements col_end[i-1] to col_end[i]-1 */
         //ORIGINAL LINE: int *col_tag;
         public int[] col_tag; // user-definable tag associated with each column
-
+        
 #if MatrixRowAccess == RAM_Index
         //ORIGINAL LINE: int *row_mat;
         public int[] row_mat; /* mat_alloc : From index 0, row_mat contains the row-ordered index of the elements of col_mat */
@@ -103,7 +103,10 @@ namespace ZS.Math.Optimization
         static MATrec mat;
 
         //ORIGINAL CODE: #define COL_MAT_ROWNR(item)       (mat->col_mat_rownr[item])
-        static Func<int, int> COL_MAT_ROWNR = (item) => (mat.col_mat_rownr[item]);
+        internal static Func<int, int> COL_MAT_ROWNR = (item) => (mat.col_mat_rownr[item]);
+
+        //ORIGINAL CODE: #define ROW_MAT_COLNR(item)       COL_MAT_COLNR(mat->row_mat[item])
+        internal static Func<int, int> ROW_MAT_COLNR = (item) => (mat.row_mat[item]);
 
         /*ORIGINAL CODE: 
         #define SET_MAT_ijA(item,i,j,A)   mat->col_mat_rownr[item] = i; \
@@ -121,20 +124,22 @@ namespace ZS.Math.Optimization
             mat.col_mat_value[item] = A;
         };*/
 
+        //ORIGINAL CODE: #define CAM_Record                0
+        public const int CAM_Record = 1;
+        //ORIGINAL CODE: #define CAM_Vector                1
+        public const int CAM_Vector = 0;
+
         //ORIGINAL CODE: #define COL_MAT_VALUE(item)       (mat->col_mat_value[item])
-        /// <summary>
-        ///  Cannot convert lambda expression to intended delegate type 
-        ///  because some of the return types in the block are not implicitly convertible to the 
-        ///  delegate return type 
-        /// </summary>
-        static Func<int, double> COL_MAT_VALUE = (item) => (mat.col_mat_value[item]);
+        internal static Func<int, double> COL_MAT_VALUE = (item) => (mat.col_mat_value[item]);
+
+        
 
 
         //ORIGINAL CODE: #define ROW_MAT_VALUE(item)       COL_MAT_VALUE(mat->row_mat[item])
         static Func<int, double> ROW_MAT_VALUE = (item) => COL_MAT_VALUE(mat.row_mat[item]);
 
         //ORIGINAL CODE: #define COL_MAT_COLNR(item)       (mat->col_mat_colnr[item])
-        static Func<int, double> COL_MAT_COLNR = (item) => (mat.col_mat_colnr[item]);
+        internal static Func<int, double> COL_MAT_COLNR = (item) => (mat.col_mat_colnr[item]);
 
         /*static Action<int[]> ROW_MAT_VALUE = delegate (int[] item)
         {
@@ -453,7 +458,7 @@ namespace ZS.Math.Optimization
             for (i = mat.col_end[col_nr - 1]; i < ie; i++)
             {
                 //WORKING: mat.col_mat_value[i] *= mult;
-                COL_MAT_mat.VALUE(i) *= mult;
+                COL_MAT_VALUE(i) *= mult;
             }
             if (isA)
             {

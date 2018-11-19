@@ -114,8 +114,15 @@ namespace ZS.Math.Optimization
                 {
                     list[index] = hp;
                 }
-
-                hp.next = ht.table[hashindex];
+                ///<summary>
+                /// PREVIOUS: hp.next = ht.table[hashindex];
+                /// ERROR IN PREVIOUS: Cannot implicitly convert type 'ZS.Math.Optimization.hashelem' to 'ZS.Math.Optimization.hashelem[]' 
+                /// hashelem hashelem[] = hashtable.hashelem[][hashindex]
+                /// FIX 1: hp.next[0] = ht.table[hashindex];
+                /// FIX 2: hp.next = ht.table;
+                /// use any of the fixes as per requirement
+                ///</summary>
+                hp.next[0] = ht.table[hashindex];
                 ht.table[hashindex] = hp;
                 if (ht.first == null)
                 {
@@ -135,8 +142,13 @@ namespace ZS.Math.Optimization
         {
             hashelem h_tab_p;
             for (h_tab_p = ht.table[hashval(name, ht.size)]; 
-                h_tab_p != null; 
-                h_tab_p = h_tab_p.next)
+                h_tab_p != null;
+            ///<summary>
+            /// PREVIOUS: h_tab_p = h_tab_p.next)
+            /// ERROR IN PREVIOUS: Cannot implicitly convert type 'ZS.Math.Optimization.hashelem[]' to 'ZS.Math.Optimization.hashelem'
+            /// FIX 1: h_tab_p.next[h_tab_p.next.Length-1] 
+            ///</summary>
+                h_tab_p = h_tab_p.next[h_tab_p.next.Length-1])
             {
                 if (string.Compare(name, h_tab_p.name) == 0) // got it!
                 {
