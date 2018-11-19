@@ -12,7 +12,7 @@ namespace ZS.Math.Optimization
         public const double ERRLIMIT = 1.0e-06;
 
         static Func<double, double, double> MIN = (x, y) => ((x) < (y) ? (x) : (y));
-        static Func<double, double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
+        internal static Func<double, double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
 
         static Action<int, int> SETMIN = delegate (int x, int y) { if (x > y) x = y; };
         public static Action<int, int> SETMAX = delegate (int x, int y) { if (x < y) x = y; };
@@ -47,7 +47,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        private static int mod(int n, int d)
+        internal static int mod(int n, int d)
         {
             throw new NotImplementedException();
         }

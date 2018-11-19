@@ -128,7 +128,7 @@ namespace ZS.Math.Optimization
             string msg;
 
             lp_report objlpReport = new lp_report();
-            string msg = "";
+            //string msg = "";
 
             if (!lp_matrix.mat_validate(lp.matA))
             {
