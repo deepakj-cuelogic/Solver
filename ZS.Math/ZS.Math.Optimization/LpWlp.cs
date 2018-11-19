@@ -12,6 +12,8 @@ namespace ZS.Math.Optimization
         /* Input and output of lp format model files for lp_solve                    */
         /* ------------------------------------------------------------------------- */
 
+        static int LP_MAXLINELEN = 100;
+
         internal static int write_data(Object userhandle, LpCls.write_modeldata_func write_modeldata, ref string format, params object[] paraArr)
         {
             // NOT REQUIRED
@@ -115,14 +117,15 @@ namespace ZS.Math.Optimization
             int nrows = lp.rows;
             int ncols = lp.columns;
             int nchars;
-            int maxlen = 100;
+            int maxlen = LP_MAXLINELEN;
             //ORIGINAL LINE: int *idx;
-            int[] idx;
+            int[] idx = null;
             bool ok;
             double a;
             //ORIGINAL LINE: double *val;
-            double val;
+            double[] val = null;
             String ptr;
+            string msg;
 
             lp_report objlpReport = new lp_report();
             string msg = "";
@@ -180,11 +183,11 @@ namespace ZS.Math.Optimization
             if (nrows > 0)
             {
                 msg = "Constraints";
-                write_lpcomment(userhandle, write_modeldata, ref msg, 1);
+                write_lpcomment(userhandle, write_modeldata, ref msg, true);
             }
             for (j = 1; j <= nrows; j++)
             {
-                if (((lp.names_used) && (lp.row_name[j] != null)) || (write_lprow(lp, j, userhandle, null, maxlen, idx, val) == 1))
+                if (((lp.names_used) && (lp.row_name[j] != null)) || (write_lprow(lp, j, userhandle, null, maxlen, ref idx, ref val) == 1))
                 {
                     ptr = lp.get_row_name(lp, j);
                 }
@@ -199,7 +202,8 @@ namespace ZS.Math.Optimization
                 }
                 ///#if ! SingleBoundedRowInLP
                 /* Write the ranged part of the constraint, if specified */
-                if ((lp.orig_upbo[j]) && (lp.orig_upbo[j] < lp.infinite))
+                ///ORIGINAL CODE: if ((lp.orig_upbo[j]) && (lp.orig_upbo[j] < lp.infinite))
+                if ((lp.orig_upbo[j]) != 0 && (lp.orig_upbo[j] < lp.infinite))
                 {
                     if (lp_types.my_chsign(lp.is_chsign(lp, j), lp.orig_rhs[j]) == -lp.infinite)
                     {
@@ -219,7 +223,8 @@ namespace ZS.Math.Optimization
                 }
                 ///#endif
 
-                if ((!write_lprow(lp, j, userhandle, write_modeldata, maxlen, idx, val)) && (ncols >= 1))
+                ///ORIGINAL CODE: if ((!write_lprow(lp, j, userhandle, write_modeldata, maxlen, ref idx, ref val)) && (ncols >= 1))
+                if ((write_lprow(lp, j, userhandle, write_modeldata, maxlen, ref idx, ref val)) != 0 && (ncols >= 1))
                 {
                     msg = "0 %s";
                     write_data(userhandle, write_modeldata, ref msg, lp.get_col_name(lp, 1));
@@ -240,12 +245,12 @@ namespace ZS.Math.Optimization
                     msg = " <=";
                     write_data(userhandle, write_modeldata, ref msg);
                 }
-                if (Math.abs(lp.get_rh(lp, j) + lp.infinite) < 1)
+                if (System.Math.Abs(lp.get_rh(lp, j) + lp.infinite) < 1)
                 {
                     msg = " -Inf;\n";
                     write_data(userhandle, write_modeldata, ref msg);
                 }
-                else if (Math.abs(lp.get_rh(lp, j) - lp.infinite) < 1)
+                else if (System.Math.Abs(lp.get_rh(lp, j) - lp.infinite) < 1)
                 {
                     msg = " +Inf;\n";
                     write_data(userhandle, write_modeldata, ref msg);
@@ -255,12 +260,13 @@ namespace ZS.Math.Optimization
                     msg = " %.12g;\n";
                     write_data(userhandle, write_modeldata, ref msg, lp.get_rh(lp, j));
                 }
-             
+
                 ///#if SingleBoundedRowInLP
                 /* Write the ranged part of the constraint, if specified */
-                if ((lp.orig_upbo[j]) && (lp.orig_upbo[j] < lp.infinite))
+                ///ORIGINAL CODE: if ((lp.orig_upbo[j]) && (lp.orig_upbo[j] < lp.infinite))
+                if ((lp.orig_upbo[j]) != 0 && (lp.orig_upbo[j] < lp.infinite))
                 {
-                    if (((lp.names_used) && (lp.row_name[j] != null)) || (write_lprow(lp, j, userhandle, null, maxlen, idx, val) == 1))
+                    if (((lp.names_used) && (lp.row_name[j] != null)) || (write_lprow(lp, j, userhandle, null, maxlen, ref idx, ref val) == 1))
                     {
                         ptr = lp.get_row_name(lp, j);
                     }
@@ -273,7 +279,9 @@ namespace ZS.Math.Optimization
                         msg = "%s: ";
                         write_data(userhandle, write_modeldata, ref msg, ptr);
                     }
-                    if ((!write_lprow(lp, j, userhandle, write_modeldata, maxlen, idx, val)) && (lp.get_Ncolumns(lp) >= 1))
+
+                    ///ORIGINAL CODE: if ((!write_lprow(lp, j, userhandle, write_modeldata, maxlen, ref idx, ref val)) && (lp.get_Ncolumns(lp) >= 1))
+                    if ((write_lprow(lp, j, userhandle, write_modeldata, maxlen, ref idx, ref val)) != 0 && (lp.get_Ncolumns(lp) >= 1))
                     {
                         msg = "0 %s";
                         write_data(userhandle, write_modeldata, ref msg, lp.get_col_name(lp, 1));
@@ -302,7 +310,6 @@ namespace ZS.Math.Optimization
                     }
                     else
                     {
-                        //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
                         ///#if ! SingleBoundedRowInLP
                         if ((lp.orig_lowbo[i] != 0) && (lp.orig_upbo[i] < lp.infinite))
                         {
@@ -501,16 +508,56 @@ namespace ZS.Math.Optimization
             return (ok);
         }
 
-        private byte LP_writefile(lprec lp, ref string filename)
+        internal static int write_lpdata(Object userhandle, ref string buf)
         {
-            throw new NotImplementedException();
+            return (fprintf((FILE)userhandle, "%s", buf));
         }
 
-        private byte LP_writehandle(lprec lp, FILE output)
+        internal bool LP_writefile(lprec lp, ref string filename)
         {
-            throw new NotImplementedException();
+            FILE output = stdout;
+            bool ok = new bool();
+
+            if (filename != null)
+            {
+                //ORIGINAL LINE: ok = (MYBOOL)((output = fopen(filename, "w")) != null);
+                ok = ((output = fopen(filename, "w")) != null);
+                if (ok == null)
+                {
+                    return (ok);
+                }
+            }
+            else
+            {
+                output = lp.outstream;
+            }
+
+            ok = write_lpex(lp, (Object)output, write_lpdata);
+
+            if (filename != null)
+            {
+                fclose(output);
+            }
+
+            return (ok);
+
         }
 
+        internal bool LP_writehandle(lprec lp, FILE output)
+        {
+            bool ok = new bool();
+
+            if (output != null)
+            {
+               lp.set_outputstream(lp, output);
+            }
+
+            output = lp.outstream;
+
+            ok = write_lpex(lp, (Object)output, write_lpdata);
+
+            return (ok);
+        }
 
     }
 }
