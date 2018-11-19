@@ -42,13 +42,20 @@ namespace ZS.Math.Optimization
                 if (lp.outstream != null)
                 {
                     ParamCount = -1;
-                    //	  va_start(ap, format);
-                    //string.Format()
-                    vfprintf(lp.outstream, format, ap);
+
+                    // va_start(ap, format);
+                    ///<summary>
+                    /// PREVIOUS: vfprintf(lp.outstream, format, ap);
+                    /// ERROR IN PREVIOUS: The name 'vfprintf' does not exist in the current context
+                    /// FIX 1: changed to string.Format(format, lp.outstream); 
+                    /// unsure; need to check while implementing
+                    /// </summary>
+                    string.Format(format, lp.outstream);
                     //	  va_end(ap);
-                    if (lp.outstream != stdout)
+                    if (lp.outstream != corecrt_wstdio.stdout)
                     {
-                        fflush(lp.outstream);
+                        //changed from 'fflush(lp.outstream)' to 'lp.outstream.Close()' 19/11/18
+                        lp.outstream.Close();
                     }
                 }
             }

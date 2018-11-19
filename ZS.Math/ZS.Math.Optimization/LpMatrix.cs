@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-
 namespace ZS.Math.Optimization
 {
     public class MATrec
@@ -54,6 +53,11 @@ namespace ZS.Math.Optimization
 #if MatrixRowAccess == RAM_Index
         //ORIGINAL LINE: int *row_mat;
         public int[] row_mat; /* mat_alloc : From index 0, row_mat contains the row-ordered index of the elements of col_mat */
+        /// <summary> FIX_b077d4ca-c675-4a2d-a4a9-9d70eb69cf70 19/11/18
+        /// taken out from #else
+        /// changed datatype from 'double' to 'double[]'
+        /// </summary>
+        public double[] row_mat_value;
 #elif MatrixColAccess == CAM_Record
             public MATitem row_mat; /* mat_alloc : From index 0, row_mat contains the row-ordered copy of the elements in col_mat */
 #else
@@ -133,7 +137,7 @@ namespace ZS.Math.Optimization
         //ORIGINAL CODE: #define COL_MAT_VALUE(item)       (mat->col_mat_value[item])
         internal static Func<int, double> COL_MAT_VALUE = (item) => (mat.col_mat_value[item]);
 
-        
+
 
 
         //ORIGINAL CODE: #define ROW_MAT_VALUE(item)       COL_MAT_VALUE(mat->row_mat[item])
@@ -558,8 +562,13 @@ namespace ZS.Math.Optimization
             ie = mat.col_end[col_nr];
             for (i = mat.col_end[col_nr - 1]; i < ie; i++)
             {
-                //WORKING: mat.col_mat_value[i] *= mult;
-                COL_MAT_VALUE(i) *= mult;
+                ///<summary>
+                /// PREVIOUS: COL_MAT_VALUE(i) *= mult;
+                /// ERROR IN PREVIOUS: The left-hand side of an assignment must be a variable, property or indexer
+                /// FIX 1: changed to mat.col_mat_value[i] *= mult;
+                /// need to check while implementing
+                /// </summary>
+                mat.col_mat_value[i] *= mult;
             }
             if (isA)
             {
@@ -619,7 +628,13 @@ namespace ZS.Math.Optimization
                 k2 = mat.row_end[row_nr];
                 for (i = k1; i < k2; i++)
                 {
-                    ROW_MAT_VALUE(i) *= mult;
+                    ///<summary> FIX_b077d4ca-c675-4a2d-a4a9-9d70eb69cf70 19/11/18
+                    /// PREVIOUS: ROW_MAT_VALUE(i) *= mult;
+                    /// ERROR IN PREVIOUS: The left-hand side of an assignment must be a variable, property or indexer
+                    /// FIX 1: changed to mat.col_mat_value[i] *= mult;
+                    /// need to check while implementing
+                    /// </summary>
+                    mat.row_mat_value[i] *= mult;
                 }
             }
 

@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.IO;
 
 namespace ZS.Math.Optimization
 {
@@ -431,7 +431,9 @@ namespace ZS.Math.Optimization
         public int simplex_mode; // Specifies the current simplex mode during solve; see simplex_strategy
         public int verbose; // Set amount of run-time messages and results
         public int print_sol; // TRUE to print optimal solution; AUTOMATIC skips zeros
-        public FILE outstream; // Output stream, initialized to STDOUT
+
+        //changed from 'FILE outstream' to 'FileStream outstream' FIX_bcf78206-4a66-43e8-95c0-85b129a41196 19/11/18 
+        public FileStream outstream; // Output stream, initialized to STDOUT
 
         /* Main Branch and Bound settings */
         /// <summary>
@@ -2164,7 +2166,8 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte is_binary(lprec lp, int colnr)
         { throw new NotImplementedException(); }
-        public byte set_semicont(lprec lp, int colnr, bool must_be_sc)
+        // chanegd from 'bool' to 'uint' FIX_ca4c2404-e9f4-407d-b791-79776cb8de1f 19/11/18
+        public byte set_semicont(lprec lp, int colnr, uint must_be_sc)
         { throw new NotImplementedException(); }
         public bool is_semicont(lprec lp, int colnr)
         {
@@ -2367,7 +2370,8 @@ namespace ZS.Math.Optimization
         public void print_str(lprec lp, ref string str)
         { throw new NotImplementedException(); }
 
-        public void set_outputstream(lprec lp, FILE stream)
+        //changed lp.set_outputstream parameter from 'FILE stream' to 'FileStream stream' FIX_d5d09c67-2da1-4d77-a987-2b35b04f74cc 19/11/18
+        public void set_outputstream(lprec lp, FileStream stream)
         { throw new NotImplementedException(); }
         public byte set_outputfile(lprec lp, ref string filename)
         { throw new NotImplementedException(); }

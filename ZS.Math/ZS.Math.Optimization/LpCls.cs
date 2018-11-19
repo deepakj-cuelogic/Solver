@@ -87,11 +87,17 @@ namespace ZS.Math.Optimization
         }
 
         //TODO:
-        private new void set_outputstream(lprec lp, FILE stream)
+        //changed parameter type from 'FILE' to 'FileStream' FIX_24bc38e3-ed68-4876-b4af-8074778b3ab6 19/11/18
+        private new void set_outputstream(lprec lp, FileStream stream)
         {
             /// <summary>
             /// can't identify the actual use of stdout, created a static class and declared stdout as FILE type constant
             /// will have to change the implementation accordingly
+            /// </summary>
+            /// <summary> FIX_4064d4fc-ad5f-457e-959a-95218bb099e1 19/11/18
+            /// PREVIOUS: (lp.outstream != corecrt_wstdio.stdout)
+            /// ERROR IN PREVIOUS: Operator '!=' cannot be applied to operands of type 'FileStream' and 'FILE'
+            /// FIX 1: changed corecrt_wstdio.stdout type from 'FILE' to 'FileStream' 
             /// </summary>
             if ((lp.outstream != null) && (lp.outstream != corecrt_wstdio.stdout))
             {
@@ -111,6 +117,7 @@ namespace ZS.Math.Optimization
             }
             else
             {
+                //changed parameter type from 'FILE' to 'FileStream' FIX_24bc38e3-ed68-4876-b4af-8074778b3ab6 19/11/18
                 lp.outstream = stream;
             }
             lp.streamowned = false;
@@ -919,7 +926,7 @@ namespace ZS.Math.Optimization
             }
         }
 
-        private new bool set_semicont(lprec lp, int colnr, bool must_be_sc)
+        private new bool set_semicont(lprec lp, int colnr, uint must_be_sc)
         {
             if ((colnr > lp.columns) || (colnr < 1))
             {
@@ -939,13 +946,22 @@ namespace ZS.Math.Optimization
                 /// </summary>
                 lp.var_type[colnr] &= ~ISSEMI > 0;
             }
-            ///<summary> 19/11/18
+            ///<summary> FIX_ca4c2404-e9f4-407d-b791-79776cb8de1f 19/11/18
             /// PREVIOUS: lp.sc_lobound[colnr] = must_be_sc;
             /// ERROR IN PREVIOUS: Cannot implicitly convert type 'bool' to 'double'
-            /// FIX 1: 
+            /// FIX 1: changed set_semicont parameter from 'bool' to 'uint' 
+            /// REF: lp_types.h: definition for MYBOOL says 'could be unsigned int'
+            /// need to check while implementing
             /// </summary>
             lp.sc_lobound[colnr] = must_be_sc;
-            if (must_be_sc)
+            ///<summary>
+            /// PREVIOUS: if (must_be_sc)
+            /// ERROR IN PREVIOUS: Cannot implicitly convert type 'uint' to 'bool' 
+            /// error occured due to FIX_ca4c2404-e9f4-407d-b791-79776cb8de1f 19/11/18
+            /// FIX 1: changed to must_be_sc > 0
+            /// need to check while implementing
+            /// </summary>
+            if (must_be_sc > 0)
             {
                 ///<summary> 19/11/18
                 /// PREVIOUS: lp.var_type[colnr] |= ISSEMI;

@@ -588,7 +588,11 @@ namespace ZS.Math.Optimization
                                     {
                                         break;
                                     }
-                                    objLpCls.set_semicont(lp, @var, true);
+                                    ///<summary>
+                                    /// ERROR: cannot convert from 'bool' to 'uint'
+                                    /// due to: FIX_ca4c2404-e9f4-407d-b791-79776cb8de1f 19/11/18
+                                    /// </summary>
+                                    objLpCls.set_semicont(lp, @var, 1);
                                 }
                                 ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
                                 /// changed from 'field1' to 'field1.ToString()' on 15/11/18
@@ -606,7 +610,11 @@ namespace ZS.Math.Optimization
                                         break;
                                     }
                                     objLpCls.set_int(lp, @var, 1);
-                                    objLpCls.set_semicont(lp, @var, true);
+                                    ///<summary>
+                                    /// ERROR: cannot convert from 'bool' to 'uint'
+                                    /// due to: FIX_ca4c2404-e9f4-407d-b791-79776cb8de1f 19/11/18
+                                    /// </summary>
+                                    objLpCls.set_semicont(lp, @var, 1);
                                 }
                                 ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
                                 /// changed from 'field1' to 'field1.ToString()' on 15/11/18

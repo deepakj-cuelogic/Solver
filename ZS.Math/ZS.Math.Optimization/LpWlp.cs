@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -109,7 +110,7 @@ namespace ZS.Math.Optimization
             return (elements);
         }
 
-        internal bool write_lpex(lprec lp, Object userhandle, LpCls.write_modeldata_func write_modeldata)
+        internal bool write_lpex(lprec lp, Object userhandle, lp_lib.write_modeldata_func write_modeldata)
         {
             int i;
             int j;
@@ -128,7 +129,6 @@ namespace ZS.Math.Optimization
             string msg;
 
             lp_report objlpReport = new lp_report();
-            string msg = "";
 
             if (!lp_matrix.mat_validate(lp.matA))
             {
@@ -508,50 +508,83 @@ namespace ZS.Math.Optimization
             return (ok);
         }
 
-        internal static int write_lpdata(Object userhandle, ref string buf)
+        //changed parameter from 'ref string buf' to 'string buf' FIX_10bff499-ecef-4f3d-a0e3-1e88faaf01ab 19/11/18
+        internal static int write_lpdata(Object userhandle, string buf)
         {
-            return (fprintf((FILE)userhandle, "%s", buf));
+            //TODO: cannot identify the use of the code, hence throws NOTIMPLEMENTEDEXCEPTION() 19/11/18 
+            //return (fprintf((FILE)userhandle, "%s", buf));
+            throw new NotImplementedException();
         }
 
         internal bool LP_writefile(lprec lp, ref string filename)
         {
-            FILE output = stdout;
+            /// <summary> FIX_bcf78206-4a66-43e8-95c0-85b129a41196 19/11/18
+            /// PREVIOUS: FILE output = stdout;
+            /// ERROR IN PREVIOUS: The name 'output' does not exist in the current context
+            /// FIX 1: FileStream output = null;
+            /// </summary>
+            FileStream output = null;
             bool ok = new bool();
 
             if (filename != null)
             {
                 //ORIGINAL LINE: ok = (MYBOOL)((output = fopen(filename, "w")) != null);
-                ok = ((output = fopen(filename, "w")) != null);
-                if (ok == null)
+                /// <summary> FIX_bcf78206-4a66-43e8-95c0-85b129a41196 19/11/18
+                /// PREVIOUS: ok = ((output = fopen(filename, "w")) != null);
+                /// ERROR IN PREVIOUS: The name 'fopen' does not exist in the current context
+                /// FIX 1: File.OpenWrite(filename);
+                /// </summary>
+                File.OpenWrite(filename);
+                // changed from 'if (ok == null)' to '(output != null)' FIX_bcf78206-4a66-43e8-95c0-85b129a41196 19/11/18
+                if (output != null)
                 {
+                    //changed from 'return (ok);' to 'return true' FIX_bcf78206-4a66-43e8-95c0-85b129a41196 19/11/18
                     return (ok);
                 }
             }
             else
             {
+                //changed from 'output = lp.outstream;' to 'output = lp.outstream' FIX_bcf78206-4a66-43e8-95c0-85b129a41196 19/11/18 
                 output = lp.outstream;
-            }
 
+            }
+            
+            /// <summary> FIX_10bff499-ecef-4f3d-a0e3-1e88faaf01ab 19/11/18
+            /// PREVIOUS: ok = write_lpex(lp, (Object)output, write_lpdata);
+            /// ERROR IN PREVIOUS: cannot convert from 'method group' to 'lp_lib.write_modeldata_func'
+            /// FIX 1: changed write_lpdata parameter from 'ref string buf' to 'string buf'
+            /// </summary>
             ok = write_lpex(lp, (Object)output, write_lpdata);
 
             if (filename != null)
             {
-                fclose(output);
+                //changed from 'fclose(output)' to 'output.Close()' FIX_bcf78206-4a66-43e8-95c0-85b129a41196 19/11/18 
+                output.Close();
             }
 
             return (ok);
 
         }
 
-        internal bool LP_writehandle(lprec lp, FILE output)
+        //changed parameter from 'FILE output' to 'FileStream output' FIX_d5d09c67-2da1-4d77-a987-2b35b04f74cc 19/11/18
+        internal bool LP_writehandle(lprec lp, FileStream output)
         {
             bool ok = new bool();
 
             if (output != null)
             {
-               lp.set_outputstream(lp, output);
+                ///<summary> FIX_d5d09c67-2da1-4d77-a987-2b35b04f74cc 19/11/18
+                /// PREVIOUS: lp.set_outputstream(lp, output);
+                /// ERROR IN PREVIOUS: cannot convert from 'System.IO.FileStream' to 'ZS.Math.Optimization.FILE'
+                /// FIX 1: changed lp.set_outputstream parameter from 'FILE stream' to 'FileStream stream'
+                /// </summary>
+                lp.set_outputstream(lp, output);
             }
-
+            ///<summary> FIX_d5d09c67-2da1-4d77-a987-2b35b04f74cc 19/11/18
+            /// PREVIOUS: output = lp.outstream;
+            /// ERROR IN PREVIOUS: Cannot implicitly convert type 'System.IO.FileStream' to 'ZS.Math.Optimization.FILE'
+            /// FIX 1: changed parameter from 'FILE output' to 'FileStream output'
+            /// </summary>
             output = lp.outstream;
 
             ok = write_lpex(lp, (Object)output, write_lpdata);
