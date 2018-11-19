@@ -65,7 +65,7 @@ namespace ZS.Math.Optimization
         public double epsvalue;
         public string spxfunc = new string(new char[10]);
         public byte pivdynamic;
-        public byte isdual;
+        public bool isdual;
         public byte active;
     }
 

@@ -546,7 +546,7 @@ namespace ZS.Math.Optimization
         internal BBrec rootbounds;        /* The bounds at the lowest B&B level */
         internal basisrec bb_basis;          /* The linked list of B&B bases */
         basisrec rootbasis;
-        OBJmonrec monitor;           /* Objective monitoring record for stalling/degeneracy handling */
+        internal OBJmonrec monitor;           /* Objective monitoring record for stalling/degeneracy handling */
 
         /* Scaling parameters */
         internal double[] scalars;           /* sum_alloc+1:0..Rows the scaling of the rows,
@@ -1653,7 +1653,7 @@ namespace ZS.Math.Optimization
         public const int PRICE_PRIMALFALLBACK = 4; /* In case of Steepest Edge, fall back to DEVEX in primal */
         public const int PRICE_MULTIPLE = 8; /* Enable multiple pricing (primal simplex) */
         public const int PRICE_PARTIAL = 16; /* Enable partial pricing */
-        public const int PRICE_ADAPTIVE = 32; /* Temporarily use alternative strategy if cycling is detected */
+        internal const int PRICE_ADAPTIVE = 32; /* Temporarily use alternative strategy if cycling is detected */
         public const int PRICE_HYBRID = 64; /* NOT IMPLEMENTED */
         public const int PRICE_RANDOMIZE = 128; /* Adds a small randomization effect to the selected pricer */
         public const int PRICE_AUTOPARTIAL = 256; /* Detect and use data on the block structure of the model (primal) */
