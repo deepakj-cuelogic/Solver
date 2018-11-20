@@ -1419,5 +1419,30 @@ namespace ZS.Math.Optimization
             return (countnz);
          }
 
+        internal new bool is_action(int actionvar, int testmask)
+        {
+            return ((bool)((actionvar & testmask) != 0));
         }
+        internal new bool is_anti_degen(lprec lp, int testmask)
+        {
+            return ((bool)((lp.anti_degen == testmask) || ((lp.anti_degen & testmask) != 0)));
+        }
+        internal new long get_total_iter(lprec lp)
+        {
+            return (lp.total_iter + lp.current_iter);
+        }
+
+        internal new static string get_str_piv_rule(int rule)
+        {
+            string[] pivotText = { "Bland first index", "Dantzig", "Devex", "Steepest Edge" };
+            return (pivotText[rule]);
+        }
+
+        private new int get_piv_rule(lprec lp)
+        {
+            return ((lp.piv_strategy | PRICE_STRATEGYMASK) ^ PRICE_STRATEGYMASK);
+        }
+
+
     }
+}

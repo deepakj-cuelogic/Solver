@@ -419,8 +419,8 @@ namespace ZS.Math.Optimization
         public double[] orig_obj; // Unused pointer - Placeholder for OF not part of B
         public double obj; // Special vector used to temporarily change the OF vector
 
-        public ulong current_iter; // Number of iterations in the current/last simplex
-        public ulong total_iter; // Number of iterations over all B&B steps
+        public long current_iter; // Number of iterations in the current/last simplex
+        public long total_iter; // Number of iterations over all B&B steps
         public ulong current_bswap; // Number of bound swaps in the current/last simplex
         public ulong total_bswap; // Number of bount swaps over all B&B steps
         public int solvecount; // The number of solve() performed in this model
@@ -574,7 +574,7 @@ namespace ZS.Math.Optimization
 
         /* Solver working variables */
         internal double rhsmax;             /* The maximum |value| of the rhs vector at any iteration */
-        double suminfeas;          /* The working sum of primal and dual infeasibilities */
+        internal double suminfeas;          /* The working sum of primal and dual infeasibilities */
         internal double bigM;               /* Original objective weighting in primal phase 1 */
         internal double P1extraVal;         /* Phase 1 OF/RHS offset for feasibility */
         internal int P1extraDim;         /* Phase 1 additional columns/rows for feasibility */
@@ -618,6 +618,8 @@ namespace ZS.Math.Optimization
         /// TODO: Please check assignment as per logic
         /// </summary>
         public const double epsdual = 0;            /* For rounding reduced costs to zero */
+
+        
 
         double epspivot;           /* Pivot reject tolerance */
         double epsperturb;         /* Perturbation scalar */
@@ -1482,7 +1484,7 @@ namespace ZS.Math.Optimization
         public const int ANTIDEGEN_DYNAMIC = 64;
         public const int ANTIDEGEN_DURINGBB = 128;
         public const int ANTIDEGEN_RHSPERTURB = 256;
-        public const int ANTIDEGEN_BOUNDFLIP = 512;
+        internal const int ANTIDEGEN_BOUNDFLIP = 512;
         public const int ANTIDEGEN_DEFAULT = (ANTIDEGEN_FIXEDVARS | ANTIDEGEN_STALLING);
 
         /* REPORT defines */
@@ -1632,7 +1634,8 @@ namespace ZS.Math.Optimization
         public const int SCALEMODEL_CURTISREID = (SCALE_CURTISREID + SCALE_INTEGERS + SCALE_POWER2);
 
         /* Iteration status and strategies (internal) */
-        public const int ITERATE_MAJORMAJOR = 0;
+        //public const int ITERATE_MAJORMAJOR = 0;
+        public const bool ITERATE_MAJORMAJOR = false;
         public const int ITERATE_MINORMAJOR = 1;
         public const int ITERATE_MINORRETRY = 2;
 
@@ -2408,7 +2411,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public int get_anti_degen(lprec lp)
         { throw new NotImplementedException(); }
-        public byte is_anti_degen(lprec lp, int testmask)
+        public bool is_anti_degen(lprec lp, int testmask)
         { throw new NotImplementedException(); }
 
         public void set_presolve(lprec lp, int presolvemode, int maxloops)
@@ -2786,7 +2789,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public void clear_action(ref int actionvar, int actionmask)
         { throw new NotImplementedException(); }
-        public byte is_action(int actionvar, int testmask)
+        public bool is_action(int actionvar, int testmask)
         { throw new NotImplementedException(); }
 
         /* INLINE */
@@ -2965,6 +2968,8 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
+
+
         
     }
 }
