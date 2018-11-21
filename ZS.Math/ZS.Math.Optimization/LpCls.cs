@@ -1443,111 +1443,76 @@ namespace ZS.Math.Optimization
             return ((lp.piv_strategy | PRICE_STRATEGYMASK) ^ PRICE_STRATEGYMASK);
         }
 
+        /* INLINE */
+        internal new bool is_splitvar(lprec lp, int colnr)
+        /* Two cases handled by var_is_free:
 
-            bool status = false;
-            string msg;
-            /* Prepare and shift column vectors */
-            if (!append_columns(lp, 1))
-            {
-                return (status);
-            }
+           1) LB:-Inf / UB:<Inf variables
+              No helper column created, sign of var_is_free set negative with index to itself.
+           2) LB:-Inf / UB: Inf (free) variables
+              Sign of var_is_free set positive with index to new helper column,
+              helper column created with negative var_is_free with index to the original column.
 
-            /* Append sparse regular constraint values */
-            if (lp_matrix.mat_appendcol(lp.matA, count, column, rowno, 1.0, true) < 0)
-            {
-                msg = "add_columnex: Data column %d supplied in non-ascending row index order.\n";
-                lp.report(lp, SEVERE, ref msg, lp.columns);
-            }
-            else
-            {
-                //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-                ///#if Paranoia
-                if (lp.columns != (lp.matA.is_roworder ? lp.matA.rows : lp.matA.columns))
-                {
-                    msg = "add_columnex: Column count mismatch %d vs %d\n";
-                    lp.report(lp, SEVERE, ref msg, lp.columns, (lp.matA.is_roworder ? lp.matA.rows : lp.matA.columns));
-                }
-                else if (is_BasisReady(lp) && (lp.P1extraDim == 0) && !verify_basis(lp))
-                {
-                    msg = "add_columnex: Invalid basis detected for column %d\n";
-                    lp.report(lp, SEVERE, ref msg, lp.columns);
-                }
-                else
-                {
-                    ///#endif
-                    status = true;
-                }
-            }
-
-            if (!lp.varmap_locked)
-            {
-                lp_presolve.presolve_setOrig(lp, lp.rows, lp.columns);
-            }
-
-            return (status);
-        }
-
-        internal new int set_basisvar(lprec lp, int basisPos, int enteringCol)
+           This function helps identify the helper column in 2).
+        */
         {
-            int leavingCol;
-            string msg;
-
-            leavingCol = lp.var_basic[basisPos];
-
-            ///#if Paranoia
-            if ((basisPos < 1) || (basisPos > lp.rows))
-            {
-                msg = "set_basisvar: Invalid leaving basis position %d specified at iter %.0f\n";
-                lp.report(lp, SEVERE, ref msg, basisPos, (double)get_total_iter(lp));
-            }
-            if ((leavingCol < 1) || (leavingCol > lp.sum))
-            {
-                msg = "set_basisvar: Invalid leaving column %d referenced at iter %.0f\n";
-                lp.report(lp, SEVERE, ref msg, leavingCol, (double)get_total_iter(lp));
-            }
-            if ((enteringCol < 1) || (enteringCol > lp.sum))
-            {
-                msg = "set_basisvar: Invalid entering column %d specified at iter %.0f\n";
-                lp.report(lp, SEVERE, ref msg, enteringCol, (double)get_total_iter(lp));
-            }
-            ///#endif
-
-            ///#if ParanoiaXY
-            ///NOTED ISSUE
-            if (!lp.is_basic[leavingCol])
-            {
-                msg = "set_basisvar: Leaving variable %d is not basic at iter %.0f\n";
-                lp.report(lp, IMPORTANT, ref msg, leavingCol, (double)get_total_iter(lp));
-            }
             //NOTED ISSUE:
-            if (enteringCol > lp.rows && lp.is_basic[enteringCol])
-            {
-                msg = "set_basisvar: Entering variable %d is already basic at iter %.0f\n";
-                report(lp, IMPORTANT, ref msg, enteringCol, (double)get_total_iter(lp));
-            }
-            ///#endif
+            return ((bool)((lp.var_is_free != null) && (lp.var_is_free[colnr] < 0) && (-lp.var_is_free[colnr] != colnr)));
+        }
 
-            lp.var_basic[0] = 0; // Set to signal that this is a non-default basis
-            lp.var_basic[basisPos] = enteringCol;
-            //NOTED ISSUE
-            lp.is_basic[leavingCol] = 0;
-            lp.is_basic[enteringCol] = 1;
-            if (lp.bb_basis != null)
+        private new int get_columnex(lprec lp, int colnr, ref double[] column, ref int?[] nzrow)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
             {
-                lp.bb_basis.pivots++;
+                string msg = "get_columnex: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return (-1);
             }
 
-            return (leavingCol);
+            if (lp.matA.is_roworder)
+                return (mat_getrow(lp, colnr, ref column, ref nzrow));
+            else
+                return (mat_getcolumn(lp, colnr, ref column, ref nzrow));
         }
 
-        internal new void set_action(ref int actionvar, int actionmask)
+        internal new bool is_binary(lprec lp, int colnr)
         {
-            actionvar |= actionmask;
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "is_binary: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            return ((bool)(((lp.var_type[colnr] & ISINTEGER)) && (get_lowbo(lp, colnr) == 0) && (System.Math.Abs(get_upbo(lp, colnr) - 1) < lprec.epsprimal)));
         }
 
-        private new bool is_piv_mode(lprec lp, int testmask)
+        internal new bool is_unbounded(lprec lp, int colnr)
         {
-            return ((bool)(((testmask & PRICE_STRATEGYMASK) != 0) && ((lp.piv_strategy & testmask) != 0)));
+            bool test;
+
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "is_unbounded: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            test = is_splitvar(lp, colnr);
+            if (!test)
+            {
+                colnr += lp.rows;
+                test = (bool)((lp.orig_lowbo[colnr] <= -lp.infinite) && (lp.orig_upbo[colnr] >= lp.infinite));
+            }
+            return (test);
         }
+
+        internal new bool write_mps(lprec lp, ref string filename)
+        {
+            lp_MPS objlp_MPS = new lp_MPS();
+            return (objlp_MPS.MPS_writefile(lp, MPSFIXED, ref filename));
+        }
+
+
     }
 }
