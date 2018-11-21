@@ -48,6 +48,7 @@ namespace ZS.Math.Optimization
             double a;
             bool first = true;
             string msg = "";
+            LpCls objLpCls = new LpCls();
 
             //NOT REQUIRED
             String buf = new String(new char[50]);
@@ -66,7 +67,7 @@ namespace ZS.Math.Optimization
                 for (i = 0; i < elements; i++)
                 {
                     j = idx[i];
-                    if (lp.is_splitvar(lp, j))
+                    if (objLpCls.is_splitvar(lp, j))
                     {
                         continue;
                     }

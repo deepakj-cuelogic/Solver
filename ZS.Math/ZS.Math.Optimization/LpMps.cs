@@ -1178,7 +1178,8 @@ namespace ZS.Math.Optimization
             int je;
             int k;
             int marker;
-            int putheader;
+            //NOTED ISSUE: declared as int, TRUE value assignd later
+            bool putheader;
             // PREVIOUS CODE: int ChangeSignObj = FALSE
             // CHANGED TO: bool ChangeSignObj = false
             bool ChangeSignObj = false;
@@ -1225,11 +1226,11 @@ namespace ZS.Math.Optimization
                 {
                     for (i = 1; (i <= lp.columns) && (ok) != null; i++)
                     {
-                        if ((lp.col_name[i] != null) && (lp.col_name[i].name != null) && (!is_splitvar(lp, i)) && (Convert.ToString(lp.col_name[i].name).Length > 8))
+                        if ((lp.col_name[i] != null) && (lp.col_name[i].name != null) && (!objLpCls.is_splitvar(lp, i)) && (Convert.ToString(lp.col_name[i].name).Length > 8))
                         {
                             for (j = 1; (j < i) && (ok) != null; j++)
                             {
-                                if ((lp.col_name[j] != null) && (lp.col_name[j].name != null) && (!is_splitvar(lp, j)))
+                                if ((lp.col_name[j] != null) && (lp.col_name[j].name != null) && (!objLpCls.is_splitvar(lp, j)))
                                 {
                                     if (string.Compare(lp.col_name[i].name, 0, lp.col_name[j].name, 0, 8) == 0)
                                     {
@@ -1317,7 +1318,7 @@ namespace ZS.Math.Optimization
                     msg = " E  ";
                     write_data(userhandle, write_modeldata, ref msg);
                 }
-                string getrowname = get_row_name(lp, i);
+                string getrowname = objLpCls.get_row_name(lp, i);
                 msg = "{0}\n";
                 write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname));
             }
@@ -1329,15 +1330,15 @@ namespace ZS.Math.Optimization
             write_data(userhandle, write_modeldata, ref msg);
             for (i = 1; i <= lp.columns; i++)
             {
-                if (!is_splitvar(lp, i))
+                if (!objLpCls.is_splitvar(lp, i))
                 {
-                    if (is_int(lp, i) && (marker % 2) == 0)
+                    if (objLpCls.is_int(lp, i) && (marker % 2) == 0)
                     {
                         msg = "    MARK{0}  'MARKER'                 'INTORG'\n";
                         write_data(userhandle, write_modeldata, ref msg, marker);
                         marker++;
                     }
-                    if (!is_int(lp, i) && (marker % 2) == 1)
+                    if (!objLpCls.is_int(lp, i) && (marker % 2) == 1)
                     {
                         msg = "    MARK{0}  'MARKER'                 'INTEND'\n";
                         write_data(userhandle, write_modeldata, ref msg, marker);
@@ -1345,7 +1346,7 @@ namespace ZS.Math.Optimization
                     }
 
                     // Loop over non-zero column entries
-                    je = get_columnex(lp, i, ref val, ref idx);
+                    je = objLpCls.get_columnex(lp, i, ref val, ref idx);
                     for (k = 1, val1 = val[0], idx1 = Convert.ToInt32(idx[0]), jj = 0; jj < je; jj++)
                     {
                         k = 1 - k;
@@ -1357,68 +1358,79 @@ namespace ZS.Math.Optimization
                             msg = "    {0}";
                             write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname));
                             msg = "  {0}  {1}";
-                            string getrowname = get_row_name(lp, j);
-                            write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(numberbuffer, (double)(a * (j == 0 && ChangeSignObj ? -1 : 1))));
+                            string getrowname = objLpCls.get_row_name(lp, j);
+                            write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(ref numberbuffer, (double)(a * (j == 0 && ChangeSignObj ? -1 : 1))));
                         }
                         else
                         {
-                            write_data(userhandle, write_modeldata, "   %s  %s\n", MPSname(name0, get_row_name(lp, j)), formatnumber12(numberbuffer, (double)(a * (j == 0 && ChangeSignObj ? -1 : 1))));
+                            string getrowname = objLpCls.get_row_name(lp, j);
+                            msg = "   {0}  {1}\n";
+                            write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(ref numberbuffer, (double)(a * (j == 0 && ChangeSignObj ? -1 : 1))));
                         }
                         /*                          formatnumber12(numberbuffer, (double) a)); */
                     }
                     if (k == 0)
                     {
-                        write_data(userhandle, write_modeldata, "\n");
+                        msg = "\n";
+                        write_data(userhandle, write_modeldata, ref msg);
                     }
                 }
             }
             //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
             if ((marker % 2) == 1)
             {
-                write_data(userhandle, write_modeldata, "    MARK%04d  'MARKER'                 'INTEND'\n", marker);
+                msg = "    MARK%04d  'MARKER'                 'INTEND'\n";
+                write_data(userhandle, write_modeldata, ref msg, marker);
                 /* marker++; */
                 /* marker not used after this */
             }
+            /*NOT REQUIRED
             //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
             FREE(idx);
             //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
             FREE(val);
-
+            */
             //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
-            write_data(userhandle, write_modeldata, "RHS\n");
+            msg = "RHS\n";
+            write_data(userhandle, write_modeldata, ref msg);
             //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
             for (k = 1, i = 0; i <= lp.rows; i++)
             {
                 a = lp.orig_rhs[i];
-                if (a)
+                if (a > 0)
                 {
-                    a = unscaled_value(lp, a, i);
-                    if ((i == 0) && ((typeMPS & MPSNEGOBJCONST) == MPSNEGOBJCONST))
+                    a = lp_scale.unscaled_value(lp, a, i);
+                    if ((i == 0) && ((typeMPS & lp_lib.MPSNEGOBJCONST) == lp_lib.MPSNEGOBJCONST))
                     {
                         a = -a;
                     }
-                    if ((i == 0) || is_chsign(lp, i))
+                    if ((i == 0) || objLpCls.is_chsign(lp, i))
                     {
-                        a = my_flipsign(a);
+                        a = lp_types.my_flipsign(a);
                     }
                     k = 1 - k;
                     if (k == 0)
                     {
-                        write_data(userhandle, write_modeldata, "    RHS       %s  %s", MPSname(name0, get_row_name(lp, i)), formatnumber12(numberbuffer, (double)a));
+                        string getrowname = objLpCls.get_row_name(lp, i);
+                        msg = "    RHS       {0}  {1}";
+                        write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(ref numberbuffer, (double)a));
                     }
                     else
                     {
-                        write_data(userhandle, write_modeldata, "   %s  %s\n", MPSname(name0, get_row_name(lp, i)), formatnumber12(numberbuffer, (double)a));
+                        string getrowname = objLpCls.get_row_name(lp, i);
+                        msg = "   {0}  {1}\n";
+                        write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(ref numberbuffer, (double)a));
                     }
                 }
             }
             //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
             if (k == 0)
                 //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
-                write_data(userhandle, write_modeldata, "\n");
+                msg = "\n";
+                write_data(userhandle, write_modeldata, ref msg);
 
             //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
-            putheader = 1;
+            putheader = true;
             //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
             for (k = 1, i = 1; i <= lp.rows; i++)
             {
@@ -1427,143 +1439,174 @@ namespace ZS.Math.Optimization
                 {
                     a = lp.orig_upbo[i];
                 }
-                if (a)
+                if (a > 0)
                 {
                     if (putheader)
                     {
-                        write_data(userhandle, write_modeldata, "RANGES\n");
-                        putheader = 0;
+                        msg = "RANGES\n";
+                        write_data(userhandle, write_modeldata, ref msg);
+                        putheader = false;
                     }
-                    a = unscaled_value(lp, a, i);
+                    a = lp_scale.unscaled_value(lp, a, i);
                     k = 1 - k;
                     if (k == 0)
                     {
-                        write_data(userhandle, write_modeldata, "    RGS       %s  %s", MPSname(name0, get_row_name(lp, i)), formatnumber12(numberbuffer, (double)a));
+                        string getrowname = objLpCls.get_row_name(lp, i);
+                        msg = "    RGS       {0}  {1}";
+                        write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(ref numberbuffer, (double)a));
                     }
                     else
                     {
-                        write_data(userhandle, write_modeldata, "   %s  %s\n", MPSname(name0, get_row_name(lp, i)), formatnumber12(numberbuffer, (double)a));
+                        string getrowname = objLpCls.get_row_name(lp, i);
+                        msg = "   {0}  {1}\n";
+                        write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(ref numberbuffer, (double)a));
                     }
                 }
             }
             //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
             if (k == 0)
                 //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
-                write_data(userhandle, write_modeldata, "\n");
+                msg = "\n";
+                write_data(userhandle, write_modeldata, ref msg);
 
             //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
-            putheader = 1;
+            putheader = true;
             //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
             for (i = lp.rows + 1; i <= lp.sum; i++)
                 //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
-                if (!is_splitvar(lp, i - lp.rows))
+                if (!objLpCls.is_splitvar(lp, i - lp.rows))
                 {
                     j = i - lp.rows;
                     if ((lp.orig_lowbo[i] != 0) && (lp.orig_upbo[i] < lp.infinite) && (lp.orig_lowbo[i] == lp.orig_upbo[i]))
                     {
                         a = lp.orig_upbo[i];
-                        a = unscaled_value(lp, a, i);
+                        a = lp_scale.unscaled_value(lp, a, i);
                         if (putheader)
                         {
-                            write_data(userhandle, write_modeldata, "BOUNDS\n");
-                            putheader = 0;
+                            msg = "BOUNDS\n";
+                            write_data(userhandle, write_modeldata, ref msg);
+                            putheader = false;
                         }
-                        write_data(userhandle, write_modeldata, " FX BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), formatnumber12(numberbuffer, (double)a));
+                        string getcolname = objLpCls.get_col_name(lp, i);
+                        msg = " FX BND       {0}  {1}\n";
+                        write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), formatnumber12(ref numberbuffer, (double)a));
                     }
-                    else if (is_binary(lp, j))
+                    else if (objLpCls.is_binary(lp, j))
                     {
                         if (putheader)
                         {
-                            write_data(userhandle, write_modeldata, "BOUNDS\n");
-                            putheader = 0;
+                            msg = "BOUNDS\n";
+                            write_data(userhandle, write_modeldata, ref msg);
+                            putheader = false;
                         }
-                        write_data(userhandle, write_modeldata, " BV BND       %s\n", MPSname(name0, get_col_name(lp, j)));
+                        string getcolname = objLpCls.get_col_name(lp, i);
+                        msg = " BV BND       {0}\n";
+                        write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname));
                     }
                     //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
-                    else if (is_unbounded(lp, j))
+                    else if (objLpCls.is_unbounded(lp, j))
                     {
                         if (putheader)
                         {
-                            write_data(userhandle, write_modeldata, "BOUNDS\n");
-                            putheader = 0;
+                            msg = "BOUNDS\n";
+                            write_data(userhandle, write_modeldata, ref msg);
+                            putheader = false;
                         }
-                        write_data(userhandle, write_modeldata, " FR BND       %s\n", MPSname(name0, get_col_name(lp, j)));
+                        string getcolname = objLpCls.get_col_name(lp, i);
+                        msg = " FR BND       {0}\n";
+                        write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname));
                     }
                     else
                     {
-                        if ((lp.orig_lowbo[i] != 0) || (is_int(lp, j)))
+                        if ((lp.orig_lowbo[i] != 0) || (objLpCls.is_int(lp, j)))
                         { // Some solvers like CPLEX need to have a bound on a variable if it is integer, but not binary else it is interpreted as binary which is not ment
                             a = lp.orig_lowbo[i];
-                            a = unscaled_value(lp, a, i);
+                            a = lp_scale.unscaled_value(lp, a, i);
                             if (putheader)
                             {
-                                write_data(userhandle, write_modeldata, "BOUNDS\n");
-                                putheader = 0;
+                                msg = "BOUNDS\n";
+                                write_data(userhandle, write_modeldata, ref msg);
+                                putheader = false;
                             }
                             if (lp.orig_lowbo[i] != -lp.infinite)
                             {
-                                write_data(userhandle, write_modeldata, " LO BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), formatnumber12(numberbuffer, (double)a));
+                                string getcolname = objLpCls.get_col_name(lp, i);
+                                msg = " LO BND       {0}  {1}\n";
+                                write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), formatnumber12(ref numberbuffer, (double)a));
                             }
                             else
                             {
-                                write_data(userhandle, write_modeldata, " MI BND       %s\n", MPSname(name0, get_col_name(lp, j)));
+                                string getcolname = objLpCls.get_col_name(lp, i);
+                                msg = " MI BND       {0}\n";
+                                write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname));
                             }
                         }
 
-                        if ((lp.orig_upbo[i] < lp.infinite) || (is_semicont(lp, j)))
+                        if ((lp.orig_upbo[i] < lp.infinite) || (objLpCls.is_semicont(lp, j)))
                         {
                             a = lp.orig_upbo[i];
                             if (a < lp.infinite)
                             {
-                                a = unscaled_value(lp, a, i);
+                                a = lp_scale.unscaled_value(lp, a, i);
                             }
                             if (putheader)
                             {
-                                write_data(userhandle, write_modeldata, "BOUNDS\n");
-                                putheader = 0;
+                                msg = "BOUNDS\n";
+                                write_data(userhandle, write_modeldata, ref msg);
+                                putheader = false;
                             }
-                            if (is_semicont(lp, j))
+                            if (objLpCls.is_semicont(lp, j))
                             {
-                                if (is_int(lp, j))
+                                if (objLpCls.is_int(lp, j))
                                 {
-                                    write_data(userhandle, write_modeldata, " SI BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), (a < lp.infinite) ? formatnumber12(numberbuffer, (double)a) : "            ");
+                                    string getcolname = objLpCls.get_col_name(lp, i);
+                                    msg = " SI BND       {0}  {1}\n";
+                                    write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), (a < lp.infinite) ? formatnumber12(ref numberbuffer, (double)a) : "            ");
                                 }
                                 else
                                 {
-                                    write_data(userhandle, write_modeldata, " SC BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), (a < lp.infinite) ? formatnumber12(numberbuffer, (double)a) : "            ");
+                                    string getcolname = objLpCls.get_col_name(lp, i);
+                                    msg = " SC BND       {0}  {1}\n";
+                                    write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), (a < lp.infinite) ? formatnumber12(ref numberbuffer, (double)a) : "            ");
                                 }
                             }
                             else
                             {
-                                write_data(userhandle, write_modeldata, " UP BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), formatnumber12(numberbuffer, (double)a));
+                                string getcolname = objLpCls.get_col_name(lp, i);
+                                msg = " UP BND       {0}  {1}\n";
+                                write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), formatnumber12(ref numberbuffer, (double)a));
                             }
                         }
                     }
                 }
 
             /* Write optional SOS section */
-            putheader = 1;
-            for (i = 0; i < SOS_count(lp); i++)
+            putheader = true;
+            for (i = 0; i < objLpCls.SOS_count(lp); i++)
             {
                 SOSgroup SOS = lp.SOS;
 
                 if (putheader)
                 {
-                    write_data(userhandle, write_modeldata, "SOS\n");
-                    putheader = 0;
+                    msg = "SOS\n";
+                    write_data(userhandle, write_modeldata, ref msg);
+                    putheader = false;
                 }
-                write_data(userhandle, write_modeldata, " S%1d SOS       %s  %s\n", SOS.sos_list[i].type, MPSname(name0, SOS.sos_list[i].name), formatnumber12(numberbuffer, (double)SOS.sos_list[i].priority));
+                msg = " S%1d SOS       {0}  {1}\n";
+                write_data(userhandle, write_modeldata, ref msg, SOS.sos_list[i].type, MPSname(ref name0, ref SOS.sos_list[i].name), formatnumber12(ref numberbuffer, (double)SOS.sos_list[i].priority));
                 for (j = 1; j <= SOS.sos_list[i].size; j++)
                 {
-                    write_data(userhandle, write_modeldata, "    SOS       %s  %s\n", MPSname(name0, get_col_name(lp, SOS.sos_list[i].members[j])), formatnumber12(numberbuffer, (double)SOS.sos_list[i].weights[j]));
+                    string getrowname = objLpCls.get_col_name(lp, SOS.sos_list[i].members[j]);
+                    msg = "    SOS       {0}  {1}\n";
+                    write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(ref numberbuffer, (double)SOS.sos_list[i].weights[j]));
                 }
             }
+            msg = "ENDATA\n";
+            write_data(userhandle, write_modeldata, ref msg);
 
-            write_data(userhandle, write_modeldata, "ENDATA\n");
+            lp.names_used = (bool)names_used;
 
-            lp.names_used = names_used;
-
-            return (ok);
+            return (bool)ok;
         }
 
         private static string formatnumber12(ref string numberbuffer, double a)
@@ -1571,7 +1614,7 @@ namespace ZS.Math.Optimization
             #if false
             //  return(sprintf(numberbuffer, "%12g", a));
             #else
-            number(numberbuffer, a);
+            number(ref numberbuffer, a);
             return (numberbuffer);
             #endif
         }
@@ -1599,8 +1642,9 @@ namespace ZS.Math.Optimization
                         i = _str.Length;
                         if (i > 12)
                         {
+                            /*NOTED ISSUE: START
                             //C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
-                            char* ptr = StringFunctions.StrChr(_str, 'E');
+                            string ptr = StringFunctions.StrChr(_str, 'E');
 
                             if (ptr != null)
                             {
@@ -1614,6 +1658,7 @@ namespace ZS.Math.Optimization
                                     i--;
                                 }
                             }
+                            //NOTED ISSUE: END*/
                         }
                     } while (i > 12);
                 }
@@ -1631,6 +1676,7 @@ namespace ZS.Math.Optimization
                 }
                 else
                 {
+                    /*NOTED ISSUE: START
                     if (((i = sprintf(_str, "%12.10f", (double)value)) > 12) && (_str[12] >= '5'))
                     {
                         for (i = 11; i >= 0; i--)
@@ -1653,6 +1699,7 @@ namespace ZS.Math.Optimization
                             *(--_str) = ' ';
                         }
                     }
+                    NOTED ISSUE: END*/
                 }
             }
             else
@@ -1670,6 +1717,7 @@ namespace ZS.Math.Optimization
                         i = _str.Length;
                         if (i > 12)
                         {
+                            /*NOTED ISSUE: START
                             //C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
                             char* ptr = StringFunctions.StrChr(_str, 'E');
 
@@ -1685,6 +1733,7 @@ namespace ZS.Math.Optimization
                                     i--;
                                 }
                             }
+                            NOTED ISSUE: END*/
                         }
                     } while (i > 12);
                 }
@@ -1702,6 +1751,7 @@ namespace ZS.Math.Optimization
                 }
                 else
                 {
+                    /*NOTED ISSUE: START
                     if (((i = sprintf(_str, "%12.9f", (double)value)) > 12) && (_str[12] >= '5'))
                     {
                         for (i = 11; i >= 1; i--)
@@ -1725,6 +1775,7 @@ namespace ZS.Math.Optimization
                             *(--_str) = ' ';
                         }
                     }
+                    NOTED ISSUE: END */
                 }
             }
             str = _str.Substring(0, 12);

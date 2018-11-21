@@ -485,7 +485,7 @@ namespace ZS.Math.Optimization
                                    value replaced by conventional lower bound during solve */
                                   //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                   //ORIGINAL LINE: int *var_is_free;
-        public int var_is_free; // columns+1: Index of twin variable if variable is free
+        public int?[] var_is_free; // columns+1: Index of twin variable if variable is free
                                 //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                 //ORIGINAL LINE: int *var_priority;
         /// <summary>
@@ -2111,8 +2111,8 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         /* Returns the column index if column is already present in lp, otherwise 0.
             (Does not look at bounds and types, only looks at matrix values */
-
-        public int get_columnex(lprec lp, int colnr, ref double column, ref int nzrow)
+            
+        public int get_columnex(lprec lp, int colnr, ref double[] column, ref int?[] nzrow)
         { throw new NotImplementedException(); }
         public byte get_column(lprec lp, int colnr, ref double column)
         { throw new NotImplementedException(); }
@@ -2155,7 +2155,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte set_unbounded(lprec lp, int colnr)
         { throw new NotImplementedException(); }
-        public byte is_unbounded(lprec lp, int colnr)
+        public bool is_unbounded(lprec lp, int colnr)
         { throw new NotImplementedException(); }
         /* Set the upper and lower bounds of a variable */
 
