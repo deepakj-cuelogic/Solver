@@ -8,9 +8,9 @@ namespace ZS.Math.Optimization
     public class partialrec
     {
         lprec lp;
-        int blockcount;         /* ## The number of logical blocks or stages in the model */
-        int blocknow;           /* The currently active block */
-        int[] blockend;         /* Array of column indeces giving the start of each block */
+        internal int blockcount;         /* ## The number of logical blocks or stages in the model */
+        internal int blocknow;           /* The currently active block */
+        internal int[] blockend;         /* Array of column indeces giving the start of each block */
         int[] blockpos;         /* Array of column indeces giving the start scan position */
         byte isrow;
     }
@@ -517,7 +517,8 @@ namespace ZS.Math.Optimization
         /// <summary>
         /// 1501
         /// </summary>
-        public double rhs; // rows_alloc+1 : The RHS of the current simplex tableau
+        /// ORIGINAL CODE: public double rhs;
+        public double[] rhs; // rows_alloc+1 : The RHS of the current simplex tableau
 
         /* Row (constraint) parameters */
         //ORIGINAL LINE: int *row_type;
@@ -558,9 +559,9 @@ namespace ZS.Math.Optimization
         /* Variable state information */
         internal byte basis_valid;        /* TRUE is the basis is still valid */
         int crashmode;          /* Basis crashing mode (or none) */
-        int[] var_basic;         /* rows_alloc+1: The list of columns in the basis */
+        internal int[] var_basic;         /* rows_alloc+1: The list of columns in the basis */
         double[] val_nonbasic;      /* Array to store current values of non-basic variables */
-        byte is_basic;          /* sum_alloc+1: TRUE if the column is in the basis */
+        internal bool is_basic;          /* sum_alloc+1: TRUE if the column is in the basis */
         byte is_lower;          /*  "       " : TRUE if the variable is at its
                                    lower bound (or in the basis), FALSE otherwise */
 
@@ -621,7 +622,7 @@ namespace ZS.Math.Optimization
 
         
 
-        double epspivot;           /* Pivot reject tolerance */
+        internal double epspivot;           /* Pivot reject tolerance */
         double epsperturb;         /* Perturbation scalar */
         double epssolution;        /* The solution tolerance for final validation */
 
@@ -739,7 +740,7 @@ namespace ZS.Math.Optimization
         BFPbool_lpbool bfp_finishupdate;
         BFP_lprealint bfp_ftran_prepare;
         BFP_lprealint bfp_ftran_normal;
-        BFP_lprealint bfp_btran_normal;
+        internal BFP_lprealint bfp_btran_normal;
         BFP_lprealintrealint bfp_btran_double;
         BFPint_lp bfp_status;
         BFPint_lpbool bfp_nonzeros;
@@ -2533,7 +2534,7 @@ namespace ZS.Math.Optimization
         public int get_nameindex(lprec lp, ref string varname, byte isrow)
         { throw new NotImplementedException(); }
 
-        public byte is_piv_mode(lprec lp, int testmask)
+        public bool is_piv_mode(lprec lp, int testmask)
         { throw new NotImplementedException(); }
         public byte is_piv_rule(lprec lp, int rule)
         { throw new NotImplementedException(); }
@@ -2712,7 +2713,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public byte append_columns(lprec lp, int deltacolumns)
+        public bool append_columns(lprec lp, int deltacolumns)
         { throw new NotImplementedException(); }
         public void inc_rows(lprec lp, int delta)
         { throw new NotImplementedException(); }
@@ -2872,7 +2873,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public int findBasicFixedvar(lprec lp, int afternr, byte slacksonly)
         { throw new NotImplementedException(); }
-        public byte isBasisVarFeasible(lprec lp, double tol, int basis_row)
+        public bool isBasisVarFeasible(lprec lp, double tol, int basis_row)
         { throw new NotImplementedException(); }
         public byte isPrimalFeasible(lprec lp, double tol, int[] infeasibles, ref double feasibilitygap)
         { throw new NotImplementedException(); }

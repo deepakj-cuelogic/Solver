@@ -54,6 +54,7 @@
     <Compile Include="LpMatrix.cs" />
     <Compile Include="LpMipBb.cs" />
     <Compile Include="LpPresolve.cs" />
+    <Compile Include="LpPrice.cs" />
     <Compile Include="LpReport.cs" />
     <Compile Include="LpSos.cs" />
     <Compile Include="LpUtils.cs" />

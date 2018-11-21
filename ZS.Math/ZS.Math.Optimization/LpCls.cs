@@ -1443,6 +1443,149 @@ namespace ZS.Math.Optimization
             return ((lp.piv_strategy | PRICE_STRATEGYMASK) ^ PRICE_STRATEGYMASK);
         }
 
+        internal new static bool isBasisVarFeasible(lprec lp, double tol, int basis_row)
+        {
+            int col;
+            double x;
+            bool Ok = true;
+            bool? doSC = false;
 
+            col = lp.var_basic[basis_row];
+            x = lp.rhs[basis_row]; // The current solution of basic variables stored here!
+            if ((x < -tol) || (x > lp.upbo[col] + tol))
+            {
+                Ok = false;
+            }
+            else if (doSC != null && (col > lp.rows) && (System.Math.Abs(lp.sc_lobound[col - lp.rows]) > 0))
+            {
+                if ((x > tol) && (x < System.Math.Abs(lp.sc_lobound[col - lp.rows]) - tol))
+                {
+                    Ok = false;
+                }
+            }
+            return (Ok);
+        }
+
+        private new bool is_chsign(lprec lp, int rownr)
+        {
+            return ((bool)((lp.row_type[rownr] & ROWTYPE_CONSTRAINT) == ROWTYPE_CHSIGN));
+        }
+
+        internal bool add_columnex(lprec lp, int count, ref double?[] column, ref int?[] rowno)
+        {
+            /* This function adds a data column to the current model; three cases handled:
+
+            1: Prepare for column data by setting column = NULL
+            2: Dense vector indicated by (rowno == NULL) over 0..count+get_Lrows() elements
+            3: Sparse vector set over row vectors rowno, over 0..count-1 elements.
+
+           NB! If the column has only one entry, this should be handled as
+               a bound, but this currently is not the case  */
+
+            bool status = false;
+            string msg;
+            /* Prepare and shift column vectors */
+            if (!append_columns(lp, 1))
+            {
+                return (status);
+            }
+
+            /* Append sparse regular constraint values */
+            if (lp_matrix.mat_appendcol(lp.matA, count, column, rowno, 1.0, true) < 0)
+            {
+                msg = "add_columnex: Data column %d supplied in non-ascending row index order.\n";
+                lp.report(lp, SEVERE, ref msg, lp.columns);
+            }
+            else
+            {
+                //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+                ///#if Paranoia
+                if (lp.columns != (lp.matA.is_roworder ? lp.matA.rows : lp.matA.columns))
+                {
+                    msg = "add_columnex: Column count mismatch %d vs %d\n";
+                    lp.report(lp, SEVERE, ref msg, lp.columns, (lp.matA.is_roworder ? lp.matA.rows : lp.matA.columns));
+                }
+                else if (is_BasisReady(lp) && (lp.P1extraDim == 0) && !verify_basis(lp))
+                {
+                    msg = "add_columnex: Invalid basis detected for column %d\n";
+                    lp.report(lp, SEVERE, ref msg, lp.columns);
+                }
+                else
+                {
+                    ///#endif
+                    status = true;
+                }
+            }
+
+            if (!lp.varmap_locked)
+            {
+                lp_presolve.presolve_setOrig(lp, lp.rows, lp.columns);
+            }
+
+            return (status);
+        }
+
+        internal new int set_basisvar(lprec lp, int basisPos, int enteringCol)
+        {
+            int leavingCol;
+            string msg;
+
+            leavingCol = lp.var_basic[basisPos];
+
+            ///#if Paranoia
+            if ((basisPos < 1) || (basisPos > lp.rows))
+            {
+                msg = "set_basisvar: Invalid leaving basis position %d specified at iter %.0f\n";
+                lp.report(lp, SEVERE, ref msg, basisPos, (double)get_total_iter(lp));
+            }
+            if ((leavingCol < 1) || (leavingCol > lp.sum))
+            {
+                msg = "set_basisvar: Invalid leaving column %d referenced at iter %.0f\n";
+                lp.report(lp, SEVERE, ref msg, leavingCol, (double)get_total_iter(lp));
+            }
+            if ((enteringCol < 1) || (enteringCol > lp.sum))
+            {
+                msg = "set_basisvar: Invalid entering column %d specified at iter %.0f\n";
+                lp.report(lp, SEVERE, ref msg, enteringCol, (double)get_total_iter(lp));
+            }
+            ///#endif
+
+            ///#if ParanoiaXY
+            ///NOTED ISSUE
+            if (!lp.is_basic[leavingCol])
+            {
+                msg = "set_basisvar: Leaving variable %d is not basic at iter %.0f\n";
+                lp.report(lp, IMPORTANT, ref msg, leavingCol, (double)get_total_iter(lp));
+            }
+            //NOTED ISSUE:
+            if (enteringCol > lp.rows && lp.is_basic[enteringCol])
+            {
+                msg = "set_basisvar: Entering variable %d is already basic at iter %.0f\n";
+                report(lp, IMPORTANT, ref msg, enteringCol, (double)get_total_iter(lp));
+            }
+            ///#endif
+
+            lp.var_basic[0] = 0; // Set to signal that this is a non-default basis
+            lp.var_basic[basisPos] = enteringCol;
+            //NOTED ISSUE
+            lp.is_basic[leavingCol] = 0;
+            lp.is_basic[enteringCol] = 1;
+            if (lp.bb_basis != null)
+            {
+                lp.bb_basis.pivots++;
+            }
+
+            return (leavingCol);
+        }
+
+        internal new void set_action(ref int actionvar, int actionmask)
+        {
+            actionvar |= actionmask;
+        }
+
+        private new bool is_piv_mode(lprec lp, int testmask)
+        {
+            return ((bool)(((testmask & PRICE_STRATEGYMASK) != 0) && ((lp.piv_strategy & testmask) != 0)));
+        }
     }
 }
