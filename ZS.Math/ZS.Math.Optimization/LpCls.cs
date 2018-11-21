@@ -199,113 +199,21 @@ namespace ZS.Math.Optimization
             }
             lp_MPS objlp_MPS = new lp_MPS();
             if (objlp_MPS.MPS_readfile(lp, ref filename, typeMPS, options & 0x07))
-                return (lp);
-            else
-                return null;
-        }
-
-        // changed return type from 'lprec' to 'lprec[]' FIX_93385a20-6e5a-4ae8-93bc-bf519bf012cf 20/11/18
-        private new lprec[] read_mpsex(object userhandle, read_modeldata_func read_modeldata, int options)
-        {
-            // changed from 'lprec lp' to 'lprec[] lp' FIX_93385a20-6e5a-4ae8-93bc-bf519bf012cf 20/11/18
-            lprec[] lp = null;
-            int typeMPS;
-            lp_MPS objlp_MPS = new lp_MPS();
-
-            typeMPS = (options & ~0x07) >> 2;
-            if ((typeMPS & (MPSFIXED | MPSFREE)) == 0)
             {
-                typeMPS |= MPSFIXED;
-            }
-            /// <summary> FIX_93385a20-6e5a-4ae8-93bc-bf519bf012cf 20/11/18
-            /// PREVIOUS: if (lp_MPS.MPS_readex(lp, userhandle, read_modeldata, typeMPS, options & 0x07))
-            /// ERROR IN PREVIOUS: cannot convert from 'ZS.Math.Optimization.lprec' to 'ZS.Math.Optimization.lprec[]'
-            /// FIX 1: changed datatype for lp from '' to ''
-            /// </summary>
-            if (objlp_MPS.MPS_readex(lp, userhandle, read_modeldata, typeMPS, options & 0x07))
                 return (lp);
+            }
             else
-                return null;
+            {
+                return (null);
+            }
         }
-        /* #endif */
-
-        //changed return type from 'lprec' to 'lprec[]' FIX_e899bf25-51b0-4acb-9ff7-492c95af4269 20/11/18
-        private new lprec[] read_freeMPS(ref string filename, int options)
-        {
-            //changed from 'lprec lp' to 'lprec[] lp' FIX_e899bf25-51b0-4acb-9ff7-492c95af4269 20/11/18
-            lprec[] lp = null;
-            int typeMPS;
-            lp_MPS objlp_MPS = new lp_MPS();
-
-            typeMPS = (options & ~0x07) >> 2;
-            typeMPS &= ~MPSFIXED;
-            typeMPS |= MPSFREE;
-            /// <summary> FIX_e899bf25-51b0-4acb-9ff7-492c95af4269 20/11/18
-            /// PREVIOUS: if (objlp_MPS.MPS_readfile(lp, ref filename, typeMPS, options & 0x07))
-            /// ERROR IN PREVIOUS: cannot convert from 'ZS.Math.Optimization.lprec' to 'ZS.Math.Optimization.lprec[]'
-            /// FIX 1: changed from 'lprec lp' to 'lprec[] lp'
-            /// </summary>
-            if (objlp_MPS.MPS_readfile(lp, ref filename, typeMPS, options & 0x07))
-                return lp;
-            else
-                return null;
-        }
-
-        // changed from 'lprec lp' to 'lprec[] lp' FIX_920d341b-dd5a-474a-a85a-5671eba94856 20/11/18
-        // changed from 'FILE filename' to 'FileStream filename' FIX_920d341b-dd5a-474a-a85a-5671eba94856 20/11/18
-        private new lprec[] read_freemps(FileStream filename, int options)
-        {
-            // changed from 'lprec lp' to 'lprec[] lp' FIX_920d341b-dd5a-474a-a85a-5671eba94856 20/11/18
-            lprec[] lp = null;
-            int typeMPS;
-            lp_MPS objlp_MPS = new lp_MPS();
-
-            typeMPS = (options & ~0x07) >> 2;
-            typeMPS &= ~MPSFIXED;
-            typeMPS |= MPSFREE;
-            /// <summary> FIX_920d341b-dd5a-474a-a85a-5671eba94856 20/11/18
-            /// PREVIOUS: if (objlp_MPS.MPS_readhandle(lp, filename, typeMPS, options & 0x07))
-            /// ERROR IN PREVIOUS: cannot convert from 'ZS.Math.Optimization.lprec' to 'ZS.Math.Optimization.lprec[]'
-            /// FIX 1_1: changed from 'lprec lp' to 'lprec[] lp'
-            /// ERROR 2: Cannot implicitly convert type 'ZS.Math.Optimization.lprec[]' to 'ZS.Math.Optimization.lprec'
-            /// FIX 2_1: changed from 'FILE filename' to 'FileStream filename'
-            /// </summary>
-            if (objlp_MPS.MPS_readhandle(lp, filename, typeMPS, options & 0x07))
-                return lp;
-            else
-                return null;
-        }
-
-        /* #if defined develop */
-        private new lprec[] read_freempsex(object userhandle, read_modeldata_func read_modeldata, int options)
-        {
-            lprec[] lp = null;
-            int typeMPS;
-            lp_MPS objlp_MPS = new lp_MPS();
-
-            typeMPS = (options & ~0x07) >> 2;
-            typeMPS &= ~MPSFIXED;
-            typeMPS |= MPSFREE;
-            if (objlp_MPS.MPS_readex(lp, userhandle, read_modeldata, typeMPS, options & 0x07))
-                return lp;
-            else
-                return null;
-        }
-        /* #endif */
-
-        private new bool write_mps(lprec lp, ref string filename)
-        {
-            lp_MPS objlp_MPS = new lp_MPS();
-            return (objlp_MPS.MPS_writefile(lp, MPSFIXED, ref filename));
-        }
-
 
         internal new void set_maxim(lprec lp)
         {
             set_sense(lp, true);
         }
 
-        internal new lprec make_lp(int rows, int columns)
+        internal lprec make_lp(int rows, int columns)
         {
             lprec lp;
 
@@ -325,7 +233,7 @@ namespace ZS.Math.Optimization
             string name = "";
             set_lp_name(lp, ref name);
             lp.names_used = false;
-            lp.use_row_names = true;
+            lp.use_row_names = 1;
             lp.use_col_names = 1;
             lp.rowcol_name = null;
             /* Do standard initializations ------------------------------------------------------------ */
@@ -1187,7 +1095,7 @@ namespace ZS.Math.Optimization
             if ((lp.var_type[colnr] & ISINTEGER))
             {
                 lp.int_vars--;
-                lp.var_type[colnr] &= ISINTEGER;
+                lp.var_type[colnr] &= ISINTEGER;                  
             }
             if (var_type)
             {
@@ -1509,101 +1417,32 @@ namespace ZS.Math.Optimization
                 }
             }
             return (countnz);
-        }
+         }
 
-        private new string get_row_name(lprec lp, int rownr)
+        internal new bool is_action(int actionvar, int testmask)
         {
-            lp_report objlp_report = new lp_report();
-            if ((rownr < 0) || (rownr > lp.rows + 1))
-            {
-                string msg = "get_row_name: Row {0} out of range";
-                objlp_report.report(lp, lp_lib.IMPORTANT, ref msg, rownr);
-                return (null);
-            }
-
-            if ((lp.presolve_undo.var_to_orig != null) && lp.wasPresolved)
-            {
-                if (lp.presolve_undo.var_to_orig[rownr] == 0)
-                {
-                    rownr = -rownr;
-                }
-                else
-                {
-                    rownr = lp.presolve_undo.var_to_orig[rownr];
-                }
-            }
-            return (get_origrow_name(lp, rownr));
+            return ((bool)((actionvar & testmask) != 0));
         }
-
-        private new string get_origrow_name(lprec lp, int rownr)
+        internal new bool is_anti_degen(lprec lp, int testmask)
         {
-            bool newrow;
-            string ptr;
-
-            newrow = (bool)(rownr < 0);
-            rownr = System.Math.Abs(rownr);
-#if Paranoia
-            if (((lp.presolve_undo.var_to_orig == null) && newrow) || (rownr > MAX(lp.rows, lp.presolve_undo.orig_rows)))
-            {
-            report(lp, IMPORTANT, "get_origrow_name: Row %d out of range", rownr);
-            return (null);
-            }
-#endif
-
-            if (lp.names_used && lp.use_row_names && (lp.row_name[rownr] != null) && (lp.row_name[rownr].name != null))
-            {
-#if Paranoia
-	                    if (lp.row_name[rownr].index != rownr)
-	                    {
-	                      report(lp, SEVERE, "get_origrow_name: Inconsistent row ordinal %d vs %d\n", rownr, lp.row_name[rownr].index);
-	                    }
-#endif
-                ptr = lp.row_name[rownr].name;
-            }
-            else
-            {
-                /*NOT REQUIRED
-                if (lp.rowcol_name == null)
-                {
-                    if (!allocCHAR(lp, lp.rowcol_name, 20, 0))
-                    {
-                        return (null);
-                    }
-                }*/
-                ptr = lp.rowcol_name;
-                if (newrow)
-                {
-                    // PREVIOUS C# CODE: sprintf(ptr, ROWNAMEMASK2, rownr);
-                    string.Format(lp_MPS.ROWNAMEMASK2, ptr, rownr);
-                }
-                else
-                {
-                    // PREVIOUS C# CODE: sprintf(ptr, ROWNAMEMASK, rownr);
-                    string.Format(lp_MPS.ROWNAMEMASK2, ptr, rownr);
-                }
-            }
-            return (ptr);
+            return ((bool)((lp.anti_degen == testmask) || ((lp.anti_degen & testmask) != 0)));
         }
-
-        private int get_columnex(lprec lp, int colnr, ref double[] column, ref int?[] nzrow)
+        internal new long get_total_iter(lprec lp)
         {
-            lp_report objlp_report = new lp_report();
-            LpCls objLpCls = new LpCls();
-            if ((colnr > lp.columns) || (colnr < 1))
-            {
-                string msg = "get_columnex: Column {0} out of range\n";
-                objlp_report.report(lp, lp_lib.IMPORTANT, ref msg, colnr);
-                return (-1);
-            }
-
-            if (lp.matA.is_roworder)
-            {
-                return (LpCls.mat_getrow(lp, colnr, ref column, ref nzrow));
-            }
-            else
-            {
-                return (LpCls.mat_getcolumn(lp, colnr, ref column, ref nzrow));
-            }
+            return (lp.total_iter + lp.current_iter);
         }
+
+        internal new static string get_str_piv_rule(int rule)
+        {
+            string[] pivotText = { "Bland first index", "Dantzig", "Devex", "Steepest Edge" };
+            return (pivotText[rule]);
+        }
+
+        private new int get_piv_rule(lprec lp)
+        {
+            return ((lp.piv_strategy | PRICE_STRATEGYMASK) ^ PRICE_STRATEGYMASK);
+        }
+
+
     }
 }

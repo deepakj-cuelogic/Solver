@@ -374,7 +374,7 @@ namespace ZS.Math.Optimization
         public byte model_is_valid;     // Has this lp pased the 'test'
         public bool tighten_on_set;     // Specify if bounds will be tightened or overriden at bound setting
         public bool names_used;         // Flag to indicate if names for rows and columns are used
-        public bool use_row_names;      // Flag to indicate if names for rows are used
+        public byte use_row_names;      // Flag to indicate if names for rows are used
         public byte use_col_names;      // Flag to indicate if names for columns are used
 
         public byte lag_trace;          // Print information on Lagrange progression
@@ -419,8 +419,8 @@ namespace ZS.Math.Optimization
         public double[] orig_obj; // Unused pointer - Placeholder for OF not part of B
         public double obj; // Special vector used to temporarily change the OF vector
 
-        public ulong current_iter; // Number of iterations in the current/last simplex
-        public ulong total_iter; // Number of iterations over all B&B steps
+        public long current_iter; // Number of iterations in the current/last simplex
+        public long total_iter; // Number of iterations over all B&B steps
         public ulong current_bswap; // Number of bound swaps in the current/last simplex
         public ulong total_bswap; // Number of bount swaps over all B&B steps
         public int solvecount; // The number of solve() performed in this model
@@ -483,10 +483,9 @@ namespace ZS.Math.Optimization
         public int sc_vars; // Number of semi-continuous variables
         public double[] sc_lobound; /* sum_columns+1 : TRUE if variable is semi-continuous;
                                    value replaced by conventional lower bound during solve */
-                                    //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
-                                    //ORIGINAL LINE: int *var_is_free;
-        //changed from 'int var_is_free' to 'int[] var_is_free' FIX_1919d05a-6751-482b-a2aa-13042db63579 20/11/18
-        public int[] var_is_free; // columns+1: Index of twin variable if variable is free
+                                  //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+                                  //ORIGINAL LINE: int *var_is_free;
+        public int var_is_free; // columns+1: Index of twin variable if variable is free
                                 //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                 //ORIGINAL LINE: int *var_priority;
         /// <summary>
@@ -575,7 +574,7 @@ namespace ZS.Math.Optimization
 
         /* Solver working variables */
         internal double rhsmax;             /* The maximum |value| of the rhs vector at any iteration */
-        double suminfeas;          /* The working sum of primal and dual infeasibilities */
+        internal double suminfeas;          /* The working sum of primal and dual infeasibilities */
         internal double bigM;               /* Original objective weighting in primal phase 1 */
         internal double P1extraVal;         /* Phase 1 OF/RHS offset for feasibility */
         internal int P1extraDim;         /* Phase 1 additional columns/rows for feasibility */
@@ -619,6 +618,8 @@ namespace ZS.Math.Optimization
         /// TODO: Please check assignment as per logic
         /// </summary>
         public const double epsdual = 0;            /* For rounding reduced costs to zero */
+
+        
 
         double epspivot;           /* Pivot reject tolerance */
         double epsperturb;         /* Perturbation scalar */
@@ -1483,7 +1484,7 @@ namespace ZS.Math.Optimization
         public const int ANTIDEGEN_DYNAMIC = 64;
         public const int ANTIDEGEN_DURINGBB = 128;
         public const int ANTIDEGEN_RHSPERTURB = 256;
-        public const int ANTIDEGEN_BOUNDFLIP = 512;
+        internal const int ANTIDEGEN_BOUNDFLIP = 512;
         public const int ANTIDEGEN_DEFAULT = (ANTIDEGEN_FIXEDVARS | ANTIDEGEN_STALLING);
 
         /* REPORT defines */
@@ -1633,7 +1634,8 @@ namespace ZS.Math.Optimization
         public const int SCALEMODEL_CURTISREID = (SCALE_CURTISREID + SCALE_INTEGERS + SCALE_POWER2);
 
         /* Iteration status and strategies (internal) */
-        public const int ITERATE_MAJORMAJOR = 0;
+        //public const int ITERATE_MAJORMAJOR = 0;
+        public const bool ITERATE_MAJORMAJOR = false;
         public const int ITERATE_MINORMAJOR = 1;
         public const int ITERATE_MINORRETRY = 2;
 
@@ -2305,10 +2307,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public lprec read_freeMPS(ref string filename, int options)
         { throw new NotImplementedException(); }
-
-        // changed from 'lprec lp' to 'lprec[] lp' FIX_920d341b-dd5a-474a-a85a-5671eba94856 20/11/18
-        // changed from 'FILE filename' to 'FileStream filename' FIX_920d341b-dd5a-474a-a85a-5671eba94856 20/11/18
-        public lprec[] read_freemps(FileStream filename, int options)
+        public lprec read_freemps(FILE filename, int options)
         { throw new NotImplementedException(); }
 
         /* Write a MPS file to output */
@@ -2412,7 +2411,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public int get_anti_degen(lprec lp)
         { throw new NotImplementedException(); }
-        public byte is_anti_degen(lprec lp, int testmask)
+        public bool is_anti_degen(lprec lp, int testmask)
         { throw new NotImplementedException(); }
 
         public void set_presolve(lprec lp, int presolvemode, int maxloops)
@@ -2649,8 +2648,7 @@ namespace ZS.Math.Optimization
         public byte write_lpex(lprec lp, object userhandle, write_modeldata_func write_modeldata)
         { throw new NotImplementedException(); }
 
-        // changed return type from 'lprec' to 'lprec[]' FIX_93385a20-6e5a-4ae8-93bc-bf519bf012cf 20/11/18
-        public lprec[] read_mpsex(object userhandle, read_modeldata_func read_modeldata, int options)
+        public lprec read_mpsex(object userhandle, read_modeldata_func read_modeldata, int options)
         { throw new NotImplementedException(); }
         public lprec read_freempsex(object userhandle, read_modeldata_func read_modeldata, int options)
         { throw new NotImplementedException(); }
@@ -2785,18 +2783,13 @@ namespace ZS.Math.Optimization
         public byte is_fixedvar(lprec lp, int variable)
         { throw new NotImplementedException(); }
         public bool is_splitvar(lprec lp, int colnr)
-        { 
-            // changed from 'lp.var_is_free != null' to 'lp.var_is_free > 0' need to check while implementing
-            // != null condition working after FIX_1919d05a-6751-482b-a2aa-13042db63579 20/11/18
-            //changed lp.var_is_free datatype from int to int[] FIX_1919d05a-6751-482b-a2aa-13042db63579 20/11/18
-            return ((bool)((lp.var_is_free != null) && (lp.var_is_free[colnr] < 0) && (-lp.var_is_free[colnr] != colnr)));
-        }
+        { throw new NotImplementedException(); }
 
         public void set_action(ref int actionvar, int actionmask)
         { throw new NotImplementedException(); }
         public void clear_action(ref int actionvar, int actionmask)
         { throw new NotImplementedException(); }
-        public byte is_action(int actionvar, int testmask)
+        public bool is_action(int actionvar, int testmask)
         { throw new NotImplementedException(); }
 
         /* INLINE */
@@ -2976,5 +2969,7 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
 
+
+        
     }
 }
