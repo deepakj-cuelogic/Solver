@@ -11,7 +11,8 @@ namespace ZS.Math.Optimization
     /// changed from 'ref string field1' to 'ref char[] field1' on 15/11/18
     /// </summary>
     public delegate int scan_lineDelegate(lprec lp, int section, ref string line, ref char[] field1, ref string field2, ref string field3, ref double field4, ref string field5, ref double field6);
-    
+    public delegate string MPSnameDelegate(ref string name0, ref string name);
+
     public class FILE
     {
         public object _Placeholder;
@@ -44,12 +45,12 @@ namespace ZS.Math.Optimization
             return (status);
         }
 
-        private bool MPS_readhandle(lprec[] newlp, FileStream filehandle, int typeMPS, int verbose)
+        internal bool MPS_readhandle(lprec[] newlp, FileStream filehandle, int typeMPS, int verbose)
         {
             return (MPS_readex(newlp, (object)filehandle, MPS_input, typeMPS, verbose));
         }
 
-        private bool MPS_readex(lprec[] newlp, object userhandle, lp_lib.read_modeldata_func read_modeldata, int typeMPS, int verbose)
+        internal bool MPS_readex(lprec[] newlp, object userhandle, lp_lib.read_modeldata_func read_modeldata, int typeMPS, int verbose)
         {
 
             char[] field1 = null;    //can use string instead?? FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
@@ -1091,10 +1092,760 @@ namespace ZS.Math.Optimization
         }
 
         /* Write a MPS file to output */
-        public byte MPS_writefile(lprec lp, int typeMPS, ref string filename)
+        public bool MPS_writefile(lprec lp, int typeMPS, ref string filename)
         {
-            throw new NotImplementedException();
+            /// <summary>
+            /// PREVIOUS: FILE output = stdout;
+            /// ERROR IN PREVIOUS: The name 'stdout' does not exist in the current context
+            /// FIX 1: FileStream output = null
+            /// </summary>
+            FileStream output = null;
+            bool ok = false;
+
+            if (filename != null)
+            {
+                File.OpenWrite(filename);
+                if (output != null)
+                    return ok;
+            }
+            else
+                output = lp.outstream;
+
+            /// <summary>
+            /// PREVIOUS: ok = MPS_writefileex(lp, typeMPS, (object)output, write_lpdata);
+            /// ERROR IN PREVIOUS: cannot convert from 'method group' to 'lp_lib.write_modeldata_func'
+            /// FIX 1: definition for 'write_lpdata' is not clear, hence sent null for now
+            /// </summary>
+            ok = MPS_writefileex(lp, typeMPS, (object)output, null);
+
+            if (filename != null)
+            {
+                output.Close();
+            }
+
+            return (ok);
+
         }
+
+        private static int write_lpdata(object userhandle, ref string buf)
+        {
+            /// <summary> TODO
+            /// PREVIOUS: fputs(buf, (FILE)userhandle);
+            /// ERROR IN PREVIOUS: The name 'fputs' does not exist in the current context
+            /// FIX 1: 
+            /// </summary>
+                return 1;
+        }
+        private static string MPSnameFIXED(ref string name0, ref string name)
+        {
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting maximum string width in format specifiers:
+            //ORIGINAL LINE: sprintf(name0, "%-8.8s", name);
+            name0 = string.Format("{0,-8}", name);
+            return (name0);
+        }
+
+        private static string MPSnameFREE(ref string name0, ref string name)
+        {
+            if (name.Length < 8)
+            {
+                return (MPSnameFIXED(ref name0, ref name));
+            }
+            else
+            {
+                return (name);
+            }
+        }
+
+        private static void write_data(object userhandle, lp_lib.write_modeldata_func write_modeldata, ref string format, params object[] LegacyParamArray)
+        {
+            string buff = "";
+            //  va_list ap;
+
+            int ParamCount = -1;
+            //  va_start(ap, format);
+            /* TODO
+            vsnprintf(buff, DEF_STRBUFSIZE, format, ap);
+            */
+            //  va_end(ap);
+            write_modeldata(userhandle, buff);
+        }        
+
+        private bool MPS_writefileex(lprec lp, int typeMPS, object userhandle, lp_lib.write_modeldata_func write_modeldata)
+        {
+            int i;
+            int j;
+            int jj;
+            int je;
+            int k;
+            int marker;
+            int putheader;
+            // PREVIOUS CODE: int ChangeSignObj = FALSE
+            // CHANGED TO: bool ChangeSignObj = false
+            bool ChangeSignObj = false;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *idx;
+            int?[] idx=null;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *idx1;
+            int idx1;
+            bool? ok = true;
+            bool? names_used = false;
+            double a;
+            double[] val=null;
+            double val1;
+            MPSnameDelegate MPSname;
+            string numberbuffer = new string(new char[15]);
+            string name0 = new string(new char[9]);
+            lp_report objlp_report = new lp_report();
+            LpCls objLpCls = new LpCls();
+            string msg = "";
+
+            if ((typeMPS & lp_lib.MPSFIXED) == lp_lib.MPSFIXED)
+            {
+                MPSname = MPSnameFIXED;
+                ChangeSignObj = objLpCls.is_maxim(lp);
+            }
+            else if ((typeMPS & lp_lib.MPSFREE) == lp_lib.MPSFREE)
+            {
+                MPSname = MPSnameFREE;
+            }
+            else
+            {
+                msg = "MPS_writefile: unrecognized MPS name type.\n";
+                objlp_report.report(lp, lp_lib.IMPORTANT, ref msg);
+                return false;
+            }
+
+            names_used = lp.names_used;
+
+            if ((typeMPS & lp_lib.MPSFIXED) == lp_lib.MPSFIXED)
+            {
+                /* Check if there is no variable name where the first 8 charachters are equal to the first 8 characters of another variable */
+                if (names_used != null)
+                {
+                    for (i = 1; (i <= lp.columns) && (ok) != null; i++)
+                    {
+                        if ((lp.col_name[i] != null) && (lp.col_name[i].name != null) && (!is_splitvar(lp, i)) && (Convert.ToString(lp.col_name[i].name).Length > 8))
+                        {
+                            for (j = 1; (j < i) && (ok) != null; j++)
+                            {
+                                if ((lp.col_name[j] != null) && (lp.col_name[j].name != null) && (!is_splitvar(lp, j)))
+                                {
+                                    if (string.Compare(lp.col_name[i].name, 0, lp.col_name[j].name, 0, 8) == 0)
+                                    {
+                                        ok = false;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (ok == null)
+            {
+                lp.names_used = false;
+                ok = true;
+            }
+
+            //C++ TO C# CONVERTER TODO TASK: The memory management function 'memset' has no equivalent in C#:
+            /* NOT REQUIRED 
+            memset(numberbuffer, 0, sizeof(char));
+            */
+
+            marker = 0;
+
+            /* First write metadata in structured comment form (lp_solve style) */
+            msg = "*<meta creator='lp_solve v{0}.{1}'>\n";
+            write_data(userhandle, write_modeldata, ref msg, (int)lp_lib.MAJORVERSION, (int)lp_lib.MINORVERSION);
+            msg = "*<meta rows={0}>\n";
+            write_data(userhandle, write_modeldata, ref msg, lp.rows);
+            msg = "*<meta columns={0}>\n";
+            write_data(userhandle, write_modeldata, ref msg, lp.columns);
+            msg = "*<meta equalities={0}>\n";
+            write_data(userhandle, write_modeldata, ref msg, lp.equalities);
+            if (objLpCls.SOS_count(lp) > 0)
+            {
+                msg = "*<meta SOS={0}>\n";
+                write_data(userhandle, write_modeldata, ref msg, objLpCls.SOS_count(lp));
+            }
+            msg = "*<meta integers={0}>\n";
+            write_data(userhandle, write_modeldata, ref msg, lp.int_vars);
+            if (lp.sc_vars > 0)
+            {
+                msg = "*<meta scvars={0}>\n";
+                write_data(userhandle, write_modeldata, ref msg, lp.sc_vars);
+            }
+            msg = "*<meta origsense='%s'>\n";
+            write_data(userhandle, write_modeldata, ref msg, (objLpCls.is_maxim(lp) ? "MAX" : "MIN"));
+            msg = "*\n";
+            write_data(userhandle, write_modeldata, ref msg);
+
+            /* Write the MPS content */
+            msg = "NAME          {0}\n";
+            msg = objLpCls.get_lp_name(lp);
+            write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref msg));
+            if (((typeMPS & lp_lib.MPSFREE) == lp_lib.MPSFREE) && (objLpCls.is_maxim(lp)))
+            {
+                msg = "OBJSENSE\n MAX\n";
+                write_data(userhandle, write_modeldata, ref msg);
+            }
+            msg = "ROWS\n";
+            write_data(userhandle, write_modeldata, ref msg);
+            for (i = 0; i <= lp.rows; i++)
+            {
+                if (i == 0)
+                {
+                    msg = " N  ";
+                    write_data(userhandle, write_modeldata, ref msg);
+                }
+                else if (lp.orig_upbo[i] != 0)
+                {
+                    if (objLpCls.is_chsign(lp, i))
+                    {
+                        msg = " G  ";
+                        write_data(userhandle, write_modeldata, ref msg);
+                    }
+                    else
+                    {
+                        msg = " L  ";
+                        write_data(userhandle, write_modeldata, ref msg);
+                    }
+                }
+                else
+                {
+                    msg = " E  ";
+                    write_data(userhandle, write_modeldata, ref msg);
+                }
+                string getrowname = get_row_name(lp, i);
+                msg = "{0}\n";
+                write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname));
+            }
+            /*NOT REQUIRED
+            allocREAL(lp, val, 1 + lp.rows, 1);
+            allocINT(lp, idx, 1 + lp.rows, 1);
+            */
+            msg = "COLUMNS\n";
+            write_data(userhandle, write_modeldata, ref msg);
+            for (i = 1; i <= lp.columns; i++)
+            {
+                if (!is_splitvar(lp, i))
+                {
+                    if (is_int(lp, i) && (marker % 2) == 0)
+                    {
+                        msg = "    MARK{0}  'MARKER'                 'INTORG'\n";
+                        write_data(userhandle, write_modeldata, ref msg, marker);
+                        marker++;
+                    }
+                    if (!is_int(lp, i) && (marker % 2) == 1)
+                    {
+                        msg = "    MARK{0}  'MARKER'                 'INTEND'\n";
+                        write_data(userhandle, write_modeldata, ref msg, marker);
+                        marker++;
+                    }
+
+                    // Loop over non-zero column entries
+                    je = get_columnex(lp, i, ref val, ref idx);
+                    for (k = 1, val1 = val[0], idx1 = Convert.ToInt32(idx[0]), jj = 0; jj < je; jj++)
+                    {
+                        k = 1 - k;
+                        j = idx1++;
+                        a = val1++;
+                        if (k == 0)
+                        {
+                            string getcolname = objLpCls.get_col_name(lp, i);
+                            msg = "    {0}";
+                            write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname));
+                            msg = "  {0}  {1}";
+                            string getrowname = get_row_name(lp, j);
+                            write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(numberbuffer, (double)(a * (j == 0 && ChangeSignObj ? -1 : 1))));
+                        }
+                        else
+                        {
+                            write_data(userhandle, write_modeldata, "   %s  %s\n", MPSname(name0, get_row_name(lp, j)), formatnumber12(numberbuffer, (double)(a * (j == 0 && ChangeSignObj ? -1 : 1))));
+                        }
+                        /*                          formatnumber12(numberbuffer, (double) a)); */
+                    }
+                    if (k == 0)
+                    {
+                        write_data(userhandle, write_modeldata, "\n");
+                    }
+                }
+            }
+            //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
+            if ((marker % 2) == 1)
+            {
+                write_data(userhandle, write_modeldata, "    MARK%04d  'MARKER'                 'INTEND'\n", marker);
+                /* marker++; */
+                /* marker not used after this */
+            }
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            FREE(idx);
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            FREE(val);
+
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            write_data(userhandle, write_modeldata, "RHS\n");
+            //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
+            for (k = 1, i = 0; i <= lp.rows; i++)
+            {
+                a = lp.orig_rhs[i];
+                if (a)
+                {
+                    a = unscaled_value(lp, a, i);
+                    if ((i == 0) && ((typeMPS & MPSNEGOBJCONST) == MPSNEGOBJCONST))
+                    {
+                        a = -a;
+                    }
+                    if ((i == 0) || is_chsign(lp, i))
+                    {
+                        a = my_flipsign(a);
+                    }
+                    k = 1 - k;
+                    if (k == 0)
+                    {
+                        write_data(userhandle, write_modeldata, "    RHS       %s  %s", MPSname(name0, get_row_name(lp, i)), formatnumber12(numberbuffer, (double)a));
+                    }
+                    else
+                    {
+                        write_data(userhandle, write_modeldata, "   %s  %s\n", MPSname(name0, get_row_name(lp, i)), formatnumber12(numberbuffer, (double)a));
+                    }
+                }
+            }
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            if (k == 0)
+                //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+                write_data(userhandle, write_modeldata, "\n");
+
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            putheader = 1;
+            //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
+            for (k = 1, i = 1; i <= lp.rows; i++)
+            {
+                a = 0;
+                if ((lp.orig_upbo[i] < lp.infinite) && (lp.orig_upbo[i] != 0.0))
+                {
+                    a = lp.orig_upbo[i];
+                }
+                if (a)
+                {
+                    if (putheader)
+                    {
+                        write_data(userhandle, write_modeldata, "RANGES\n");
+                        putheader = 0;
+                    }
+                    a = unscaled_value(lp, a, i);
+                    k = 1 - k;
+                    if (k == 0)
+                    {
+                        write_data(userhandle, write_modeldata, "    RGS       %s  %s", MPSname(name0, get_row_name(lp, i)), formatnumber12(numberbuffer, (double)a));
+                    }
+                    else
+                    {
+                        write_data(userhandle, write_modeldata, "   %s  %s\n", MPSname(name0, get_row_name(lp, i)), formatnumber12(numberbuffer, (double)a));
+                    }
+                }
+            }
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            if (k == 0)
+                //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+                write_data(userhandle, write_modeldata, "\n");
+
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            putheader = 1;
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            for (i = lp.rows + 1; i <= lp.sum; i++)
+                //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
+                if (!is_splitvar(lp, i - lp.rows))
+                {
+                    j = i - lp.rows;
+                    if ((lp.orig_lowbo[i] != 0) && (lp.orig_upbo[i] < lp.infinite) && (lp.orig_lowbo[i] == lp.orig_upbo[i]))
+                    {
+                        a = lp.orig_upbo[i];
+                        a = unscaled_value(lp, a, i);
+                        if (putheader)
+                        {
+                            write_data(userhandle, write_modeldata, "BOUNDS\n");
+                            putheader = 0;
+                        }
+                        write_data(userhandle, write_modeldata, " FX BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), formatnumber12(numberbuffer, (double)a));
+                    }
+                    else if (is_binary(lp, j))
+                    {
+                        if (putheader)
+                        {
+                            write_data(userhandle, write_modeldata, "BOUNDS\n");
+                            putheader = 0;
+                        }
+                        write_data(userhandle, write_modeldata, " BV BND       %s\n", MPSname(name0, get_col_name(lp, j)));
+                    }
+                    //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
+                    else if (is_unbounded(lp, j))
+                    {
+                        if (putheader)
+                        {
+                            write_data(userhandle, write_modeldata, "BOUNDS\n");
+                            putheader = 0;
+                        }
+                        write_data(userhandle, write_modeldata, " FR BND       %s\n", MPSname(name0, get_col_name(lp, j)));
+                    }
+                    else
+                    {
+                        if ((lp.orig_lowbo[i] != 0) || (is_int(lp, j)))
+                        { // Some solvers like CPLEX need to have a bound on a variable if it is integer, but not binary else it is interpreted as binary which is not ment
+                            a = lp.orig_lowbo[i];
+                            a = unscaled_value(lp, a, i);
+                            if (putheader)
+                            {
+                                write_data(userhandle, write_modeldata, "BOUNDS\n");
+                                putheader = 0;
+                            }
+                            if (lp.orig_lowbo[i] != -lp.infinite)
+                            {
+                                write_data(userhandle, write_modeldata, " LO BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), formatnumber12(numberbuffer, (double)a));
+                            }
+                            else
+                            {
+                                write_data(userhandle, write_modeldata, " MI BND       %s\n", MPSname(name0, get_col_name(lp, j)));
+                            }
+                        }
+
+                        if ((lp.orig_upbo[i] < lp.infinite) || (is_semicont(lp, j)))
+                        {
+                            a = lp.orig_upbo[i];
+                            if (a < lp.infinite)
+                            {
+                                a = unscaled_value(lp, a, i);
+                            }
+                            if (putheader)
+                            {
+                                write_data(userhandle, write_modeldata, "BOUNDS\n");
+                                putheader = 0;
+                            }
+                            if (is_semicont(lp, j))
+                            {
+                                if (is_int(lp, j))
+                                {
+                                    write_data(userhandle, write_modeldata, " SI BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), (a < lp.infinite) ? formatnumber12(numberbuffer, (double)a) : "            ");
+                                }
+                                else
+                                {
+                                    write_data(userhandle, write_modeldata, " SC BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), (a < lp.infinite) ? formatnumber12(numberbuffer, (double)a) : "            ");
+                                }
+                            }
+                            else
+                            {
+                                write_data(userhandle, write_modeldata, " UP BND       %s  %s\n", MPSname(name0, get_col_name(lp, j)), formatnumber12(numberbuffer, (double)a));
+                            }
+                        }
+                    }
+                }
+
+            /* Write optional SOS section */
+            putheader = 1;
+            for (i = 0; i < SOS_count(lp); i++)
+            {
+                SOSgroup SOS = lp.SOS;
+
+                if (putheader)
+                {
+                    write_data(userhandle, write_modeldata, "SOS\n");
+                    putheader = 0;
+                }
+                write_data(userhandle, write_modeldata, " S%1d SOS       %s  %s\n", SOS.sos_list[i].type, MPSname(name0, SOS.sos_list[i].name), formatnumber12(numberbuffer, (double)SOS.sos_list[i].priority));
+                for (j = 1; j <= SOS.sos_list[i].size; j++)
+                {
+                    write_data(userhandle, write_modeldata, "    SOS       %s  %s\n", MPSname(name0, get_col_name(lp, SOS.sos_list[i].members[j])), formatnumber12(numberbuffer, (double)SOS.sos_list[i].weights[j]));
+                }
+            }
+
+            write_data(userhandle, write_modeldata, "ENDATA\n");
+
+            lp.names_used = names_used;
+
+            return (ok);
+        }
+
+        private static string formatnumber12(ref string numberbuffer, double a)
+        {
+            #if false
+            //  return(sprintf(numberbuffer, "%12g", a));
+            #else
+            number(numberbuffer, a);
+            return (numberbuffer);
+            #endif
+        }
+
+        private static void number(ref string str, double value)
+        {
+            string __str = new string(new char[80]);
+            string _str;
+            int i;
+
+            /* sprintf(_str,"%12.6G",value); */
+            _str = __str.Substring(2);
+            if (value >= 0.0)
+            {
+                if ((value != 0.0) && ((value > 0.99999999e12) || (value < 0.0001)))
+                {
+                    int n = 15;
+
+                    do
+                    {
+                        n--;
+                        //C++ TO C# CONVERTER TODO TASK: The following line has a C format specifier which cannot be directly translated to C#:
+                        //ORIGINAL LINE: i=sprintf(_str,"%*.*E",n,n-6,(double) value);
+                        _str = string.Format("%*.*E", n, n - 6, (double)value);
+                        i = _str.Length;
+                        if (i > 12)
+                        {
+                            //C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+                            char* ptr = StringFunctions.StrChr(_str, 'E');
+
+                            if (ptr != null)
+                            {
+                                if (*(++ptr) == '-')
+                                {
+                                    ptr++;
+                                }
+                                while ((i > 12) && ((*ptr == '+') || (*ptr == '0')))
+                                {
+                                    ptr = ptr + 1;
+                                    i--;
+                                }
+                            }
+                        }
+                    } while (i > 12);
+                }
+                else if (value >= 1.0e10)
+                {
+                    int n = 13;
+
+                    do
+                    {
+                        //C++ TO C# CONVERTER TODO TASK: The following line has a C format specifier which cannot be directly translated to C#:
+                        //ORIGINAL LINE: i=sprintf(_str,"%*.0f",--n,(double) value);
+                        _str = string.Format("%*.0f", --n, (double)value);
+                        i = _str.Length;
+                    } while (i > 12);
+                }
+                else
+                {
+                    if (((i = sprintf(_str, "%12.10f", (double)value)) > 12) && (_str[12] >= '5'))
+                    {
+                        for (i = 11; i >= 0; i--)
+                        {
+                            if (_str[i] != '.')
+                            {
+                                if (++_str[i] > '9')
+                                {
+                                    _str[i] = '0';
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                        if (i < 0)
+                        {
+                            *(--_str) = '1';
+                            *(--_str) = ' ';
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if ((value < -0.99999999e11) || (value > -0.0001))
+                {
+                    int n = 15;
+
+                    do
+                    {
+                        n--;
+                        //C++ TO C# CONVERTER TODO TASK: The following line has a C format specifier which cannot be directly translated to C#:
+                        //ORIGINAL LINE: i=sprintf(_str,"%*.*E",n,n-7,(double) value);
+                        _str = string.Format("%*.*E", n, n - 7, (double)value);
+                        i = _str.Length;
+                        if (i > 12)
+                        {
+                            //C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+                            char* ptr = StringFunctions.StrChr(_str, 'E');
+
+                            if (ptr != null)
+                            {
+                                if (*(++ptr) == '-')
+                                {
+                                    ptr++;
+                                }
+                                while ((i > 12) && ((*ptr == '+') || (*ptr == '0')))
+                                {
+                                    ptr = ptr + 1;
+                                    i--;
+                                }
+                            }
+                        }
+                    } while (i > 12);
+                }
+                else if (value <= -1.0e9)
+                {
+                    int n = 13;
+
+                    do
+                    {
+                        //C++ TO C# CONVERTER TODO TASK: The following line has a C format specifier which cannot be directly translated to C#:
+                        //ORIGINAL LINE: i=sprintf(_str,"%*.0f",--n,(double) value);
+                        _str = string.Format("%*.0f", --n, (double)value);
+                        i = _str.Length;
+                    } while (i > 12);
+                }
+                else
+                {
+                    if (((i = sprintf(_str, "%12.9f", (double)value)) > 12) && (_str[12] >= '5'))
+                    {
+                        for (i = 11; i >= 1; i--)
+                        {
+                            if (_str[i] != '.')
+                            {
+                                if (++_str[i] > '9')
+                                {
+                                    _str[i] = '0';
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                        if (i < 1)
+                        {
+                            _str = '1';
+                            *(--_str) = '-';
+                            *(--_str) = ' ';
+                        }
+                    }
+                }
+            }
+            str = _str.Substring(0, 12);
+        }
+
+        //----------------------------------------------------------------------------------------
+        //	Copyright © 2006 - 2018 Tangible Software Solutions, Inc.
+        //	This class can be used by anyone provided that the copyright notice remains intact.
+        //
+        //	This class provides the ability to replicate various classic C string functions
+        //	which don't have exact equivalents in the .NET Framework.
+        //----------------------------------------------------------------------------------------
+        internal static class StringFunctions
+        {
+            //------------------------------------------------------------------------------------
+            //	This method allows replacing a single character in a string, to help convert
+            //	C++ code where a single character in a character array is replaced.
+            //------------------------------------------------------------------------------------
+            public static string ChangeCharacter(string sourceString, int charIndex, char newChar)
+            {
+                return (charIndex > 0 ? sourceString.Substring(0, charIndex) : "")
+                    + newChar.ToString() + (charIndex < sourceString.Length - 1 ? sourceString.Substring(charIndex + 1) : "");
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'isxdigit' (and 'iswxdigit').
+            //------------------------------------------------------------------------------------
+            public static bool IsXDigit(char character)
+            {
+                if (char.IsDigit(character))
+                    return true;
+                else if ("ABCDEFabcdef".IndexOf(character) > -1)
+                    return true;
+                else
+                    return false;
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'strchr' (and 'wcschr').
+            //------------------------------------------------------------------------------------
+            public static string StrChr(string stringToSearch, char charToFind)
+            {
+                int index = stringToSearch.IndexOf(charToFind);
+                if (index > -1)
+                    return stringToSearch.Substring(index);
+                else
+                    return null;
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'strrchr' (and 'wcsrchr').
+            //------------------------------------------------------------------------------------
+            public static string StrRChr(string stringToSearch, char charToFind)
+            {
+                int index = stringToSearch.LastIndexOf(charToFind);
+                if (index > -1)
+                    return stringToSearch.Substring(index);
+                else
+                    return null;
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'strstr' (and 'wcsstr').
+            //------------------------------------------------------------------------------------
+            public static string StrStr(string stringToSearch, string stringToFind)
+            {
+                int index = stringToSearch.IndexOf(stringToFind);
+                if (index > -1)
+                    return stringToSearch.Substring(index);
+                else
+                    return null;
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'strtok' (and 'wcstok').
+            //	Note that the .NET string 'Split' method cannot be used to replicate 'strtok' since
+            //	it doesn't allow changing the delimiters between each token retrieval.
+            //------------------------------------------------------------------------------------
+            private static string activeString;
+            private static int activePosition;
+            public static string StrTok(string stringToTokenize, string delimiters)
+            {
+                if (stringToTokenize != null)
+                {
+                    activeString = stringToTokenize;
+                    activePosition = -1;
+                }
+
+                //the stringToTokenize was never set:
+                if (activeString == null)
+                    return null;
+
+                //all tokens have already been extracted:
+                if (activePosition == activeString.Length)
+                    return null;
+
+                //bypass delimiters:
+                activePosition++;
+                while (activePosition < activeString.Length && delimiters.IndexOf(activeString[activePosition]) > -1)
+                {
+                    activePosition++;
+                }
+
+                //only delimiters were left, so return null:
+                if (activePosition == activeString.Length)
+                    return null;
+
+                //get starting position of string to return:
+                int startingPosition = activePosition;
+
+                //read until next delimiter:
+                do
+                {
+                    activePosition++;
+                } while (activePosition < activeString.Length && delimiters.IndexOf(activeString[activePosition]) == -1);
+
+                return activeString.Substring(startingPosition, activePosition - startingPosition);
+            }
+        }
+
+
         public byte MPS_writehandle(lprec lp, int typeMPS, FILE output)
         {
             throw new NotImplementedException();

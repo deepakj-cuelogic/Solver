@@ -374,7 +374,7 @@ namespace ZS.Math.Optimization
         public byte model_is_valid;     // Has this lp pased the 'test'
         public bool tighten_on_set;     // Specify if bounds will be tightened or overriden at bound setting
         public bool names_used;         // Flag to indicate if names for rows and columns are used
-        public byte use_row_names;      // Flag to indicate if names for rows are used
+        public bool use_row_names;      // Flag to indicate if names for rows are used
         public byte use_col_names;      // Flag to indicate if names for columns are used
 
         public byte lag_trace;          // Print information on Lagrange progression
@@ -483,9 +483,10 @@ namespace ZS.Math.Optimization
         public int sc_vars; // Number of semi-continuous variables
         public double[] sc_lobound; /* sum_columns+1 : TRUE if variable is semi-continuous;
                                    value replaced by conventional lower bound during solve */
-                                  //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
-                                  //ORIGINAL LINE: int *var_is_free;
-        public int var_is_free; // columns+1: Index of twin variable if variable is free
+                                    //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+                                    //ORIGINAL LINE: int *var_is_free;
+        //changed from 'int var_is_free' to 'int[] var_is_free' FIX_1919d05a-6751-482b-a2aa-13042db63579 20/11/18
+        public int[] var_is_free; // columns+1: Index of twin variable if variable is free
                                 //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                 //ORIGINAL LINE: int *var_priority;
         /// <summary>
@@ -2304,7 +2305,10 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public lprec read_freeMPS(ref string filename, int options)
         { throw new NotImplementedException(); }
-        public lprec read_freemps(FILE filename, int options)
+
+        // changed from 'lprec lp' to 'lprec[] lp' FIX_920d341b-dd5a-474a-a85a-5671eba94856 20/11/18
+        // changed from 'FILE filename' to 'FileStream filename' FIX_920d341b-dd5a-474a-a85a-5671eba94856 20/11/18
+        public lprec[] read_freemps(FileStream filename, int options)
         { throw new NotImplementedException(); }
 
         /* Write a MPS file to output */
@@ -2645,7 +2649,8 @@ namespace ZS.Math.Optimization
         public byte write_lpex(lprec lp, object userhandle, write_modeldata_func write_modeldata)
         { throw new NotImplementedException(); }
 
-        public lprec read_mpsex(object userhandle, read_modeldata_func read_modeldata, int options)
+        // changed return type from 'lprec' to 'lprec[]' FIX_93385a20-6e5a-4ae8-93bc-bf519bf012cf 20/11/18
+        public lprec[] read_mpsex(object userhandle, read_modeldata_func read_modeldata, int options)
         { throw new NotImplementedException(); }
         public lprec read_freempsex(object userhandle, read_modeldata_func read_modeldata, int options)
         { throw new NotImplementedException(); }
@@ -2780,7 +2785,12 @@ namespace ZS.Math.Optimization
         public byte is_fixedvar(lprec lp, int variable)
         { throw new NotImplementedException(); }
         public bool is_splitvar(lprec lp, int colnr)
-        { throw new NotImplementedException(); }
+        { 
+            // changed from 'lp.var_is_free != null' to 'lp.var_is_free > 0' need to check while implementing
+            // != null condition working after FIX_1919d05a-6751-482b-a2aa-13042db63579 20/11/18
+            //changed lp.var_is_free datatype from int to int[] FIX_1919d05a-6751-482b-a2aa-13042db63579 20/11/18
+            return ((bool)((lp.var_is_free != null) && (lp.var_is_free[colnr] < 0) && (-lp.var_is_free[colnr] != colnr)));
+        }
 
         public void set_action(ref int actionvar, int actionmask)
         { throw new NotImplementedException(); }
@@ -2965,6 +2975,6 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        
+
     }
 }
