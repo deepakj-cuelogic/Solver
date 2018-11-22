@@ -181,7 +181,7 @@ namespace ZS.Math.Optimization
         static int mat_shiftrows(MATrec mat, int[] bbase, int delta, LLrec varmap) { throw new NotImplementedException(); }
         static int mat_shiftcols(MATrec mat, int[] bbase, int delta, LLrec varmap) { throw new NotImplementedException(); }
         static MATrec mat_extractmat(MATrec mat, LLrec rowmap, LLrec colmap, byte negated) { throw new NotImplementedException(); }
-        static internal int mat_appendrow(MATrec mat, int count, double[] row, int?[] colno, double mult, bool checkrowmode)
+        static internal int mat_appendrow(MATrec mat, int count, double?[] row, int?[] colno, double mult, bool checkrowmode)
         {
             int i;
             int j;
@@ -207,6 +207,8 @@ namespace ZS.Math.Optimization
                 /// PREVIOUS: return (mat_appendcol(mat, count, row, colno, mult, false));
                 /// ERROR IN PREVIOUS: cannot convert from 'int?[]' to 'int'
                 /// FIX 1: changed mat_appendcol parameter type from int to int?[]
+                /// ERROR 2: cannot convert from 'double[]' to 'double?[]' 
+                /// (changed parameter in method definition from 'double[] column' 'double?[] column' 22/11/18
                 /// </summary>
                 return (mat_appendcol(mat, count, row, colno, mult, false));
             }
@@ -370,7 +372,7 @@ namespace ZS.Math.Optimization
 
         /// <summary> FIX_7092efd5-8395-4e93-b63c-1412df391d55 on 19/11/18
         /// </summary>
-        internal static int mat_appendcol(MATrec mat, int count, double[] column, int?[] rowno, double mult, bool? checkrowmode)
+        internal static int mat_appendcol(MATrec mat, int count, double?[] column, int?[] rowno, double mult, bool? checkrowmode)
         {
 
             int i;

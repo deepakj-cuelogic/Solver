@@ -1568,8 +1568,8 @@ namespace ZS.Math.Optimization
             lp.var_basic[0] = 0; // Set to signal that this is a non-default basis
             lp.var_basic[basisPos] = enteringCol;
             //NOTED ISSUE
-            lp.is_basic[leavingCol] = 0;
-            lp.is_basic[enteringCol] = 1;
+            lp.is_basic[leavingCol] = false;
+            lp.is_basic[enteringCol] = true;
             if (lp.bb_basis != null)
             {
                 lp.bb_basis.pivots++;
@@ -1587,5 +1587,76 @@ namespace ZS.Math.Optimization
         {
             return ((bool)(((testmask & PRICE_STRATEGYMASK) != 0) && ((lp.piv_strategy & testmask) != 0)));
         }
+
+        /* INLINE */
+        internal new bool is_splitvar(lprec lp, int colnr)
+        /* Two cases handled by var_is_free:
+
+           1) LB:-Inf / UB:<Inf variables
+              No helper column created, sign of var_is_free set negative with index to itself.
+           2) LB:-Inf / UB: Inf (free) variables
+              Sign of var_is_free set positive with index to new helper column,
+              helper column created with negative var_is_free with index to the original column.
+
+           This function helps identify the helper column in 2).
+        */
+        {
+            //NOTED ISSUE:
+            return ((bool)((lp.var_is_free != null) && (lp.var_is_free[colnr] < 0) && (-lp.var_is_free[colnr] != colnr)));
+        }
+
+        private new int get_columnex(lprec lp, int colnr, ref double[] column, ref int?[] nzrow)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "get_columnex: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return (-1);
+            }
+
+            if (lp.matA.is_roworder)
+                return (mat_getrow(lp, colnr, ref column, ref nzrow));
+            else
+                return (mat_getcolumn(lp, colnr, ref column, ref nzrow));
+        }
+
+        internal new bool is_binary(lprec lp, int colnr)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "is_binary: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            return ((bool)(((lp.var_type[colnr] & ISINTEGER)) && (get_lowbo(lp, colnr) == 0) && (System.Math.Abs(get_upbo(lp, colnr) - 1) < lprec.epsprimal)));
+        }
+
+        internal new bool is_unbounded(lprec lp, int colnr)
+        {
+            bool test;
+
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "is_unbounded: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return false;
+            }
+
+            test = is_splitvar(lp, colnr);
+            if (!test)
+            {
+                colnr += lp.rows;
+                test = (bool)((lp.orig_lowbo[colnr] <= -lp.infinite) && (lp.orig_upbo[colnr] >= lp.infinite));
+            }
+            return (test);
+        }
+
+        internal new bool write_mps(lprec lp, ref string filename)
+        {
+            lp_MPS objlp_MPS = new lp_MPS();
+            return (objlp_MPS.MPS_writefile(lp, MPSFIXED, ref filename));
+        }
+
     }
 }

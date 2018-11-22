@@ -561,7 +561,8 @@ namespace ZS.Math.Optimization
         int crashmode;          /* Basis crashing mode (or none) */
         internal int[] var_basic;         /* rows_alloc+1: The list of columns in the basis */
         double[] val_nonbasic;      /* Array to store current values of non-basic variables */
-        internal bool is_basic;          /* sum_alloc+1: TRUE if the column is in the basis */
+        // ORIGINAL CODE: MYBOOL    *is_basic; char* is string in C#, hence changed to bool[] 22/11/18
+        internal bool[] is_basic;          /* sum_alloc+1: TRUE if the column is in the basis */
         byte is_lower;          /*  "       " : TRUE if the variable is at its
                                    lower bound (or in the basis), FALSE otherwise */
 
