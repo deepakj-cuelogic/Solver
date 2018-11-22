@@ -834,7 +834,7 @@ namespace ZS.Math.Optimization
         // ORIGINAL LINE: typedef MYBOOL(__WINAPI add_columnex_func)(lprec* lp, int count, REAL *column, int* rowno);
         public delegate byte add_columnex_func(lprec lp, int count, ref double column, ref int rowno);
         // ORIGINAL LINE: typedef MYBOOL(__WINAPI add_constraint_func)(lprec* lp, REAL *row, int constr_type, REAL rh);
-        public delegate byte add_constraint_func(lprec lp, ref double row, int constr_type, double rh);
+        public delegate byte add_constraint_func(lprec lp, ref double?[] row, int constr_type, double rh);
         // ORIGINAL LINE: typedef MYBOOL(__WINAPI add_constraintex_func)(lprec* lp, int count, REAL *row, int* colno, int constr_type, REAL rh);
         /// <summary>
         /// changed from 'ref double row' to 'ref double[] row' FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18

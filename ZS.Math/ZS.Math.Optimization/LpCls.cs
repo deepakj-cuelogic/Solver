@@ -393,7 +393,7 @@ namespace ZS.Math.Optimization
         /// <summary>
         /// changed from 'ref double row' to 'ref double[] row' FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
         /// </summary>
-        public new bool add_constraint(lprec lp, ref double[] row, int constr_type, double rh)
+        public new bool add_constraint(lprec lp, ref double?[] row, int constr_type, double rh)
         {
             return (add_constraintex(lp, 0, ref row, null, constr_type, rh));
         }
@@ -407,7 +407,7 @@ namespace ZS.Math.Optimization
         /// changed from 'ref double row' to ref double[] row FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
         /// changed from 'object colno' to 'int?[] colno' FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
         /// </summary>
-        private bool add_constraintex(lprec lp, int count, ref double[] row, int?[] colno, int constr_type, double rh)
+        private bool add_constraintex(lprec lp, int count, ref double?[] row, int?[] colno, int constr_type, double rh)
         {
             int n;
             bool status = false;
@@ -1551,7 +1551,6 @@ namespace ZS.Math.Optimization
             ///#endif
 
             ///#if ParanoiaXY
-            ///NOTED ISSUE
             if (!lp.is_basic[leavingCol])
             {
                 msg = "set_basisvar: Leaving variable %d is not basic at iter %.0f\n";
