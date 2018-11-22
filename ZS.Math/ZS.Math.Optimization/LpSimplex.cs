@@ -141,6 +141,8 @@ namespace ZS.Math.Optimization
         internal static bool stallMonitor_check(lprec lp, int rownr, int colnr, int lastnr, bool minit, bool approved, ref bool forceoutEQ)
         {
             OBJmonrec monitor = lp.monitor;
+            //LpPricePSE LpPrice = new LpPricePSE();
+            LpCls objLpCls = new LpCls();
             bool isStalled = new bool();
             bool isCreeping = new bool();
             bool acceptance = true;
@@ -175,6 +177,7 @@ namespace ZS.Math.Optimization
             if ((lp.spx_trace != 0) && (lastnr > 0))
             {
                 msg = "%s: Objective at iter %10.0f is " + lp_types.RESULTVALUEMASK + " (%4d: %4d %s- %4d)\n ";
+                //NOTED ISSUE:
                 lp.report(lp, msg, monitor.spxfunc, (double)lp.get_total_iter(lp), monitor.thisobj, rownr, lastnr, lp_types.my_if(minit == Convert.ToBoolean(lprec.ITERATE_MAJORMAJOR), "<", "|"), colnr);
             }
             monitor.pivrule = lp.get_piv_rule(lp);
@@ -223,25 +226,25 @@ namespace ZS.Math.Optimization
             if (!isStalled && (testvalue > 0) && !ISMASKSET(lp.piv_strategy, PRICE_NOBOUNDFLIP))
             {
                 SETMASK(lp.piv_strategy, PRICE_NOBOUNDFLIP);
-                acceptance = AUTOMATIC;
+                acceptance = DefineConstants.AUTOMATIC;
             }
             else
-
+            {
                 CLEARMASK(lp.piv_strategy, PRICE_NOBOUNDFLIP);
-            ///#endif
-#endregion
-            //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-            ///#if 1
-            isCreeping = false;
-            ///#else
-            isCreeping |= stallMonitor_creepingObj(lp);
-            /*  isCreeping |= stallMonitor_shortSteps(lp); */
-            ///#endif
+                ///#endif
+                ///#if 1
+                isCreeping = false;
+                ///#else
+                isCreeping |= stallMonitor_creepingObj(lp);
+                /*  isCreeping |= stallMonitor_shortSteps(lp); */
+                ///#endif
+            }
+            #endregion
+
             if (isStalled || isCreeping)
             {
 
                 /* Update counters along with specific tolerance for bound flips */
-                //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
                 ///#if 1
                 if (minit != lp_lib.ITERATE_MAJORMAJOR)
                 {
@@ -263,80 +266,80 @@ namespace ZS.Math.Optimization
                     monitor.Ccycle = colnr;
                     monitor.Rcycle = rownr;
                 }
+            }
+            /* Check if we should change pivoting strategy */
+            ///ORIGINAL CODE: else if (isCreeping || (monitor.Ncycle > monitor.limitstall[monitor.isdual]) || ((monitor.Ccycle == rownr) && (monitor.Rcycle == colnr)))
+            else if (isCreeping || (monitor.Ncycle > monitor.limitstall[Convert.ToInt32(monitor.isdual)]) || ((monitor.Ccycle == rownr) && (monitor.Rcycle == colnr)))
+            { // Obvious cycling
 
-                /* Check if we should change pivoting strategy */
-                ///ORIGINAL CODE: else if (isCreeping || (monitor.Ncycle > monitor.limitstall[monitor.isdual]) || ((monitor.Ccycle == rownr) && (monitor.Rcycle == colnr)))
-                else if (isCreeping || (monitor.Ncycle > monitor.limitstall[Convert.ToInt32(monitor.isdual)]) || ((monitor.Ccycle == rownr) && (monitor.Rcycle == colnr)))
-                { // Obvious cycling
+                monitor.active = 1;
 
-                    monitor.active = 1;
+                /* Try to force out equality slacks to combat degeneracy */
+                if ((lp.fixedvars > 0) && (forceoutEQ != true))
+                {
+                    forceoutEQ = true;
+                    goto Proceed;
+                }
 
-                    /* Try to force out equality slacks to combat degeneracy */
-                    if ((lp.fixedvars > 0) && (forceoutEQ != true))
+                /* Our options are now to select an alternative rule or to do bound perturbation;
+                   check if these options are available to us or if we must signal failure and break out. */
+                approved &= monitor.pivdynamic && (monitor.ruleswitches < monitor.limitruleswitches);
+                if (!approved && !lp.is_anti_degen(lp, lprec.ANTIDEGEN_STALLING))
+                {
+                    lp.spx_status = lp_lib.DEGENERATE;
+                    msg = "%s: Stalling at iter %10.0f; no alternative strategy left.\n";
+                    lp.report(lp, msglevel, ref msg, monitor.spxfunc, (double)objLpCls.get_total_iter(lp));
+                    acceptance = false;
+                    return (acceptance);
+                }
+
+                /* See if we can do the appropriate alternative rule. */
+                switch (monitor.oldpivrule)
+                {
+                    case lp_lib.PRICER_FIRSTINDEX:
+                        altrule = PRICER_DEVEX;
+                        break;
+                    case lp_lib.PRICER_DANTZIG:
+                        altrule = PRICER_DEVEX;
+                        break;
+                    case PRICER_DEVEX:
+                        altrule = lp_lib.PRICER_STEEPESTEDGE;
+                        break;
+                    case lp_lib.PRICER_STEEPESTEDGE:
+                        altrule = PRICER_DEVEX;
+                        break;
+                    default:
+                        altrule = lp_lib.PRICER_FIRSTINDEX;
+                        break;
+                }
+                if (approved && (monitor.pivrule != altrule) && (monitor.pivrule == monitor.oldpivrule))
+                {
+
+                    /* Switch rule to combat degeneracy. */
+                    monitor.ruleswitches++;
+                    lp.piv_strategy = altrule;
+                    monitor.Ccycle = 0;
+                    monitor.Rcycle = 0;
+                    monitor.Ncycle = 0;
+                    monitor.Mcycle = 0;
+
+                    msg = "%s: Stalling at iter %10.0f; changed to '%s' rule.\n";
+                    lp.report(lp, msglevel, ref msg, monitor.spxfunc, (double)lp.get_total_iter(lp), lp.get_str_piv_rule(lp.get_piv_rule(lp)));
+                    if ((altrule == PRICER_DEVEX) || (altrule == lp_lib.PRICER_STEEPESTEDGE))
                     {
-                        forceoutEQ = true;
-                        goto Proceed;
+                        //NOTED ISSUE:
+                        LpPricePSE.restartPricer(lp, DefineConstants.AUTOMATIC);
                     }
+                }
 
-                    /* Our options are now to select an alternative rule or to do bound perturbation;
-                       check if these options are available to us or if we must signal failure and break out. */
-                    approved &= monitor.pivdynamic && (monitor.ruleswitches < monitor.limitruleswitches);
-                    if (!approved && !lp.is_anti_degen(lp, lprec.ANTIDEGEN_STALLING))
-                    {
-                        lp.spx_status = lp_lib.DEGENERATE;
-                        msg = "%s: Stalling at iter %10.0f; no alternative strategy left.\n";
-                        lp.report(lp, msglevel, ref msg, monitor.spxfunc, (double)lp.get_total_iter(lp));
-                        acceptance = false;
-                        return (acceptance);
-                    }
-
-                    /* See if we can do the appropriate alternative rule. */
-                    switch (monitor.oldpivrule)
-                    {
-                        case lp_lib.PRICER_FIRSTINDEX:
-                            altrule = PRICER_DEVEX;
-                            break;
-                        case lp_lib.PRICER_DANTZIG:
-                            altrule = PRICER_DEVEX;
-                            break;
-                        case PRICER_DEVEX:
-                            altrule = lp_lib.PRICER_STEEPESTEDGE;
-                            break;
-                        case lp_lib.PRICER_STEEPESTEDGE:
-                            altrule = PRICER_DEVEX;
-                            break;
-                        default:
-                            altrule = lp_lib.PRICER_FIRSTINDEX;
-                            break;
-                    }
-                    if (approved && (monitor.pivrule != altrule) && (monitor.pivrule == monitor.oldpivrule))
-                    {
-
-                        /* Switch rule to combat degeneracy. */
-                        monitor.ruleswitches++;
-                        lp.piv_strategy = altrule;
-                        monitor.Ccycle = 0;
-                        monitor.Rcycle = 0;
-                        monitor.Ncycle = 0;
-                        monitor.Mcycle = 0;
-
-                        msg = "%s: Stalling at iter %10.0f; changed to '%s' rule.\n";
-                        lp.report(lp, msglevel, ref msg, monitor.spxfunc, (double)lp.get_total_iter(lp), lp.get_str_piv_rule(lp.get_piv_rule(lp)));
-                        if ((altrule == PRICER_DEVEX) || (altrule == lp_lib.PRICER_STEEPESTEDGE))
-                        {
-                            restartPricer(lp, AUTOMATIC);
-                        }
-                    }
-
-                    /* If not, code for bound relaxation/perturbation */
-                    else
-                    {
-
-                        report(lp, msglevel, "%s: Stalling at iter %10.0f; proceed to bound relaxation.\n", monitor.spxfunc, (double)get_total_iter(lp));
-                        acceptance = 0;
-                        lp.spx_status = DEGENERATE;
-                        return (acceptance);
-                    }
+                /* If not, code for bound relaxation/perturbation */
+                else
+                {
+                    msg = "%s: Stalling at iter %10.0f; proceed to bound relaxation.\n";
+                    lp.report(lp, msglevel, ref msg, monitor.spxfunc, (double)objLpCls.get_total_iter(lp));
+                    acceptance = false;
+                    lp.spx_status = lp_lib.DEGENERATE;
+                    return (acceptance);
                 }
             }
 
@@ -347,13 +350,13 @@ namespace ZS.Math.Optimization
                 {
                     lp.piv_strategy = monitor.oldpivstrategy;
                     altrule = monitor.oldpivrule;
-                    if ((altrule == PRICER_DEVEX) || (altrule == PRICER_STEEPESTEDGE))
+                    if ((altrule == PRICER_DEVEX) || (altrule == lp_lib.PRICER_STEEPESTEDGE))
                     {
-
-                        restartPricer(lp, AUTOMATIC);
+                        //NOTED ISSUE:
+                        LpPricePSE.restartPricer(lp, DefineConstants.AUTOMATIC);
                     }
-
-                    report(lp, msglevel, "...returned to original pivot selection rule at iter %.0f.\n", (double)get_total_iter(lp));
+                    msg = "...returned to original pivot selection rule at iter %.0f.\n";
+                    lp.report(lp, msglevel, ref msg, (double)objLpCls.get_total_iter(lp));
                 }
 
                 stallMonitor_update(lp, monitor.thisobj);
@@ -364,7 +367,6 @@ namespace ZS.Math.Optimization
             }
 
             /* Update objective progress tracker */
-            //C++ TO JAVA CONVERTER TODO TASK: There are no gotos or labels in Java:
             Proceed:
             monitor.Icount++;
             if (deltaobj >= monitor.epsvalue)
@@ -374,35 +376,311 @@ namespace ZS.Math.Optimization
             monitor.previnfeas = monitor.thisinfeas;
 
             return (acceptance);
-        }
-    }
 
-    public static int primloop(lprec lp, byte primalfeasible, double primaloffset)
-    {
-        throw new NotImplementedException();
-    }
-    public static int dualloop(lprec lp, byte dualfeasible, int[] dualinfeasibles, double dualoffset)
-    {
-        throw new NotImplementedException();
-    }
-    public static int spx_run(lprec lp, byte validInvB)
-    {
-        throw new NotImplementedException();
-    }
-    public static int spx_solve(lprec lp)
-    {
-        throw new NotImplementedException();
-    }
-    public static int lag_solve(lprec lp, double start_bound, int num_iter)
-    {
-        throw new NotImplementedException();
-    }
-    public static int heuristics(lprec lp, int mode)
-    {
-        throw new NotImplementedException();
-    }
-    public static int lin_solve(lprec lp)
-    {
-        throw new NotImplementedException();
+        }
+
+        internal static void stallMonitor_finish(lprec lp)
+        {
+            OBJmonrec monitor = lp.monitor;
+            if (monitor == null)
+            {
+                return;
+            }
+            if (lp.piv_strategy != monitor.oldpivstrategy)
+            {
+                lp.piv_strategy = monitor.oldpivstrategy;
+            }
+
+            ///NOT REQUIRED
+            ///FREE(monitor);
+            lp.monitor = null;
+        }
+
+        internal static bool add_artificial(lprec lp, int forrownr, ref double?[] nzarray, ref int?[] idxarray)
+        {
+            /* This routine is called for each constraint at the start of
+           primloop and the primal problem is infeasible. Its
+           purpose is to add artificial variables and associated
+           objective function values to populate primal phase 1. */
+            bool add;
+            LpCls objLpCls = new LpCls();
+
+            /* Make sure we don't add unnecessary artificials, i.e. avoid
+               cases where the slack variable is enough */
+            add = !LpCls.isBasisVarFeasible(lp, lp.epspivot, forrownr);
+
+            if (add)
+            {
+                //ORIGINAL LINE: int *rownr = null, i, bvar, ii;
+                int?[] rownr = null;
+                int i;
+                int bvar;
+                int ii;
+
+                //ORIGINAL LINE: double *avalue = null, rhscoef, acoef;
+                double?[] avalue = null;
+                double rhscoef;
+                double acoef;
+                MATrec mat = lp.matA;
+                string msg;
+
+                /* Check the simple case where a slack is basic */
+                for (i = 1; i <= lp.rows; i++)
+                {
+                    if (lp.var_basic[i] == forrownr)
+                    {
+                        break;
+                    }
+                }
+                acoef = 1;
+
+                /* If not, look for any basic user variable that has a
+                   non-zero coefficient in the current constraint row */
+                if (i > lp.rows)
+                {
+                    for (i = 1; i <= lp.rows; i++)
+                    {
+                        ii = lp.var_basic[i] - lp.rows;
+                        if ((ii <= 0) || (ii > (lp.columns - lp.P1extraDim)))
+                        {
+                            continue;
+                        }
+                        ii = lp_matrix.mat_findelm(mat, forrownr, ii);
+                        if (ii >= 0)
+                        {
+                            acoef = lp_matrix.COL_MAT_VALUE(ii);
+                            break;
+                        }
+                    }
+                }
+
+                /* If no candidate was found above, gamble on using the densest column available */
+                ///#if false
+                //    if(i > lp->rows) {
+                //      int len = 0;
+                //      bvar = 0;
+                //      for(i = 1; i <= lp->rows; i++) {
+                //        ii = lp->var_basic[i] - lp->rows;
+                //        if((ii <= 0) || (ii > (lp->columns-lp->P1extraDim)))
+                //          continue;
+                //        if(mat_collength(mat, ii) > len) {
+                //          len = mat_collength(mat, ii);
+                //          bvar = i;
+                //        }
+                //      }
+                //      i = bvar;
+                //      acoef = 1;
+                //    }
+                ///#endif
+
+                bvar = i;
+
+                add = (bool)(bvar <= lp.rows);
+                if (add)
+                {
+                    rhscoef = lp.rhs[forrownr];
+
+                    /* Create temporary sparse array storage */
+                    if (nzarray == null)
+                    {
+                        //NOT REQUIRED
+                        //allocREAL(lp, avalue, 2, 0);
+                    }
+                    else
+                    {
+                        avalue = nzarray;
+                    }
+                    if (idxarray == null)
+                    {
+                        //NOT REQUIRED
+                        //allocINT(lp, rownr, 2, 0);
+                    }
+                    else
+                    {
+                        rownr = idxarray;
+                    }
+
+                    /* Set the objective coefficient */
+                    rownr[0] = 0;
+                    avalue[0] = lp_types.my_chsign(objLpCls.is_chsign(lp, 0), 1);
+
+                    /* Set the constraint row coefficient */
+                    rownr[1] = forrownr;
+                    avalue[1] = lp_types.my_chsign(objLpCls.is_chsign(lp, forrownr), lp_types.my_sign(rhscoef / acoef));
+
+                    /* Add the column of artificial variable data to the user data matrix */
+                    objLpCls.add_columnex(lp, 2, ref avalue, ref rownr);
+
+                    /* Free the temporary sparse array storage */
+                    if (idxarray == null)
+                    {
+                        //NOT REQUIRED
+                        //FREE(rownr);
+                    }
+                    if (nzarray == null)
+                    {
+                        //NOT REQUIRED
+                        //FREE(avalue);
+                    }
+
+                    /* Now set the artificial variable to be basic */
+                    objLpCls.set_basisvar(lp, bvar, lp.sum);
+                    lp.P1extraDim++;
+                }
+                else
+                {
+                    msg = "add_artificial: Could not find replacement basis variable for row %d\n";
+                    lp.report(lp, lp_lib.CRITICAL, ref msg, forrownr);
+                    lp.basis_valid = 0;
+                }
+
+            }
+
+            return (add);
+
+        }
+
+        internal static int get_artificialRow(lprec lp, int colnr)
+        {
+            MATrec mat = lp.matA;
+            string msg;
+
+            ///#if Paranoia
+            if ((colnr <= lp.columns - System.Math.Abs(lp.P1extraDim)) || (colnr > lp.columns))
+            {
+                msg = "get_artificialRow: Invalid column index %d\n";
+                lp.report(lp, lp_lib.SEVERE, ref msg, colnr);
+            }
+            if (mat.col_end[colnr] - mat.col_end[colnr - 1] != 1)
+            {
+                msg = "get_artificialRow: Invalid column non-zero count\n";
+                lp.report(lp, lp_lib.SEVERE, ref msg);
+            }
+            ///#endif
+
+            /* Return the row index of the singleton */
+            colnr = mat.col_end[colnr - 1];
+            colnr = lp_matrix.COL_MAT_ROWNR(colnr);
+            return (colnr);
+        }
+
+        internal static int findAnti_artificial(lprec lp, int colnr)
+        {
+            /* Primal simplex: Find a basic artificial variable to swap
+           against the non-basic slack variable, if possible */
+            int i;
+            int k;
+            int rownr = 0;
+            int P1extraDim = System.Math.Abs(lp.P1extraDim);
+
+            //NOTED ISSUE
+            if ((P1extraDim == 0) || (colnr > lp.rows) || !lp.is_basic[colnr])
+            {
+                return (rownr);
+            }
+
+            for (i = 1; i <= lp.rows; i++)
+            {
+                k = lp.var_basic[i];
+                if ((k > lp.sum - P1extraDim) && (lp.rhs[i] == 0))
+                {
+                    rownr = get_artificialRow(lp, k - lp.rows);
+
+                    /* Should we find the artificial's slack direct "antibody"? */
+                    if (rownr == colnr)
+                    {
+                        break;
+                    }
+                    rownr = 0;
+                }
+            }
+            return (rownr);
+        }
+
+        internal static int findBasicArtificial(lprec lp, int before)
+        {
+            int i = 0;
+            int P1extraDim = System.Math.Abs(lp.P1extraDim);
+
+            if (P1extraDim > 0)
+            {
+                if (before > lp.rows || before <= 1)
+                {
+                    i = lp.rows;
+                }
+                else
+                {
+                    i = before;
+                }
+
+                while ((i > 0) && (lp.var_basic[i] <= lp.sum - P1extraDim))
+                {
+                    i--;
+                }
+            }
+
+            return (i);
+        }
+
+        internal static void eliminate_artificials(lprec lp, ref double prow)
+        {
+            int i;
+            int j;
+            int colnr;
+            int rownr;
+            int P1extraDim = System.Math.Abs(lp.P1extraDim);
+            LpCls objLpCls = new LpCls();
+
+            for (i = 1; (i <= lp.rows) && (P1extraDim > 0); i++)
+            {
+                j = lp.var_basic[i];
+                if (j <= lp.sum - P1extraDim)
+                {
+                    continue;
+                }
+                j -= lp.rows;
+                rownr = get_artificialRow(lp, j);
+                colnr = find_rowReplacement(lp, rownr, prow, null);
+
+                ///#if false
+                //    performiteration(lp, rownr, colnr, 0.0, TRUE, FALSE, prow, NULL,
+                //                                                          NULL, NULL, NULL);
+                ///#else
+                objLpCls.set_basisvar(lp, rownr, colnr);
+                ///#endif
+                del_column(lp, j);
+                P1extraDim--;
+            }
+            lp.P1extraDim = 0;
+        }
+
+        public static int primloop(lprec lp, byte primalfeasible, double primaloffset)
+        {
+            throw new NotImplementedException();
+        }
+        public static int dualloop(lprec lp, byte dualfeasible, int[] dualinfeasibles, double dualoffset)
+        {
+            throw new NotImplementedException();
+        }
+        public static int spx_run(lprec lp, byte validInvB)
+        {
+            throw new NotImplementedException();
+        }
+        public static int spx_solve(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+        public static int lag_solve(lprec lp, double start_bound, int num_iter)
+        {
+            throw new NotImplementedException();
+        }
+        public static int heuristics(lprec lp, int mode)
+        {
+            throw new NotImplementedException();
+        }
+        public static int lin_solve(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

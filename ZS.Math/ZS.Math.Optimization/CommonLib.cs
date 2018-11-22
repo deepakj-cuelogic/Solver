@@ -10,16 +10,18 @@ namespace ZS.Math.Optimization
         public const double MACHINEPREC = 2.22e-16;
         public const double MATHPREC = 1.0e-16;
         public const double ERRLIMIT = 1.0e-06;
+        public const long MAXINT64 = 0;
+       // public const double REALXP = 0;
 
         static Func<double, double, double> MIN = (x, y) => ((x) < (y) ? (x) : (y));
         internal static Func<double, double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
 
-        static Action<int, int> SETMIN = delegate (int x, int y) { if (x > y) x = y; };
+        internal static Action<int, int> SETMIN = delegate (int x, int y) { if (x > y) x = y; };
         public static Action<int, int> SETMAX = delegate (int x, int y) { if (x < y) x = y; };
 
         static Func<int, int, int, int> LIMIT = (lo, x, hi) => ((x < (lo) ? lo : ((x) > hi ? hi : x)));
         static Func<int, int, int, bool> BETWEEN = (x, a, b) => ((x - a) * (x - b) <= 0);
-        static Func<bool, int, int, int> IF = (t, x, y) => ((t) ? (x) : (y));
+        internal static Func<bool, int, int, int> IF = (t, x, y) => ((t) ? (x) : (y));
         static Func<object, object> SIGN = (x) => ((int)(x) < 0 ? -1 : 1);
 
         static Func<double, double, double> DELTA_SIZE = (newSize, oldSize) =>

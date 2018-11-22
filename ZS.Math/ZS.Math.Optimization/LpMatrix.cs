@@ -10,7 +10,7 @@ namespace ZS.Math.Optimization
         public const int CAM_Record = 0;
         public const int CAM_Vector = 1;
         public const int CAM = 0;
-
+        
 
 
 #if CAM == CAM_Record
@@ -106,6 +106,7 @@ namespace ZS.Math.Optimization
         public const int matRowColStep = 1;
         public const int matValueStep = 1;
         static MATrec mat;
+        public const int MAT_ROUNDRC = 4;
 
         //ORIGINAL CODE: #define COL_MAT_ROWNR(item)       (mat->col_mat_rownr[item])
         internal static Func<int, int> COL_MAT_ROWNR = (item) => (mat.col_mat_rownr[item]);
@@ -211,9 +212,9 @@ namespace ZS.Math.Optimization
             }
 
             /* Do initialization and validation */
-            //ORIGINAL LINE: isA = (MYBOOL)(mat == lp->matA);
+            //ORIGINAL LINE: isA = (bool)(mat == lp->matA);
             isA = ((mat == lp.matA));
-            //ORIGINAL LINE: isNZ = (MYBOOL)(colno != null);
+            //ORIGINAL LINE: isNZ = (bool)(colno != null);
             isNZ = ((colno != null));
             if (isNZ != null && (count > 0))
             {
@@ -282,13 +283,13 @@ namespace ZS.Math.Optimization
                 if (row != null)
                 {
                     /*NOT REQUIRED
-                     * if (!allocMYBOOL(lp, addto, mat.columns + 1, 1))
+                     * if (!allocbool(lp, addto, mat.columns + 1, 1))
                     {
                         return (newnr);
                     }*/
                     for (i = mat.columns; i >= 1; i--)
                     {
-                        if (System.Math.Abs(row[i]) > mat.epsvalue)
+                        if (System.System.Math.Abs(row[i]) > mat.epsvalue)
                         {
                             addto = true;
                             firstcol = i;
@@ -369,9 +370,146 @@ namespace ZS.Math.Optimization
 
         /// <summary> FIX_7092efd5-8395-4e93-b63c-1412df391d55 on 19/11/18
         /// </summary>
-        private static int mat_appendcol(MATrec mat, int count, double[] column, int?[] rowno, double mult, bool checkrowmode)
+        internal static int mat_appendcol(MATrec mat, int count, double[] column, int?[] rowno, double mult, bool? checkrowmode)
         {
-            throw new NotImplementedException();
+
+            int i;
+            int row;
+            int elmnr;
+            int lastnr;
+            double value;
+            bool isA = new bool();
+            bool? isNZ = new bool();
+            lprec lp = mat.lp;
+            LpCls objLpCls = new LpCls();
+
+            /* Check if we are in row order mode and should add as row instead;
+               the matrix will be transposed at a later stage */
+            if (checkrowmode != null && mat.is_roworder)
+            {
+                return (mat_appendrow(mat, count, column, rowno, mult, false));
+            }
+
+            /* Make sure we have enough space */
+            /*
+              if(!inc_mat_space(mat, mat->rows+1))
+                return( 0 );
+            */
+            if (column == null)
+            {
+                i = 0;
+            }
+            else if (rowno != null)
+            {
+                i = count;
+            }
+            else
+            {
+                int nrows = mat.rows;
+
+                elmnr = 0;
+                for (i = 1; i <= nrows; i++)
+                {
+                    if (column[i] != 0)
+                    {
+                        elmnr++;
+                    }
+                }
+                i = elmnr;
+            }
+            if ((mat_nz_unused(mat) <= i) && !inc_mat_space(mat, i))
+            {
+                return (0);
+            }
+
+            /* Do initialization and validation */
+            //ORIGINAL LINE: isA = (bool)(mat == lp->matA);
+            isA = (bool)(mat == lp.matA);
+
+            //ORIGINAL LINE: isNZ = (bool)(column == null || rowno != null);
+            isNZ = (bool)(column == null || rowno != null);
+            if (isNZ != null && (count > 0))
+            {
+                if (count > 1)
+                {
+                   commonlib.sortREALByINT(ref column, ref rowno, count, 0, true);
+                }
+                if ((rowno[0] < 0))
+                {
+                    return (0);
+                }
+            }
+            if (rowno != null)
+            {
+                count--;
+            }
+
+            /* Append sparse regular constraint values */
+            elmnr = mat.col_end[mat.columns - 1];
+            if (column != null)
+            {
+                row = -1;
+                for (i = ((isNZ != null || !mat.is_roworder) ? 0 : 1); i <= count; i++)
+                {
+                    value = column[i];
+                    if (System.System.Math.Abs(value) > mat.epsvalue)
+                    {
+                        if (isNZ != null)
+                        {
+                            lastnr = row;
+                            row = Convert.ToInt32(rowno[i]);
+                            /* Check if we have come to the Lagrangean constraints */
+                            if (row > mat.rows)
+                            {
+                                break;
+                            }
+                            if (row <= lastnr)
+                            {
+                                return (-1);
+                            }
+                        }
+                        else
+                        {
+                            row = i;
+                        }
+                        ///#if DoMatrixRounding
+                        value = lp_utils.roundToPrecision(value, mat.epsvalue);
+                        ///#endif
+                        if (mat.is_roworder)
+                        {
+                            value *= mult;
+                        }
+                        else if (isA)
+                        {
+                            value = lp_types.my_chsign(objLpCls.is_chsign(lp, row), value);
+                            value = lp_scale.scaled_mat(lp, value, row, mat.columns);
+                            if (!mat.is_roworder && (row == 0))
+                            {
+                                lp.orig_obj[mat.columns] = value;
+                                continue;
+                            }
+                        }
+
+                        /* Store the item and update counters */
+                        //TO DO
+                        SET_MAT_ijA(elmnr, row, mat.columns, value);
+                        elmnr++;
+                    }
+                }
+
+                /* Fill dense Lagrangean constraints */
+                if (objLpCls.get_Lrows(lp) > 0)
+                {
+                    ///NOTED ISSUE
+                    mat_appendcol(lp.matL, objLpCls.get_Lrows(lp), column + mat.rows, null, mult, checkrowmode);
+                }
+
+            }
+
+            /* Set end of data */
+            mat.col_end[mat.columns] = elmnr;
+
+            return (mat.col_end[mat.columns] - mat.col_end[mat.columns - 1]);
         }
         static byte mat_get_data(lprec lp, int matindex, byte isrow, int[] rownr, int[] colnr, double[][] value) { throw new NotImplementedException(); }
         static byte mat_set_rowmap(MATrec mat, int row_mat_index, int rownr, int colnr, int col_mat_index) { throw new NotImplementedException(); }
@@ -656,9 +794,398 @@ namespace ZS.Math.Optimization
         static byte vec_expand(double[] nzvector, int nzindex, double[] densevector, int startpos, int endpos) { throw new NotImplementedException(); }
 
         /* Sparse matrix products */
-        static byte get_colIndexA(lprec lp, int varset, int colindex, byte append) { throw new NotImplementedException(); }
+        static bool get_colIndexA(lprec lp, int varset, int colindex, bool append)  
+        {
+            int i;
+            int varnr;
+            int P1extraDim;
+            int vb;
+            int ve;
+            int n;
+            int nrows = lp.rows;
+            int nsum = lp.sum;
+            bool omitfixed = new bool();
+            bool omitnonfixed = new bool();
+            double v = new double();
+
+            /* Find what variable range to scan - default is {SCAN_USERVARS} */
+            /* First determine the starting position; add from the top, going down */
+            P1extraDim = System.Math.Abs(lp.P1extraDim);
+            vb = nrows + 1;
+            if ((varset & lp_lib.SCAN_ARTIFICIALVARS) != 0)
+            {
+                vb = nsum - P1extraDim + 1;
+            }
+            if ((varset & lp_lib.SCAN_USERVARS) != 0)
+            {
+                vb = nrows + 1;
+            }
+            if ((varset & lp_lib.SCAN_SLACKVARS) != 0)
+            {
+                vb = 1;
+            }
+
+            /* Then determine the ending position, add from the bottom, going up */
+            ve = nsum;
+            if ((varset & lp_lib.SCAN_SLACKVARS) != 0)
+            {
+                ve = nrows;
+            }
+            if ((varset & lp_lib.SCAN_USERVARS) != 0)
+            {
+                ve = nsum - P1extraDim;
+            }
+            if ((varset & lp_lib.SCAN_ARTIFICIALVARS) != 0)
+            {
+                ve = nsum;
+            }
+
+            /* Adjust for partial pricing */
+            if ((varset & lp_lib.SCAN_PARTIALBLOCK) != 0)
+            {
+               commonlib.SETMAX(vb, LpPrice.partial_blockStart(lp, false));
+               commonlib.SETMIN(ve, LpPrice.partial_blockEnd(lp, false));
+            }
+
+            /* Determine exclusion columns */
+            //ORIGINAL LINE: omitfixed = (bool)((varset & OMIT_FIXED) != 0);
+            omitfixed = ((bool)((varset & lp_lib.OMIT_FIXED) != 0));
+            
+            //ORIGINAL LINE: omitnonfixed = (bool)((varset & OMIT_NONFIXED) != 0);
+            omitnonfixed = ((bool)((varset & lp_lib.OMIT_NONFIXED) != 0));
+            if (omitfixed != null && omitnonfixed != null)
+            {
+                return (0);
+            }
+
+            /* Scan the target colums */
+            if (append)
+            {
+                n = colindex;
+            }
+            else
+            {
+                n = 0;
+            }
+            for (varnr = vb; varnr <= ve; varnr++)
+            {
+
+                /* Skip gap in the specified column scan range (possibly user variables) */
+                if (varnr > nrows)
+                {
+                    //ORIGINAL CODE : if ((varnr <= nsum - P1extraDim) && !(varset & lp_lib.SCAN_USERVARS))
+                    if ((varnr <= nsum - P1extraDim) && (varset!=0 && lp_lib.SCAN_USERVARS!=0))
+                    {
+                        continue;
+                    }
+                    
+                    ///#if 1
+                    /* Skip empty columns */
+                    if ((mat_collength(lp.matA, varnr - nrows) == 0))
+                    {
+                        continue;
+                    }
+                    ///#endif
+                }
+
+                /* Find if the variable is in the scope - default is {Ø} */
+                //NOTED ISSUE
+                i = lp.is_basic[varnr];
+                if ((varset & lp_lib.USE_BASICVARS) > 0 && (i) != 0)
+                {
+                    ;
+                }
+                else if ((varset & lp_lib.USE_NONBASICVARS) > 0 && (i == 0))
+                {
+                    ;
+                }
+                else
+                {
+                    continue;
+                }
+
+                v = lp.upbo[varnr];
+                if ((omitfixed != null && (v == 0)) || (omitnonfixed != null && (v != 0)))
+                {
+                    continue;
+                }
+
+                /* Append to list */
+                n++;
+                colindex = varnr;
+            }
+            colindex = n;
+
+            return (true);
+
+        }
         static int prod_Ax(lprec lp, int[] coltarget, double[] input, int[] nzinput, double roundzero, double ofscalar, double[] output, int[] nzoutput, int roundmode) { throw new NotImplementedException(); }
-        static int prod_xA(lprec lp, int[] coltarget, double[] input, int[] nzinput, double roundzero, double ofscalar, double[] output, int[] nzoutput, int roundmode) { throw new NotImplementedException(); }
+        static int prod_xA(lprec lp, int coltarget, double[] input, int[] nzinput, double roundzero, double ofscalar, double[] output, int[] nzoutput, int roundmode)
+        {
+            LpCls objLpCls = new LpCls();
+            int colnr;
+            int rownr;
+            int varnr;
+            int ib;
+            int ie;
+            int vb;
+            int ve;
+            int nrows = lp.rows;
+            bool localset = new bool();
+            bool localnz = false;
+            bool includeOF = new bool();
+            bool isRC = new bool();
+            //ORIGINAL CODE: REALXP vmax = new REALXP(); /* REALXP in C is long double */
+            double vmax = new double();
+
+            //ORIGINAL LINE: REALXP v = new REALXP();
+            double v = new double();
+            int inz;
+
+            //ORIGINAL LINE: int *rowin;
+            int rowin;
+            int countNZ = 0;
+            MATrec mat = lp.matA;
+
+            //ORIGINAL LINE: register REAL *matValue;
+            double matValue;
+
+            //ORIGINAL LINE: register int *matRownr;
+          
+            int matRownr;
+
+            /* Clean output area (only necessary if we are returning the full vector) */
+
+            //ORIGINAL LINE: isRC = (bool)((roundmode & MAT_ROUNDRC) != 0);
+            isRC = ((bool)((roundmode & MAT_ROUNDRC) != 0));
+            if (nzoutput == null)
+            {
+                if (input == output)
+                {
+                    //NOT REQUIRED
+                    //MEMCLEAR(output + nrows + 1, lp.columns);
+                }
+                else
+                {
+                    //NOT REQUIRED
+                    //MEMCLEAR(output, lp.sum + 1);
+                }
+            }
+
+            /* Find what variable range to scan - default is {SCAN_USERVARS} */
+            /* Define default column target if none was provided */
+
+            //ORIGINAL LINE: localset = (bool)(coltarget == null);
+            localset = ((bool)(coltarget == null));
+            if (localset != null)
+            {
+                int varset = lp_lib.SCAN_SLACKVARS | lp_lib.SCAN_USERVARS | lp_lib.USE_NONBASICVARS | lp_lib.OMIT_FIXED;
+                if (isRC != null && objLpCls.is_piv_mode(lp, lp_lib.PRICE_PARTIAL) && !objLpCls.is_piv_mode(lp, lp_lib.PRICE_FORCEFULL))
+                {
+                    varset |= lp_lib.SCAN_PARTIALBLOCK;
+                }
+                
+                coltarget = Convert.ToInt32(lp_utils.mempool_obtainVector(lp.workarrays, lp.sum + 1, coltarget));
+                if (!get_colIndexA(lp, varset, coltarget, 0))
+                {
+                    mempool_releaseVector(lp.workarrays, (String)coltarget, 0);
+                    return (0);
+                }
+            }
+            /*#define UseLocalNZ*/
+            //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+            ///#if UseLocalNZ
+            //C++ TO JAVA CONVERTER TODO TASK: The following line was determined to be a copy assignment (rather than a reference assignment) - this should be verified and a 'copyFrom' method should be created:
+            //ORIGINAL LINE: localnz = (bool)(nzinput == null);
+            localnz.copyFrom((bool)(nzinput == null));
+            if (localnz != null)
+            {
+                //C++ TO JAVA CONVERTER TODO TASK: There is no Java equivalent to 'sizeof':
+                nzinput = (int)mempool_obtainVector(lp.workarrays, nrows + 1, sizeof(*nzinput));
+                vec_compress(input, 0, nrows, lp.matA.epsvalue, null, nzinput);
+            }
+            ///#endif
+            //C++ TO JAVA CONVERTER TODO TASK: The following line was determined to be a copy assignment (rather than a reference assignment) - this should be verified and a 'copyFrom' method should be created:
+            //ORIGINAL LINE: includeOF = (bool)(((nzinput == null) || (nzinput[1] == 0)) && (input[0] != 0) && lp->obj_in_basis);
+            includeOF.copyFrom((bool)(((nzinput == null) || (nzinput[1] == 0)) && (input[0] != 0) && lp.obj_in_basis));
+
+            /* Scan the target colums */
+            vmax = 0;
+            ve = coltarget[0];
+            for (vb = 1; vb <= ve; vb++)
+            {
+
+                varnr = coltarget[vb];
+
+                if (varnr <= nrows)
+                {
+                    v = input[varnr];
+                }
+                else
+                {
+                    colnr = varnr - nrows;
+                    v = 0;
+                    ib = mat.col_end[colnr - 1];
+                    ie = mat.col_end[colnr];
+                    if (ib < ie)
+                    {
+
+                        /* Do dense input vector version */
+                        //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+                        ///#if UseLocalNZ
+                        if (localnz != null || (nzinput == null))
+                        {
+                            ///#else
+                            if (nzinput == null)
+                            {
+                                ///#endif
+                                /* Do the OF */
+                                if (includeOF != null)
+                                {
+                                    //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+                                    ///#if DirectArrayOF
+                                    v += input[0] * lp.obj[colnr] * ofscalar;
+                                }
+                                ///#else
+                                v += input[0] * get_OF_active(lp, varnr, ofscalar);
+                                ///#endif
+
+                                /* Initialize pointers */
+                                matRownr = COL_MAT_ROWNR(ib);
+                                matValue = COL_MAT_VALUE(ib);
+
+                                /* Do extra loop optimization based on target window overlaps */
+                                //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+                                ///#if UseLocalNZ
+                                if ((ib < ie) && (colnr <= *nzinput) && (COL_MAT_ROWNR(ie - 1) >= nzinput[colnr]) && (matRownr <= nzinput[*nzinput]))
+                                {
+                                    ///#endif
+                                    //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+                                    ///#if NoLoopUnroll
+                                    /* Then loop over all regular rows */
+                                    for (; ib < ie; ib++)
+                                    {
+                                        v += input[matRownr] * matValue;
+                                        matValue += matValueStep;
+                                        matRownr += matRowColStep;
+                                    }
+                                }
+                                ///#else
+                                /* Prepare for simple loop unrolling */
+                                if (((ie - ib) % 2) == 1)
+                                {
+                                    v += input[matRownr] * matValue;
+                                    ib++;
+                                    matValue += matValueStep;
+                                    matRownr += matRowColStep;
+                                }
+
+                                /* Then loop over remaining pairs of regular rows */
+                                while (ib < ie)
+                                {
+                                    v += input[matRownr] * matValue;
+                                    v += input[*(matRownr + matRowColStep)] * (*(matValue + matValueStep));
+                                    ib += 2;
+                                    matValue += 2 * matValueStep;
+                                    matRownr += 2 * matRowColStep;
+                                }
+                                ///#endif
+                            }
+                            /* Do sparse input vector version */
+                            else
+                            {
+
+                                /* Do the OF */
+                                if (includeOF != null)
+                                {
+                                    //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+                                    ///#if DirectArrayOF
+                                    v += input[0] * lp.obj[colnr] * ofscalar;
+                                }
+                                ///#else
+                                v += input[0] * get_OF_active(lp, varnr, ofscalar);
+                                ///#endif
+
+                                /* Initialize pointers */
+                                inz = 1;
+                                rowin = nzinput + inz;
+                                matRownr = COL_MAT_ROWNR(ib);
+                                matValue = COL_MAT_VALUE(ib);
+                                ie--;
+
+                                /* Then loop over all non-OF rows */
+                                while ((inz <= *nzinput) && (ib <= ie))
+                                {
+
+                                    /* Try to synchronize at right */
+                                    while ((rowin > matRownr) && (ib < ie))
+                                    {
+                                        ib++;
+                                        matValue += matValueStep;
+                                        matRownr += matRowColStep;
+                                    }
+                                    /* Try to synchronize at left */
+                                    while ((rowin < matRownr) && (inz < *nzinput))
+                                    {
+                                        inz++;
+                                        rowin++;
+                                    }
+                                    /* Perform dot product operation if there was a match */
+                                    if (rowin == matRownr)
+                                    {
+                                        v += input[rowin] * matValue;
+                                        /* Step forward at left */
+                                        inz++;
+                                        rowin++;
+                                    }
+                                }
+                            }
+                        }
+                        if ((roundmode & MAT_ROUNDABS) != 0)
+                        {
+                            my_roundzero(v, roundzero);
+                        }
+                    }
+
+                    /* Special handling of small reduced cost values */
+                    if (isRC == null || (my_chsign(lp.is_lower[varnr], v) < 0))
+                    {
+                        SETMAX(vmax, System.Math.Abs((REAL)v));
+                    }
+                    vmax *= roundzero;
+                    for (ib = 1; ib <= countNZ; ib++)
+                    {
+                        rownr = nzoutput[ib];
+                        if (System.Math.Abs(output[rownr]) < vmax)
+                        {
+                            output[rownr] = 0;
+                        }
+                        else
+                        {
+                            ie++;
+                            nzoutput[ie] = rownr;
+                        }
+                    }
+                    countNZ = ie;
+                }
+            }
+
+            /* Clean up and return */
+            if (localset)
+            {
+                mempool_releaseVector(lp.workarrays, (String)coltarget, 0);
+            }
+            if (localnz)
+            {
+                mempool_releaseVector(lp.workarrays, (String)nzinput, 0);
+            }
+
+            if (nzoutput != null)
+            {
+                *nzoutput = countNZ;
+            }
+            return (countNZ);
+        }
         static byte prod_xA2(lprec lp, int[] coltarget, double[] prow, double proundzero, int[] pnzprow,
                                                           double[] drow, double droundzero, int[] dnzdrow, double ofscalar, int roundmode)
         { throw new NotImplementedException(); }
@@ -672,10 +1199,65 @@ namespace ZS.Math.Optimization
         /* Combined equation solution and matrix product for simplex operations */
         static byte fsolve(lprec lp, int varin, double[] pcol, int nzidx, double roundzero, double ofscalar, byte prepareupdate) { throw new NotImplementedException(); }
         static byte bsolve(lprec lp, int row_nr, double[] rhsvector, int nzidx, double roundzero, double ofscalar) { throw new NotImplementedException(); }
-        static void bsolve_xA2(lprec lp, int coltarget,
-                                          int row_nr1, double[] vector1, double roundzero1, int[] nzvector1,
+        static void bsolve_xA2(lprec lp, int[] coltarget,
+                                          int row_nr1, ref double[] vector1, double roundzero1, int[] nzvector1,
                                           int row_nr2, double[] vector2, double roundzero2, int[] nzvector2, int roundmode)
-        { throw new NotImplementedException(); }
+        {
+            double ofscalar = 1.0;
+
+            /* Clear and initialize first vector */
+            if (nzvector1 == null)
+            {
+                //NOT REQUIRED
+                //MEMCLEAR(vector1, lp.sum + 1);
+            }
+            else
+            {
+                //NOT REQUIRED
+                //MEMCLEAR(vector1, lp.rows + 1);
+            }
+            vector1[row_nr1] = 1;
+            /*  workINT[0] = 1;
+              workINT[1] = row_nr1; */
+
+            if (vector2 == null)
+            {
+                //NOTED ISSUE
+                lp.bfp_btran_normal(lp, ref vector1, null);
+                prod_xA(lp, coltarget, vector1, null, roundzero1, ofscalar * 0, vector1, nzvector1, roundmode);
+            }
+            else
+            {
+
+                /* Clear and initialize second vector */
+                if (nzvector2 == null)
+                {
+                    MEMCLEAR(vector2, lp.sum + 1);
+                }
+                else
+                {
+                    MEMCLEAR(vector2, lp.rows + 1);
+                }
+                if (lp.obj_in_basis || (row_nr2 > 0))
+                {
+                    vector2[row_nr2] = 1;
+                    /*      workINT[2] = 1;
+                          workINT[3] = row_nr2; */
+                }
+                else
+                {
+                    get_basisOF(lp, null, vector2, nzvector2);
+                }
+
+                /* A double BTRAN equation solver process is implemented "in-line" below in
+                   order to save time and to implement different rounding for the two */
+                lp.bfp_btran_double(lp, vector1, null, vector2, null);
+
+                /* Multiply solution vectors with matrix values */
+                prod_xA2(lp, coltarget, vector1, roundzero1, nzvector1, vector2, roundzero2, nzvector2, ofscalar, roundmode);
+            }
+
+        }
 
         /* Change-tracking routines (primarily for B&B and presolve) */
         static DeltaVrec createUndoLadder(lprec lp, int levelitems, int maxlevels) { throw new NotImplementedException(); }
@@ -690,6 +1272,9 @@ namespace ZS.Math.Optimization
         static byte appendUndoPresolve(lprec lp, byte isprimal, double beta, int colnrDep) { throw new NotImplementedException(); }
         static byte addUndoPresolve(lprec lp, byte isprimal, int colnrElim, double alpha, double beta, int colnrDep) { throw new NotImplementedException(); }
 
-
+        private static int mat_nz_unused(MATrec mat)
+        {
+            return (mat.mat_alloc - mat.col_end[mat.columns]);
+        }
     }
 }

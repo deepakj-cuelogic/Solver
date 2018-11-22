@@ -90,8 +90,130 @@ namespace ZS.Math.Optimization
         }
         internal static string mempool_obtainVector(workarraysrec mempool, int count, int unitsize)
         {
-            throw new NotImplementedException();
+            {
+                String newmem = null;
+                bool? bnewmem = null;
+                
+                //ORIGINAL LINE: int *inewmem = null, size, i, ib, ie, memMargin = 0;
+                int? inewmem = null;
+                int size;
+                int i;
+                int ib;
+                int ie;
+                int memMargin = 0;
+                double? rnewmem = null;
+                string msg;
+
+                /* First find the iso-sized window (binary search) */
+                size = count * unitsize;
+                memMargin += size;
+                ib = 0;
+                ie = mempool.count - 1;
+                while (ie >= ib)
+                {
+                    i = (ib + ie) / 2;
+                    if (System.Math.Abs(mempool.vectorsize[i]) > memMargin)
+                    {
+                        ie = i - 1;
+                    }
+                    else if (System.Math.Abs(mempool.vectorsize[i]) < size)
+                    {
+                        ib = i + 1;
+                    }
+                    else
+                    {
+                        /* Find the beginning of the exact-sized array group */
+                        do
+                        {
+                            ib = i;
+                            i--;
+                        } while ((i >= 0) && (System.Math.Abs(mempool.vectorsize[i]) >= size));
+                        break;
+                    }
+                }
+
+                /* Check if we have a preallocated unused array of sufficient size */
+                ie = mempool.count - 1;
+                for (i = ib; i <= ie; i++)
+                {
+                    if (mempool.vectorsize[i] < 0)
+                    {
+                        break;
+                    }
+                }
+
+                /* Obtain and activate existing, unused vector if we are permitted */
+                if (i <= ie)
+                {
+                    //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+                    ///#if Paranoia
+                    if ((mempool.vectorsize[i] > 0) || (System.Math.Abs(mempool.vectorsize[i]) < size))
+                    {
+                        lprec lp = mempool.lp;
+                        msg = "mempool_obtainVector: Invalid %s existing vector selected\n";
+                        lp.report(lp, lp_lib.SEVERE, ref msg, (ie < 0 ? "too small" : "occupied"));
+                        lp.spx_status = lp_lib.NOMEMORY;
+                        lp.bb_break = 1;
+                        return (newmem);
+                    }
+                    ///#endif
+                    newmem = mempool.vectorarray[i];
+                    mempool.vectorsize[i] *= -1;
+                }
+
+                /* Otherwise allocate a new vector */
+                
+                else if (unitsize == sizeof(bool))
+                {
+                    //NOT REQUIRED
+                    //allocMYBOOL(mempool.lp, bnewmem, count, 1);
+                    newmem = Convert.ToString(bnewmem);
+                }
+                else if (unitsize == (sizeof(int)))
+                {
+                    //NOT REQUIRED
+                    //allocINT(mempool.lp, inewmem, count, 1);
+                    newmem = Convert.ToString(inewmem);
+                }
+                //C++ TO JAVA CONVERTER TODO TASK: There is no Java equivalent to 'sizeof':
+                else if (unitsize == sizeof(double))
+                {
+                    //NOT REQUIRED
+                    //allocREAL(mempool.lp, rnewmem, count, 1);
+                    newmem = Convert.ToString(rnewmem);
+                }
+
+                /* Insert into master array if necessary (maintain sort by ascending size) */
+                if ((i > ie) && (newmem != null))
+                {
+                    mempool.count++;
+                    if (mempool.count >= mempool.size)
+                    {
+                        mempool.size += 10;
+
+                        //NOT REQUIRED
+                        /*mempool.vectorarray = (String)realloc(mempool.vectorarray, sizeof(*(mempool.vectorarray)) * mempool.size);
+
+                        mempool.vectorsize = (int)realloc(mempool.vectorsize, sizeof(*(mempool.vectorsize)) * mempool.size);
+                        */
+                    }
+                    ie++;
+                    i = ie + 1;
+                    if (i < mempool.count)
+                    {
+                        //NOT REQUIRED
+                        //MEMMOVE(mempool.vectorarray + i, mempool.vectorarray + ie, 1);
+                        //MEMMOVE(mempool.vectorsize + i, mempool.vectorsize + ie, 1);
+                    }
+                    mempool.vectorarray[ie] = newmem;
+                    mempool.vectorsize[ie] = size;
+                }
+
+                return (newmem);
+            }
+
         }
+
         internal static byte mempool_releaseVector(workarraysrec mempool, ref string memvector, byte forcefree)
         {
             throw new NotImplementedException();
@@ -132,7 +254,65 @@ namespace ZS.Math.Optimization
         }
         internal static double roundToPrecision(double value, double precision)
         {
-            throw new NotImplementedException();
+            //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+            ///#if 1
+            double vmod = new double();
+            int vexp2 = 0;
+            int vexp10;
+            double sign = new double();
+
+            if (precision == 0)
+            {
+                return (value);
+            }
+
+            sign = lp_types.my_sign(value);
+            value = System.Math.Abs(value);
+
+            /* Round to integer if possible */
+            if (value < precision)
+            {
+                return (0);
+            }
+            else if (value == System.Math.Floor(value))
+            {
+                return (value * sign);
+            }
+            //NOTED ISSUE:
+            else if ((value < (double)commonlib.MAXINT64) && (modf((double)(value + precision), vmod) < precision))
+            {
+                /* sign *= (LLONG) (value+precision); */
+                sign *= (long)(value + 0.5);
+                return ((double)sign);
+            }
+
+            /* Optionally round with base 2 representation for additional precision */
+            ///#define roundPrecisionBase2
+            //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+            ///#if roundPrecisionBase2
+            ///NOTED ISSUE: frexp
+            value = frexp(value, vexp2);
+            ///#else
+            vexp2 = 0;
+            ///#endif
+
+            /* Convert to desired precision */
+            vexp10 = (int)System.Math.Log10(value);
+            precision *= System.Math.Pow(10.0, vexp10);
+            //NOTED ISSUE
+            modf(value / precision + 0.5, value);
+            value *= sign * precision;
+
+            /* Restore base 10 representation if base 2 was active */
+            if (vexp2 != 0)
+            {
+                //NOTED ISSUE: ldexp
+                value = ldexp(value, vexp2);
+            }
+            ///#endif
+
+            return (value);
+
         }
 
         internal static int searchFor(int target, ref int attributes, int size, int offset, byte absolute)
