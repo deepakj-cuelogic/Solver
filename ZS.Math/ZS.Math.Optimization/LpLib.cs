@@ -378,7 +378,7 @@ namespace ZS.Math.Optimization
         public byte use_col_names;      // Flag to indicate if names for columns are used
 
         public byte lag_trace;          // Print information on Lagrange progression
-        public byte spx_trace;          // Print information on simplex progression
+        public bool spx_trace;          // Print information on simplex progression
         public byte bb_trace;           // TRUE to print extra debug information
         /// <summary>
         /// changed from byte to bool 6/11/18
@@ -399,7 +399,7 @@ namespace ZS.Math.Optimization
         public double best_solution; /* sum_alloc+1 : Solution array of optimal 'Integer' LP,
                                    structured as the solution array above */
         public double full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
-        public double edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
+        public double[] edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
 
         public double drow; // sum+1: Reduced costs of the last simplex
         //ORIGINAL LINE: int *nzdrow;
@@ -485,7 +485,7 @@ namespace ZS.Math.Optimization
                                    value replaced by conventional lower bound during solve */
                                   //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                   //ORIGINAL LINE: int *var_is_free;
-        public int?[] var_is_free; // columns+1: Index of twin variable if variable is free
+        public int var_is_free; // columns+1: Index of twin variable if variable is free
                                 //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                 //ORIGINAL LINE: int *var_priority;
         /// <summary>
@@ -506,10 +506,10 @@ namespace ZS.Math.Optimization
         public int? sos_priority; // Priority-sorted list of variables (no duplicates)
 
         /* Optionally specify list of active rows/columns used in multiple pricing */
-        public double bsolveVal; // rows+1: bsolved solution vector for reduced costs
+        public double[] bsolveVal; // rows+1: bsolved solution vector for reduced costs
 
         //ORIGINAL LINE: int *bsolveIdx;
-        public int bsolveIdx; // rows+1: Non-zero indeces of bsolveVal
+        public int[] bsolveIdx; // rows+1: Non-zero indeces of bsolveVal
 
         /* RHS storage */
         public double[] orig_rhs; /* rows_alloc+1 : The RHS after scaling and sign
@@ -535,7 +535,7 @@ namespace ZS.Math.Optimization
         /// </summary>
         public double[] orig_lowbo; //  "       "
         //ORIGINAL LINE: REAL* lowbo;             /*  " " : Lower bound after transformation and B&B work */
-        public double lowbo;
+        public double[] lowbo;
 
 
         /* User data and basis factorization matrices (ETA or LU, product form) */
@@ -563,7 +563,7 @@ namespace ZS.Math.Optimization
         double[] val_nonbasic;      /* Array to store current values of non-basic variables */
         // ORIGINAL CODE: MYBOOL    *is_basic; char* is string in C#, hence changed to bool[] 22/11/18
         internal bool[] is_basic;          /* sum_alloc+1: TRUE if the column is in the basis */
-        byte is_lower;          /*  "       " : TRUE if the variable is at its
+        internal bool is_lower;          /*  "       " : TRUE if the variable is at its
                                    lower bound (or in the basis), FALSE otherwise */
 
         /* Simplex basis indicators */
@@ -601,7 +601,7 @@ namespace ZS.Math.Optimization
         /* Solver thresholds */
         internal double infinite;           /* Limit for object range */
         double negrange;           /* Limit for negative variable range */
-        double epsmachine;         /* Default machine accuracy */
+        internal double epsmachine;         /* Default machine accuracy */
 
         /// <summary>
         /// Assign to zero due to unaccesible to other class
@@ -624,7 +624,7 @@ namespace ZS.Math.Optimization
         
 
         internal double epspivot;           /* Pivot reject tolerance */
-        double epsperturb;         /* Perturbation scalar */
+        internal double epsperturb;         /* Perturbation scalar */
         double epssolution;        /* The solution tolerance for final validation */
 
         /* Branch & Bound working parameters */
@@ -726,23 +726,23 @@ namespace ZS.Math.Optimization
         /* Refactorization engine interface routines (for object DLL/SO BFPs) */
         BFPchar bfp_name;
         BFPbool_lpintintint bfp_compatible;
-        BFPbool_lpintintchar bfp_init;
+        internal BFPbool_lpintintchar bfp_init;
         BFP_lp bfp_free;
         BFPbool_lpint bfp_resize;
         BFPint_lp bfp_memallocated;
         BFPbool_lp bfp_restart;
         BFPbool_lp bfp_mustrefactorize;
-        BFPint_lp bfp_preparefactorization;
-        BFPint_lpintintboolbool bfp_factorize;
-        BFP_lp bfp_finishfactorization;
+        internal BFPint_lp bfp_preparefactorization;
+        internal BFPint_lpintintboolbool bfp_factorize;
+        internal BFP_lp bfp_finishfactorization;
         BFP_lp bfp_updaterefactstats;
         BFPlreal_lpintintreal bfp_prepareupdate;
         BFPreal_lplrealreal bfp_pivotRHS;
         BFPbool_lpbool bfp_finishupdate;
-        BFP_lprealint bfp_ftran_prepare;
+        internal BFP_lprealint bfp_ftran_prepare;
         BFP_lprealint bfp_ftran_normal;
         internal BFP_lprealint bfp_btran_normal;
-        BFP_lprealintrealint bfp_btran_double;
+        internal BFP_lprealintrealint bfp_btran_double;
         BFPint_lp bfp_status;
         BFPint_lpbool bfp_nonzeros;
         BFPbool_lp bfp_implicitslack;
@@ -750,12 +750,12 @@ namespace ZS.Math.Optimization
         BFPint_lp bfp_rowoffset;
         BFPint_lp bfp_pivotmax;
         BFPbool_lpint bfp_pivotalloc;
-        BFPint_lp bfp_colcount;
-        BFPbool_lp bfp_canresetbasis;
+        internal BFPint_lp bfp_colcount;
+        internal BFPbool_lp bfp_canresetbasis;
         BFPreal_lp bfp_efficiency;
         BFPrealp_lp bfp_pivotvector;
-        BFPint_lp bfp_pivotcount;
-        BFPint_lpint bfp_refactcount;
+        internal BFPint_lp bfp_pivotcount;
+        internal BFPint_lpint bfp_refactcount;
         BFPbool_lp bfp_isSetI;
         BFPint_lpintrealcbintint bfp_findredundant;
 
@@ -1470,7 +1470,7 @@ namespace ZS.Math.Optimization
         public const int CRASH_LEASTDEGENERATE = 3;
 
         /* Solution recomputation options (internal) */
-        public const int INITSOL_SHIFTZERO = 0;
+        public const bool INITSOL_SHIFTZERO = false;
         public const int INITSOL_USEZERO = 1;
         public const int INITSOL_ORIGINAL = 2;
 
@@ -1541,7 +1541,7 @@ namespace ZS.Math.Optimization
 
 
 
-
+        //public const double DOUBLEROUND = 0.0e-02;
         public const string MPSVARMASK = "%-8s";
         public const string MPSVALUEMASK = "%12g";
 

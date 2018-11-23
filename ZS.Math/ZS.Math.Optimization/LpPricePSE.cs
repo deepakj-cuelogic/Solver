@@ -19,9 +19,13 @@ namespace ZS.Math.Optimization
             int rule = objLpCls.get_piv_rule(lp);
             return ((bool)((rule == lp_lib.PRICER_DEVEX) || (rule == lp_lib.PRICER_STEEPESTEDGE)));
         }
-        public static void simplexPricer(lprec lp, byte isdual)
+        public static void simplexPricer(lprec lp, bool isdual)
         {
-            throw new NotImplementedException();
+            if (lp.edgeVector != null)
+            {
+                //NOTED ISSUE
+                lp.edgeVector[0] = (double)isdual;
+            }
         }
         public static void freePricer(lprec lp)
         {

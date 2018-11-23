@@ -13,6 +13,59 @@ namespace ZS.Math.Optimization
         public const double MAX_DELTAFILLIN = 2.0; // Do refactorizations based on sparsity considerations
         public const int TIGHTENAFTER = 10; // Tighten LU pivot criteria only after this number of singularities
 
+        /* MUST MODIFY */
+        //NOTED ISSUE: BFP_CALLMODEL
+        //ORIGINAL LINE: internal BFP_CALLMODEL void bfp_btran_normal(lprec lp, ref double[] pcol, ref int[] nzidx)
+        //Temporary BFP_CALLMODEL excluded
+        internal void bfp_btran_normal(lprec lp, ref double[] pcol, ref int[] nzidx)
+        {
+            int i;
+            INVrec lu;
+            string msg;
+            lu = lp.invB;
+            lusol objlusol = new lusol();
+            LpBFP1 objLpBFP1 = new LpBFP1();
+
+            /* Do the LUSOL btran */
+            //NOTED ISSUE
+            i = objlusol.LUSOL_btran(lu.LUSOL, pcol- Convert.ToDouble(objLpBFP1.bfp_rowoffset(lp)), nzidx);
+            if (i != commonlib.LUSOL_INFORM_LUSUCCESS)
+            {
+                msg = "bfp_btran_normal: Failed at iter %.0f, pivot %d;\n%s\n";
+                lu.status = commonlib.BFP_STATUS_ERROR;
+                lp.report(lp, lp_lib.NORMAL, ref msg, (double)(lp.total_iter + lp.current_iter), lu.num_pivots, objlusol.LUSOL_informstr(lu.LUSOL, i));
+            }
+
+            /* Check performance data */
+            //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
+            ///#if false
+            //  if(lu->num_pivots == 1) {
+            //    if(lu->LUSOL->luparm[LUSOL_IP_ACCELERATION] > 0)
+            //      lp->report(lp, NORMAL, "RowL0 R:%10.7f  C:%10.7f  NZ:%10.7f\n",
+            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_ROWCOUNT_L0] / lu->LUSOL->m,
+            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_COLCOUNT_L0] / lu->LUSOL->m,
+            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_NONZEROS_L0] / pow((REAL) lu->LUSOL->m, 2));
+            //    else
+            //      lp->report(lp, NORMAL, "ColL0 C:%10.7f  NZ:%10.7f\n",
+            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_COLCOUNT_L0] / lu->LUSOL->m,
+            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_NONZEROS_L0] / pow((REAL) lu->LUSOL->m, 2));
+            //  }
+            ///#endif
+
+        }
+
+        internal static bool is_fixedvar(lprec lp, int variable)
+        {
+            if ((lp.bb_bounds != null && lp.bb_bounds.UBzerobased) || (variable <= lp.rows))
+            {
+                return ((bool)(lp.upbo[variable] < lprec.epsprimal));
+            }
+            else
+            {
+                return ((bool)(lp.upbo[variable] - lp.lowbo[variable] < lprec.epsprimal));
+            }
+        } // is_fixedvar
+
     }
 
     /* typedef */
@@ -111,15 +164,15 @@ namespace ZS.Math.Optimization
     public class LUSOLmat
     {
         //ORIGINAL LINE: double *a;
-        public double a;
+        public double[] a;
         //ORIGINAL LINE: int *lenx, *indr, *indc, *indx;
-        public int lenx;
+        public int[] lenx;
         //ORIGINAL LINE: int *indr;
-        public int indr;
+        public int[] indr;
         //ORIGINAL LINE: int *indc;
-        public int indc;
+        public int[] indc;
         //ORIGINAL LINE: int *indx;
-        public int indx;
+        public int[] indx;
     }
 
     public class LUSOLrec
@@ -152,33 +205,33 @@ namespace ZS.Math.Optimization
         public int lena;
         public int nelem;
         //ORIGINAL LINE: int *indc, *indr;
-        public int indc;
+        public int[] indc;
         //ORIGINAL LINE: int *indr;
-        public int indr;
+        public int[] indr;
         //ORIGINAL LINE: double *a;
-        public double a;
+        public double[] a;
 
         /* Arrays of length maxm+1 (row storage) */
         public int maxm;
         public int m;
         //ORIGINAL LINE: int *lenr, *ip, *iqloc, *ipinv, *locr;
-        public int lenr;
+        public int[] lenr;
         //ORIGINAL LINE: int *ip;
-        public int ip;
+        public int[] ip;
         //ORIGINAL LINE: int *iqloc;
         public int iqloc;
         //ORIGINAL LINE: int *ipinv;
         public int ipinv;
         //ORIGINAL LINE: int *locr;
-        public int locr;
+        public int[] locr;
 
         /* Arrays of length maxn+1 (column storage) */
         public int maxn;
         public int n;
         //ORIGINAL LINE: int *lenc, *iq, *iploc, *iqinv, *locc;
-        public int lenc;
+        public int[] lenc;
         //ORIGINAL LINE: int *iq;
-        public int iq;
+        public int[] iq;
         //ORIGINAL LINE: int *iploc;
         public int iploc;
         //ORIGINAL LINE: int *iqinv;
@@ -186,7 +239,7 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: int *locc;
         public int locc;
         //ORIGINAL LINE: double *w, *vLU6L;
-        public double w;
+        public double[] w;
         //ORIGINAL LINE: double *vLU6L;
         public double vLU6L;
 
@@ -209,8 +262,8 @@ namespace ZS.Math.Optimization
         public double amaxr;
 
         /* Extra array for L0 and U stored by row/column for faster btran/ftran */
-        public LUSOLmat L0;
-        public LUSOLmat U;
+        public LUSOLmat[] L0;
+        public LUSOLmat[] U;
 
         /* Miscellaneous data */
         public int expanded_a;

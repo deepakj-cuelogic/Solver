@@ -34,7 +34,7 @@ namespace ZS.Math.Optimization
         /* Various interaction elements                                                       */
         /* ---------------------------------------------------------------------------------- */
         //TODO: return type can  be changed to bool??
-        private new byte userabort(lprec lp, int message)
+        internal new bool userabort(lprec lp, int message)
         {
             byte abort;
             int spx_save;
@@ -1589,7 +1589,8 @@ namespace ZS.Math.Optimization
 
         /* INLINE */
         internal new bool is_splitvar(lprec lp, int colnr)
-        /* Two cases handled by var_is_free:
+        {
+            /* Two cases handled by var_is_free:
 
            1) LB:-Inf / UB:<Inf variables
               No helper column created, sign of var_is_free set negative with index to itself.
@@ -1599,7 +1600,6 @@ namespace ZS.Math.Optimization
 
            This function helps identify the helper column in 2).
         */
-        {
             //NOTED ISSUE:
             return ((bool)((lp.var_is_free != null) && (lp.var_is_free[colnr] < 0) && (-lp.var_is_free[colnr] != colnr)));
         }
@@ -1656,6 +1656,685 @@ namespace ZS.Math.Optimization
             lp_MPS objlp_MPS = new lp_MPS();
             return (objlp_MPS.MPS_writefile(lp, MPSFIXED, ref filename));
         }
+
+        private new static int get_basisOF(lprec lp, int[] coltarget, double[] crow, int[] colno)
+        {
+
+            /* Fill vector of basic OF values or subtract incoming values from these.
+               This function is called twice during reduced cost updates when the basis
+               does not contain the basic OF vector as the top row.  The colno[] array
+               is filled with the count of non-zero values and the index to those. */
+
+            int i;
+            int n = lp.rows;
+            int nz = 0;
+            double[] obj = lp.obj;
+            
+            //ORIGINAL LINE: register REAL epsvalue = lp->epsvalue;
+            double epsvalue = lprec.epsvalue;
+
+            /* Compute offset over the specified objective indeces (step 2) */
+            if (coltarget != null)
+            {
+                //ORIGINAL LINE: register int ix, m = coltarget[0];
+                int ix;
+                int m = coltarget[0];
+                //ORIGINAL LINE: register REAL value;
+                double value = new double();
+
+                for (i = 1, coltarget[0]++; i <= m; i++, coltarget[0]++)
+                {
+                    ix = coltarget[0];
+                    /* Finalize the computation of the reduced costs, based on the format that
+                       duals are computed as negatives, ref description for step 1 above */
+                    value = crow[ix];
+                    if (ix > n)
+                    {
+                        value += obj[ix - n];
+                    }
+                    /*      if(value != 0) { */
+                    if (System.Math.Abs(value) > epsvalue)
+                    {
+                        nz++;
+                        if (colno != null)
+                        {
+                            colno[nz] = ix;
+                        }
+                    }
+                    else
+                    {
+                        value = 0.0;
+                    }
+                    crow[ix] = value;
+                }
+            }
+
+            /* Get the basic objective function values (step 1) */
+            else
+            {
+                //ORIGINAL LINE: register int *basvar = lp->var_basic;
+
+                int basvar = lp.var_basic;
+
+                for (i = 1, crow[0]++, basvar++; i <= n; i++, crow[0]++, basvar++)
+                {
+                    /* Load the objective value of the active basic variable; note that we
+                       change the sign of the value to maintain computational compatibility with
+                       the calculation of duals using in-basis storage of the basic OF values */
+                    if (basvar <= n)
+                    {
+                        crow[0] = 0;
+                    }
+                    else
+                    {
+                        crow[0] = -obj[(basvar) - n];
+                    }
+                    if (crow[0] != 0)
+                    {
+                        /*      if(fabs(*crow) > epsvalue) { */
+                        nz++;
+                        if (colno != null)
+                        {
+                            colno[nz] = i;
+                        }
+                    }
+                }
+            }
+            if (colno != null)
+            {
+                colno[0] = nz;
+            }
+            return (nz);
+        }
+
+        /* Retrieve a column vector from the data matrix [1..rows, rows+1..rows+columns];
+           needs __WINAPI call model since it may be called from BFPs */
+        internal int obtain_column(lprec lp, int varin, ref double[] pcol, ref int[] nzlist, ref int maxabs)
+        {
+            double value = lp_types.my_chsign(lp.is_lower, -1);
+            if (varin > lp.rows)
+            {
+                varin -= lp.rows;
+                varin = expand_column(lp, varin, ref pcol, ref nzlist, value, ref maxabs);
+            }
+            else if (lp.obj_in_basis || (varin > 0))
+            {
+                varin = singleton_column(lp, varin, ref pcol, ref nzlist, value, ref maxabs);
+            }
+            else
+            {
+                varin = get_basisOF(lp, null, pcol, nzlist);
+            }
+
+            return (varin);
+        }
+
+        internal static int expand_column(lprec lp, int col_nr, ref double[] column, ref int[] nzlist, double mult, ref int maxabs)
+        {
+            int i;
+            int ie;
+            int j;
+            int maxidx;
+            int nzcount;
+            double value;
+            double maxval;
+            MATrec mat = lp.matA;
+            
+            double matValue = new double();
+            
+            int matRownr;
+
+            /* Retrieve a column from the user data matrix A */
+            maxval = 0;
+            maxidx = -1;
+            if (nzlist == null)
+            {
+                //NOT REQUIRED
+                //MEMCLEAR(column, lp.rows + 1);
+                i = mat.col_end[col_nr - 1];
+                ie = mat.col_end[col_nr];
+                matRownr = lp_matrix.COL_MAT_ROWNR(i);
+                matValue = lp_matrix.COL_MAT_VALUE(i);
+                nzcount = i;
+                for (; i < ie; i++, matRownr += commonlib.matRowColStep, matValue += commonlib.matValueStep)
+                {
+                    j = matRownr;
+                    value = matValue;
+                    if (j > 0)
+                    {
+                        value *= mult;
+                        if (System.Math.Abs(value) > maxval)
+                        {
+                            maxval = System.Math.Abs(value);
+                            maxidx = j;
+                        }
+                    }
+                    column[j] = value;
+                }
+                nzcount = i - nzcount;
+
+                /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
+                if (lp.obj_in_basis)
+                {
+                    column[0] = lp.get_OF_active(lp, lp.rows + col_nr, mult);
+                    if (column[0] != 0)
+                    {
+                        nzcount++;
+                    }
+                }
+            }
+            else
+            {
+                nzcount = 0;
+
+                /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
+                if (lp.obj_in_basis)
+                {
+                    value = lp.get_OF_active(lp, lp.rows + col_nr, mult);
+                    if (value != 0)
+                    {
+                        nzcount++;
+                        nzlist[nzcount] = 0;
+                        column[nzcount] = value;
+                    }
+                }
+
+                /* Loop over the non-zero column entries */
+                i = mat.col_end[col_nr - 1];
+                ie = mat.col_end[col_nr];
+                matRownr = lp_matrix.COL_MAT_ROWNR(i);
+                matValue = lp_matrix.COL_MAT_VALUE(i);
+                for (; i < ie; i++, matRownr += commonlib.matRowColStep, matValue += commonlib.matValueStep)
+                {
+                    j = matRownr;
+                    value = (matValue) * mult;
+                    nzcount++;
+                    nzlist[nzcount] = j;
+                    column[nzcount] = value;
+                    if (System.Math.Abs(value) > maxval)
+                    {
+                        maxval = System.Math.Abs(value);
+                        maxidx = nzcount;
+                    }
+                }
+            }
+
+            if (maxabs != null)
+            {
+                maxabs = maxidx;
+            }
+            return (nzcount);
+        }
+
+        internal new  double get_OF_active(lprec lp, int varnr, double mult)
+        {
+            int colnr = varnr - lp.rows;
+            double holdOF = 0;
+            string msg = "";
+
+            ///#if Paranoia
+            if ((colnr <= 0) || (colnr > lp.columns))
+            {
+                msg = "get_OF_active: Invalid column index %d supplied\n";
+                lp.report(lp, SEVERE, ref msg, colnr);
+            }
+            else
+            {
+                ///#endif
+                if (lp.obj == null)
+                {
+                    if (colnr > 0)
+                    {
+                        holdOF = lp.orig_obj[colnr];
+                    }
+                    modifyOF1(lp, varnr, ref holdOF, mult);
+                }
+                else if (colnr > 0)
+                {
+                    holdOF = lp.obj[colnr] * mult;
+                }
+            }
+
+            return (holdOF);
+        }
+
+        internal static int singleton_column(lprec lp, int row_nr, ref double[] column, ref int[] nzlist, double value, ref int maxabs)
+        {
+            int nz = 1;
+
+            if (nzlist == null)
+            {
+                //NOT REQUIRED
+                //MEMCLEAR(column, lp.rows + 1);
+                column[row_nr] = value;
+            }
+            else
+            {
+                column[nz] = value;
+                nzlist[nz] = row_nr;
+            }
+
+            if (maxabs != null)
+            {
+                maxabs = row_nr;
+            }
+            return (nz);
+        }
+
+        internal new static bool refactRecent(lprec lp)
+        {
+            int pivcount = lp.bfp_pivotcount(lp);
+            if (pivcount == 0)
+            {
+                return (Convert.ToBoolean(DefineConstants.AUTOMATIC));
+            }
+            else if (pivcount < 2 * DEF_MAXPIVOTRETRY)
+            {
+                return (true);
+            }
+            else
+            {
+                return (false);
+            }
+        }
+
+        internal new void clear_action(ref int actionvar, int actionmask)
+        {
+            actionvar &= ~actionmask;
+        }
+
+        internal new bool del_column(lprec lp, int colnr)
+        {
+            bool preparecompact = (bool)(colnr < 0);
+            string msg;
+
+            if (preparecompact != null)
+            {
+                colnr = -colnr;
+            }
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                msg = "del_column: Column %d out of range\n";
+                lp.report(lp, IMPORTANT, ref msg, colnr);
+                return (false);
+            }
+            /*
+            if(lp->matA->is_roworder) {
+              report(lp, IMPORTANT, "del_column: Cannot delete column while in row entry mode.\n");
+              return(FALSE);
+            }
+            */
+
+            if ((lp.var_is_free != null) && (lp.var_is_free > 0))
+            {
+                del_column(lp, lp.var_is_free); // delete corresponding split column (is always after this column)
+            }
+
+            varmap_delete(lp, Convert.ToInt32(lp_types.my_chsign(preparecompact, lp.rows + colnr)), -1, null);
+            shift_coldata(lp, Convert.ToInt32(lp_types.my_chsign(preparecompact, colnr)), -1, null);
+            if (!lp.varmap_locked)
+            {
+                lp_presolve.presolve_setOrig(lp, lp.rows, lp.columns);
+                if (lp.names_used)
+                {
+                    del_varnameex(lp, lp.col_name, lp.columns, lp.colname_hashtab, colnr, null);
+                }
+            }
+            ///#if Paranoia
+            if (is_BasisReady(lp) && (lp.P1extraDim == 0) && !verify_basis(lp))
+            {
+                msg = "del_column: Invalid basis detected at column %d (%d)\n";
+                lp.report(lp, SEVERE, ref msg, colnr, lp.columns);
+            }
+            ///#endif
+
+            return (true);
+        }
+
+        internal new static bool verify_basis(lprec lp)
+        {
+            int i;
+            int ii;
+            int k = 0;
+            bool result = false;
+
+            for (i = 1; i <= lp.rows; i++)
+            {
+                ii = lp.var_basic[i];
+                if ((ii < 1) || (ii > lp.sum) || !lp.is_basic[ii])
+                {
+                    k = i;
+                    ii = 0;
+                    goto Done;
+                }
+            }
+
+            ii = lp.rows;
+            for (i = 1; i <= lp.sum; i++)
+            {
+                if (lp.is_basic[i])
+                {
+                    ii--;
+                }
+            }
+            //ORIGINAL LINE: result = (MYBOOL)(ii == 0);
+            result = ((bool)(ii == 0));
+            Done:
+            ///#if false
+            //  if(!result)
+            //    ii = 0;
+            ///#endif
+            return (result);
+        }
+
+        internal new static void set_OF_p1extra(lprec lp, double p1extra)
+        {
+            int i;
+            string msg;
+            double value = new double();
+
+            if (lp.spx_trace)
+            {
+                msg = "set_OF_p1extra: Set dual objective offset to %g at iter %.0f.\n";
+                lp.report(lp, DETAILED, ref msg, p1extra, (double)lp.get_total_iter(lp));
+            }
+            lp.P1extraVal = p1extra;
+            if (lp.obj == null)
+            {
+                //NOT REQUIRED
+              //  allocREAL(lp, lp.obj, lp.columns_alloc + 1, 1);
+            }
+            for (i = 1, value = lp.obj + 1; i <= lp.columns; i++, value++)
+            {
+                value = lp.orig_obj[i];
+                lp.modifyOF1(lp, lp.rows + i, ref value, 1.0);
+            }
+        }
+
+        internal new bool modifyOF1(lprec lp, int index, ref double ofValue, double mult)
+        /* Adjust objective function values for primal/dual phase 1, if appropriate */
+        {
+            bool accept = true;
+
+            /* Primal simplex: Set user variables to zero or BigM-scaled */
+            if (((lp.simplex_mode & SIMPLEX_Phase1_PRIMAL) != 0) && (System.Math.Abs(lp.P1extraDim) > 0))
+            {
+                ///#if ! Phase1EliminateRedundant
+                if (lp.P1extraDim < 0)
+                {
+                    if (index > lp.sum + lp.P1extraDim)
+                    {
+                        accept = false;
+                    }
+                }
+                else
+                {
+                    ///#endif
+                    if ((index <= lp.sum - lp.P1extraDim) || (mult == 0))
+                    {
+                        if ((mult == 0) || (lp.bigM == 0))
+                        {
+                            accept = false;
+                        }
+                        else
+                        {
+                            (ofValue) /= lp.bigM;
+                        }
+                    }
+                }
+            }
+
+            /* Dual simplex: Subtract P1extraVal from objective function values */
+            else if (((lp.simplex_mode & SIMPLEX_Phase1_DUAL) != 0) && (index > lp.rows))
+            {
+                ///#if 1
+//                Can it introduce degeneracy in some cases? */
+          
+                if ((lp.P1extraVal != 0) && (lp.orig_obj[index - lp.rows] > 0))
+                {
+                    ofValue = 0;
+                }
+                else
+                ///#endif
+                {
+                    ofValue -= lp.P1extraVal;
+                    
+                    ///#if false
+                    //      if(is_action(lp->anti_degen, ANTIDEGEN_RHSPERTURB))
+                    //        *ofValue -= rand_uniform(lp, lp->epsperturb);
+                    ///#endif
+                }
+            }
+
+            /* Do scaling and test for zero */
+            if (accept != null)
+            {
+                (ofValue) *= mult;
+                if (System.Math.Abs(ofValue) < lp.epsmachine)
+                {
+                    (ofValue) = 0;
+                    accept = false;
+                }
+            }
+            else
+            {
+                (ofValue) = 0;
+            }
+
+            return (accept);
+        }
+
+        internal new static bool is_OF_nz(lprec lp, int colnr)
+        {
+            return ((bool)(lp.orig_obj[colnr] != 0));
+        }
+
+        /* This routine recomputes the basic variables using the full inverse */
+        internal static void recompute_solution(lprec lp, bool shiftbounds)
+        {
+            /* Compute RHS = b - A(n)*x(n) */
+            initialize_solution(lp, shiftbounds);
+
+            /* Compute x(b) = Inv(B)*RHS (Ref. lp_solve inverse logic and Chvatal p. 121) */
+            lp.bfp_ftran_normal(lp, lp.rhs, null);
+            if (!lp.obj_in_basis)
+            {
+                int i;
+                int ib;
+                int n = lp.rows;
+                for (i = 1; i <= n; i++)
+                {
+                    ib = lp.var_basic[i];
+                    if (ib > n)
+                    {
+                        lp.rhs[0] -= get_OF_active(lp, ib, lp.rhs[i]);
+                    }
+                }
+            }
+
+            /* Round the values (should not be greater than the factor used in bfp_pivotRHS) */
+            roundVector(lp.rhs, lp.rows, lp.epsvalue);
+
+            clear_action(lp.spx_action, ACTION_RECOMPUTE);
+        }
+
+        /* Transform RHS by adjusting for the bound state of variables;
+         optionally rebase upper bound, and account for this in later calls */
+        internal static void initialize_solution(lprec lp, bool shiftbounds)
+        {
+            int i;
+            int k1;
+            int k2;
+            
+            //ORIGINAL LINE: int *matRownr;
+            int matRownr;
+            int colnr;
+            double theta = new double();
+            double value = new double();
+            double matValue;
+            double loB = new double();
+            double upB = new double();
+            MATrec mat = lp.matA;
+            string msg;
+            LpCls objLpCls = new LpCls();
+
+            /* Set bounding status indicators */
+            if (lp.bb_bounds != null)
+            {
+                if (shiftbounds == INITSOL_SHIFTZERO)
+                {
+                    if (lp.bb_bounds.UBzerobased)
+                    {
+                        msg = "initialize_solution: The upper bounds are already zero-based at refactorization %d\n";
+                        lp.report(lp, SEVERE, ref msg, lp.bfp_refactcount(lp, commonlib.BFP_STAT_REFACT_TOTAL));
+                    }
+                    lp.bb_bounds.UBzerobased = 1;
+                }
+                else if (!lp.bb_bounds.UBzerobased)
+                {
+                    msg = "initialize_solution: The upper bounds are not zero-based at refactorization %d\n";
+                    lp.report(lp, SEVERE, ref msg, lp.bfp_refactcount(lp, commonlib.BFP_STAT_REFACT_TOTAL));
+                }
+            }
+
+            /* Initialize the working RHS/basic variable solution vector */
+            //NOTED IDDUE: Commented temp
+            //i = objLpCls.is_action(lp.anti_degen, lp_lib.ANTIDEGEN_RHSPERTURB) && (lp.monitor != null) && lp.monitor.active;
+            //NOTED IDDUE:
+            if (sizeof(lp.rhs) == sizeof(lp.orig_rhs) && i == 0)
+            {
+                //NOT REQUIRED
+                //MEMCOPY(lp.rhs, lp.orig_rhs, lp.rows + 1);
+            }
+            else if (i)
+            {
+                lp.rhs[0] = lp.orig_rhs[0];
+                for (i = 1; i <= lp.rows; i++)
+                {
+                    if (objLpCls.is_constr_type(lp, i, EQ))
+                    {
+                        theta = lp_utils.rand_uniform(lp, lprec.epsvalue);
+                    }
+                    else
+                    {
+                        theta = lp_utils.rand_uniform(lp, lprec.epsperturb);
+                        /*        if(lp->orig_upbo[i] < lp->infinite)
+                                  lp->orig_upbo[i] += theta; */
+                    }
+                    lp.rhs[i] = lp.orig_rhs[i] + theta;
+                }
+            }
+            else
+            {
+                for (i = 0; i <= lp.rows; i++)
+                {
+                    lp.rhs[i] = lp.orig_rhs[i];
+                }
+            }
+
+            /* Adjust active RHS for variables at their active upper/lower bounds */
+            for (i = 1; i <= lp.sum; i++)
+            {
+
+                upB = lp.upbo[i];
+                loB = lp.lowbo[i];
+
+                /* Shift to "ranged" upper bound, tantamount to defining zero-based variables */
+                if (shiftbounds == INITSOL_SHIFTZERO)
+                {
+                    if ((loB > -lp.infinite) && (upB < lp.infinite))
+                    {
+                        lp.upbo[i] -= loB;
+                    }
+                    if (lp.upbo[i] < 0)
+                    {
+                        report(lp, SEVERE, "initialize_solution: Invalid rebounding; variable %d at refact %d, iter %.0f\n", i, lp.bfp_refactcount(lp, BFP_STAT_REFACT_TOTAL), (double)get_total_iter(lp));
+                    }
+                }
+
+                /* Use "ranged" upper bounds */
+                else if (shiftbounds == INITSOL_USEZERO)
+                {
+                    if ((loB > -lp.infinite) && (upB < lp.infinite))
+                    {
+                        upB += loB;
+                    }
+                }
+
+                /* Shift upper bound back to original value */
+                else if (shiftbounds == INITSOL_ORIGINAL)
+                {
+                    if ((loB > -lp.infinite) && (upB < lp.infinite))
+                    {
+                        lp.upbo[i] += loB;
+                        upB += loB;
+                    }
+                    continue;
+                }
+                else
+                {
+                    report(lp, SEVERE, "initialize_solution: Invalid option value '%d'\n", shiftbounds);
+                }
+
+                /* Set the applicable adjustment */
+                if (lp.is_lower[i])
+                {
+                    theta = loB;
+                }
+                else
+                {
+                    theta = upB;
+                }
+
+
+                /* Check if we need to pass through the matrix;
+                   remember that basis variables are always lower-bounded */
+                if (theta == 0)
+                {
+                    continue;
+                }
+
+                /* Do user and artificial variables */
+                if (i > lp.rows)
+                {
+
+                    /* Get starting and ending indeces in the NZ vector */
+                    colnr = i - lp.rows;
+                    k1 = mat.col_end[colnr - 1];
+                    k2 = mat.col_end[colnr];
+                    matRownr = COL_MAT_ROWNR(k1);
+                    matValue = COL_MAT_VALUE(k1);
+
+                    /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
+                    value = get_OF_active(lp, i, theta);
+                    lp.rhs[0] -= value;
+
+                    /* Do the normal case */
+                    for (; k1 < k2; k1++, matRownr += matRowColStep, matValue += matValueStep)
+                    {
+                        lp.rhs[matRownr] -= theta * matValue;
+                    }
+                }
+
+                /* Do slack variables (constraint "bounds")*/
+                else
+                {
+                    lp.rhs[i] -= theta;
+                }
+
+            }
+
+            /* Do final pass to get the maximum value */
+            i = idamax(lp.rows, lp.rhs, 1);
+            lp.rhsmax = Math.abs(lp.rhs[i]);
+
+            if (shiftbounds == INITSOL_SHIFTZERO)
+            {
+                clear_action(lp.spx_action, ACTION_REBASE);
+            }
+
+        }
+
 
     }
 }

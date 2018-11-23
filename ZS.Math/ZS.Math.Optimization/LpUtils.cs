@@ -334,7 +334,16 @@ namespace ZS.Math.Optimization
         }
         internal static double rand_uniform(lprec lp, double range)
         {
-            throw new NotImplementedException();
+            bool randomized = false; /* static ok here for reentrancy/multithreading */
+
+            if (!randomized)
+            {
+                randomized = true;
+                //NOTED ISSUE
+                srand((unsigned)time(NULL));
+            }
+            range *= (double)rand() / (double)RAND_MAX;
+            return (range);
         }
 
         /* Doubly linked list routines */
