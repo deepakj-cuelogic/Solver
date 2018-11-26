@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -24,7 +25,7 @@ namespace ZS.Math.Optimization
         public lprec lp;
 
         /* Active dimensions */
-        public int rows;
+        public int? rows;
         public int columns;
 
         /* Allocated memory */
@@ -109,7 +110,20 @@ namespace ZS.Math.Optimization
         static MATrec mat;
         public const int MAT_ROUNDRC = 4;
         public const int MAT_ROUNDREL = 2;
-        public const int MAT_ROUNDDEFAULT = MAT_ROUNDREL;
+        //public const int MAT_ROUNDDEFAULT = MAT_ROUNDREL;
+
+        /* Constants for matrix product rounding options */
+        internal const int MAT_ROUNDNONE = 0;
+        internal const int MAT_ROUNDABS = 1;
+        //internal const int MAT_ROUNDREL = 2;
+        /*internal const int MAT_ROUNDABSREL        = (MAT_ROUNDABS + MAT_ROUNDREL);
+        internal const int MAT_ROUNDRC            = 4;
+        internal const double MAT_ROUNDRCMIN         = 1.0; /* lp->epspivot */
+        //#if 1
+        //internal const  MAT_ROUNDDEFAULT      int  = MAT_ROUNDREL;  /* Typically increases performance */
+        //#else
+        //internal const MAT_ROUNDDEFAULT       int MAT_ROUNDABS;  /* Probably gives more precision */
+        //#endif*/
 
         //ORIGINAL CODE: #define COL_MAT_ROWNR(item)       (mat->col_mat_rownr[item])
         internal static Func<int, int> COL_MAT_ROWNR = (item) => (mat.col_mat_rownr[item]);
@@ -122,7 +136,7 @@ namespace ZS.Math.Optimization
                                           mat->col_mat_colnr[item] = j; \
                                           mat->col_mat_value[item] = A
         */
-        /*static Action<int[], int[], int[], int[]> _SET_MAT_ijA = delegate (int[] item, int[] i, int[] j, int[] A)
+        static Action<int[], int[], int[], int[]> _SET_MAT_ijA = delegate (int[] item, int[] i, int[] j, int[] A)
         {
             /// <summary>
             /// Cannot implicitly convert type 'int[]' to 'int' 
@@ -131,7 +145,7 @@ namespace ZS.Math.Optimization
             mat.col_mat_rownr[item] = i;
             mat.col_mat_colnr[item] = j;
             mat.col_mat_value[item] = A;
-        };*/
+        };
 
         //ORIGINAL CODE: #define CAM_Record                0
         public const int CAM_Record = 1;
@@ -243,7 +257,7 @@ namespace ZS.Math.Optimization
             {
                 if (isNZ != null && (colno[0] == 0))
                 {
-                    value = row[0];
+                    value = (row != null) ? Convert.ToDouble(row[0]) : 0;
 #if DoMatrixRounding
 	  value = roundToPrecision(value, mat.epsvalue);
 #endif
@@ -256,7 +270,7 @@ namespace ZS.Math.Optimization
                 }
                 else if (isNZ == null && (row != null) && (row[0] != 0))
                 {
-                    value = saved = row[0];
+                    value = saved = (row != null) ? Convert.ToDouble(row[0]) : 0; 
 #if DoMatrixRounding
 	  value = roundToPrecision(value, mat.epsvalue);
 #endif
@@ -294,7 +308,7 @@ namespace ZS.Math.Optimization
                     }*/
                     for (i = mat.columns; i >= 1; i--)
                     {
-                        if (System.System.Math.Abs(row[i]) > mat.epsvalue)
+                        if (System.Math.Abs((sbyte)row[i]) > mat.epsvalue)
                         {
                             addto = true;
                             firstcol = i;
@@ -328,7 +342,7 @@ namespace ZS.Math.Optimization
                 newnr--;
                 if ((bool)isNZ)
                 {
-                    value = row[newnr];
+                    value = (row != null) ? Convert.ToDouble(row[newnr]) : 0;
                     if (newnr > 0)
                     {
                         jj = (int)colno[newnr - 1];
@@ -340,7 +354,7 @@ namespace ZS.Math.Optimization
                 }
                 else
                 {
-                    value = row[j];
+                    value = (row != null) ? Convert.ToDouble(row[j]) : 0;
                 }
 #if DoMatrixRounding
 	  value = roundToPrecision(value, mat.epsvalue);
@@ -352,7 +366,7 @@ namespace ZS.Math.Optimization
                     {
                         value = lp_types.my_chsign(objlp_lib.is_chsign(lp, j), value);
                     }
-                    value = lp_scale.scaled_mat(lp, value, mat.rows, j);
+                    value = lp_scale.scaled_mat(lp, value, (mat.rows != null) ? Convert.ToInt32(mat.rows) : 0, j);
                 }
                 /*TODO: 13/11/18
                 SET_MAT_ijA(mat, elmnr, mat.rows, j, value);*/
@@ -410,7 +424,7 @@ namespace ZS.Math.Optimization
             }
             else
             {
-                int nrows = mat.rows;
+                int nrows = (mat.rows != null) ? Convert.ToInt32(mat.rows) : 0;
 
                 elmnr = 0;
                 for (i = 1; i <= nrows; i++)
@@ -456,8 +470,8 @@ namespace ZS.Math.Optimization
                 row = -1;
                 for (i = ((isNZ != null || !mat.is_roworder) ? 0 : 1); i <= count; i++)
                 {
-                    value = column[i];
-                    if (System.System.Math.Abs(value) > mat.epsvalue)
+                    value =  (column[i] != null) ? Convert.ToDouble(column[i]) : 0;
+                    if (System.Math.Abs(value) > mat.epsvalue)
                     {
                         if (isNZ != null)
                         {
@@ -506,7 +520,9 @@ namespace ZS.Math.Optimization
                 if (objLpCls.get_Lrows(lp) > 0)
                 {
                     ///NOTED ISSUE
-                    mat_appendcol(lp.matL, objLpCls.get_Lrows(lp), column + mat.rows, null, mult, checkrowmode);
+                    //double? (column != null) ? Convert.ToDouble(column[0]) : 0 + Convert.ToDouble(mat.rows)
+                    double c = (mat.rows != null) ? Convert.ToDouble(mat.rows): 0;
+                    mat_appendcol(lp.matL, objLpCls.get_Lrows(lp), column +  c, null, mult, checkrowmode);
                 }
 
             }
@@ -865,18 +881,19 @@ namespace ZS.Math.Optimization
                     inc_matcol_space(mat, 1);
                 }
                 j = mat.row_end[0];
-                for (i = mat.rows; i >= 1; i--)
+                for (i = (mat.rows != null) ? Convert.ToInt32(mat.rows) : 0; i >= 1; i--)
                 {
                     mat.row_end[i] -= j;
                 }
-                mat.row_end[mat.rows] = nz;
+                mat.row_end[(mat.rows != null) ? Convert.ToInt32(mat.rows) : 0] = nz;
                lp_utils.swapPTR(mat.row_end.Cast<Object>().ToArray(), mat.col_end.Cast<Object>().ToArray());
 
                 /* Swap arrays of maximum values */
                 lp_utils.swapPTR(mat.rowmax.Cast<object>().ToArray(), mat.colmax.Cast<object>().ToArray());
 
                 /* Swap array sizes */
-                lp_utils.swapINT(ref mat.rows, ref mat.columns);
+                int item1 = (mat.rows != null) ? Convert.ToInt32(mat.rows) : 0;
+                lp_utils.swapINT(ref item1, ref mat.columns);
                 lp_utils.swapINT(ref mat.rows_alloc, ref mat.columns_alloc);
 
                 /* Finally set current storage mode */
@@ -955,7 +972,7 @@ namespace ZS.Math.Optimization
             omitnonfixed = ((bool)((varset & lp_lib.OMIT_NONFIXED) != 0));
             if (omitfixed != null && omitnonfixed != null)
             {
-                return (0);
+                return false;
             }
 
             /* Scan the target colums */
@@ -990,7 +1007,7 @@ namespace ZS.Math.Optimization
 
                 /* Find if the variable is in the scope - default is {Ø} */
                 //NOTED ISSUE
-                i = lp.is_basic[varnr];
+                i = Convert.ToInt32(lp.is_basic[varnr]);
                 if ((varset & lp_lib.USE_BASICVARS) > 0 && (i) != 0)
                 {
                     ;
@@ -1032,14 +1049,14 @@ namespace ZS.Math.Optimization
             int ve;
             int nrows = lp.rows;
             bool localset = new bool();
-            bool localnz = false;
+            bool? localnz = false;
             bool includeOF = new bool();
             bool isRC = new bool();
             //ORIGINAL CODE: REALXP vmax = new REALXP(); /* REALXP in C is long double */
             double vmax = new double();
 
             //ORIGINAL LINE: REALXP v = new REALXP();
-            double v = new double();
+            double v = 0;
             int inz;
 
             //ORIGINAL LINE: int *rowin;
@@ -1084,11 +1101,12 @@ namespace ZS.Math.Optimization
                 {
                     varset |= lp_lib.SCAN_PARTIALBLOCK;
                 }
-                
-                coltarget = Convert.ToInt32(lp_utils.mempool_obtainVector(lp.workarrays, lp.sum + 1, coltarget));
-                if (!get_colIndexA(lp, varset, coltarget, 0))
+
+                coltarget[0] = Convert.ToInt32(lp_utils.mempool_obtainVector(lp.workarrays, lp.sum + 1, coltarget[0]));
+                if (!get_colIndexA(lp, varset, coltarget[0], false))
                 {
-                    mempool_releaseVector(lp.workarrays, (String)coltarget, 0);
+                    string memvector = coltarget.ToString();
+                    lp_utils.mempool_releaseVector(lp.workarrays, ref memvector, 0);
                     return (0);
                 }
             }
@@ -1097,17 +1115,18 @@ namespace ZS.Math.Optimization
             ///#if UseLocalNZ
             //C++ TO JAVA CONVERTER TODO TASK: The following line was determined to be a copy assignment (rather than a reference assignment) - this should be verified and a 'copyFrom' method should be created:
             //ORIGINAL LINE: localnz = (bool)(nzinput == null);
-            localnz.copyFrom((bool)(nzinput == null));
+            localnz = (bool)(nzinput == null);
             if (localnz != null)
             {
                 //C++ TO JAVA CONVERTER TODO TASK: There is no Java equivalent to 'sizeof':
-                nzinput = (int)mempool_obtainVector(lp.workarrays, nrows + 1, sizeof(*nzinput));
+                nzinput[0] = Convert.ToInt32(lp_utils.mempool_obtainVector(lp.workarrays, nrows + 1, nzinput[0]));
                 vec_compress(input, 0, nrows, lp.matA.epsvalue, null, nzinput);
             }
             ///#endif
             //C++ TO JAVA CONVERTER TODO TASK: The following line was determined to be a copy assignment (rather than a reference assignment) - this should be verified and a 'copyFrom' method should be created:
             //ORIGINAL LINE: includeOF = (bool)(((nzinput == null) || (nzinput[1] == 0)) && (input[0] != 0) && lp->obj_in_basis);
-            includeOF.copyFrom((bool)(((nzinput == null) || (nzinput[1] == 0)) && (input[0] != 0) && lp.obj_in_basis));
+            //includeOF.copyFrom((bool)(((nzinput == null) || (nzinput[1] == 0)) && (input[0] != 0) && lp.obj_in_basis));
+            includeOF = (bool)(((nzinput == null) || (nzinput[1] == 0)) && (input[0] != 0) && lp.obj_in_basis);
 
             /* Scan the target colums */
             vmax = 0;
@@ -1147,7 +1166,7 @@ namespace ZS.Math.Optimization
                                     v += input[0] * lp.obj[colnr] * ofscalar;
                                 }
                                 ///#else
-                                v += input[0] * get_OF_active(lp, varnr, ofscalar);
+                                v += input[0] * LpCls.get_OF_active(lp, varnr, ofscalar);
                                 ///#endif
 
                                 /* Initialize pointers */
@@ -1157,7 +1176,7 @@ namespace ZS.Math.Optimization
                                 /* Do extra loop optimization based on target window overlaps */
                                 //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
                                 ///#if UseLocalNZ
-                                if ((ib < ie) && (colnr <= *nzinput) && (COL_MAT_ROWNR(ie - 1) >= nzinput[colnr]) && (matRownr <= nzinput[*nzinput]))
+                                if ((ib < ie) && (colnr <= nzinput[0]) && (COL_MAT_ROWNR(ie - 1) >= nzinput[colnr]) && (matRownr <= nzinput[0]))
                                 {
                                     ///#endif
                                     //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
@@ -1184,7 +1203,7 @@ namespace ZS.Math.Optimization
                                 while (ib < ie)
                                 {
                                     v += input[matRownr] * matValue;
-                                    v += input[*(matRownr + matRowColStep)] * (*(matValue + matValueStep));
+                                    v += input[(matRownr + matRowColStep)] * ((matValue + matValueStep));
                                     ib += 2;
                                     matValue += 2 * matValueStep;
                                     matRownr += 2 * matRowColStep;
@@ -1203,18 +1222,18 @@ namespace ZS.Math.Optimization
                                     v += input[0] * lp.obj[colnr] * ofscalar;
                                 }
                                 ///#else
-                                v += input[0] * get_OF_active(lp, varnr, ofscalar);
+                                v += input[0] * LpCls.get_OF_active(lp, varnr, ofscalar);
                                 ///#endif
 
                                 /* Initialize pointers */
                                 inz = 1;
-                                rowin = nzinput + inz;
+                                rowin = nzinput[0] + inz;
                                 matRownr = COL_MAT_ROWNR(ib);
                                 matValue = COL_MAT_VALUE(ib);
                                 ie--;
 
                                 /* Then loop over all non-OF rows */
-                                while ((inz <= *nzinput) && (ib <= ie))
+                                while ((inz <= nzinput[0]) && (ib <= ie))
                                 {
 
                                     /* Try to synchronize at right */
@@ -1225,7 +1244,7 @@ namespace ZS.Math.Optimization
                                         matRownr += matRowColStep;
                                     }
                                     /* Try to synchronize at left */
-                                    while ((rowin < matRownr) && (inz < *nzinput))
+                                    while ((rowin < matRownr) && (inz < nzinput[0]))
                                     {
                                         inz++;
                                         rowin++;
@@ -1241,16 +1260,16 @@ namespace ZS.Math.Optimization
                                 }
                             }
                         }
-                        if ((roundmode & MAT_ROUNDABS) != 0)
+                        if ((roundmode & lp_matrix.MAT_ROUNDABS) != 0)
                         {
-                            my_roundzero(v, roundzero);
+                           lp_types.my_roundzero(v, roundzero);
                         }
                     }
 
                     /* Special handling of small reduced cost values */
-                    if (isRC == null || (my_chsign(lp.is_lower[varnr], v) < 0))
+                    if (isRC == null || (lp_types.my_chsign(lp.is_lower[varnr], v) < 0))
                     {
-                        SETMAX(vmax, System.Math.Abs((REAL)v));
+                       commonlib.SETMAX(Convert.ToInt32(vmax), Convert.ToInt32(System.Math.Abs(v)));
                     }
                     vmax *= roundzero;
                     for (ib = 1; ib <= countNZ; ib++)
@@ -1273,16 +1292,18 @@ namespace ZS.Math.Optimization
             /* Clean up and return */
             if (localset)
             {
-                mempool_releaseVector(lp.workarrays, (String)coltarget, 0);
+                string memvector = coltarget[0].ToString();
+                lp_utils.mempool_releaseVector(lp.workarrays, ref memvector, 0);
             }
-            if (localnz)
+            if (localnz != null)
             {
-                mempool_releaseVector(lp.workarrays, (String)nzinput, 0);
+                string memvector = nzinput[0].ToString();
+                lp_utils.mempool_releaseVector(lp.workarrays, ref memvector, 0);
             }
 
             if (nzoutput != null)
             {
-                *nzoutput = countNZ;
+                nzoutput[0] = countNZ;
             }
             return (countNZ);
         }
@@ -1315,7 +1336,7 @@ namespace ZS.Math.Optimization
             pcol[0] *= ofscalar;
             if (prepareupdate)
             {
-                lp.bfp_ftran_prepare(lp, ref pcol, Convert.ToInt32(nzidx));
+                lp.bfp_ftran_prepare(lp, ref pcol[0], Convert.ToInt32(nzidx));
             }
             else
             {
@@ -1384,7 +1405,7 @@ namespace ZS.Math.Optimization
                    order to save time and to implement different rounding for the two */
                 int bfp_btran_doubleParaNo3 = 0;
                 //NOTED ISSUE
-                lp.bfp_btran_double(lp, ref vector1, bfp_btran_doubleParaNo3, vector2, null);
+                lp.bfp_btran_double(lp, ref vector1[0], bfp_btran_doubleParaNo3, vector2[0], 0);
 
                 /* Multiply solution vectors with matrix values */
                 prod_xA2(lp, coltarget, vector1, roundzero1, nzvector1, vector2, roundzero2, nzvector2, ofscalar, roundmode);
@@ -1410,19 +1431,20 @@ namespace ZS.Math.Optimization
             return (mat.mat_alloc - mat.col_end[mat.columns]);
         }
 
-        internal static bool bsolve(lprec lp, int row_nr, ref double rhsvector, ref int nzidx, double roundzero, double ofscalar)
+        internal static bool bsolve(lprec lp, int row_nr, ref double rhsvector, ref int? nzidx, double roundzero, double ofscalar)
         {
             bool ok = true;
 
             if (row_nr >= 0) // Note that row_nr == 0 returns the [1, 0...0 ] vector
             {
                 int LastPara = 0;
-                row_nr = lp.obtain_column(lp, row_nr, ref rhsvector, ref nzidx, ref LastPara);
+                int nzlist = (nzidx != null) ? Convert.ToInt32(nzidx) : 0;
+                row_nr = lp.obtain_column(lp, row_nr, ref rhsvector, ref nzlist, ref LastPara);
             }
 
             /* Solve, adjusted for objective function scalar */
             rhsvector = ofscalar;
-            btran(lp, rhsvector, nzidx, roundzero);
+            btran(lp, rhsvector, (nzidx != null) ? Convert.ToInt32(nzidx) : 0, roundzero);
 
             return (ok);
 
@@ -1440,12 +1462,14 @@ namespace ZS.Math.Optimization
             int usercolB;
             string msg;
             LpCls objLpCls = new LpCls();
+            FileStream stdout = null;
+            lp_report objlp_report = new lp_report();
 
             /* Make sure the tags are correct */
             if (!lp_matrix.mat_validate(lp.matA))
             {
                 lp.spx_status = lp_lib.INFEASIBLE;
-                return (0);
+                return false;
             }
 
             /* Create the inverse management object at the first call to invert() */
@@ -1545,25 +1569,28 @@ namespace ZS.Math.Optimization
             ///#if DebugInv
            // blockWriteLREAL(stdout, "RHS-values pre invert", lp.rhs, 0, lp.rows);
             ///#endif
-            recompute_solution(lp, shiftbounds);
-            restartPricer(lp, DefineConstants.AUTOMATIC);
-            
+           LpCls.recompute_solution(lp, shiftbounds);
+            LpPricePSE.restartPricer(lp, DefineConstants.AUTOMATIC);
+
             ///#if DebugInv
-            blockWriteLREAL(stdout, "RHS-values post invert", lp.rhs, 0, lp.rows);
+            msg = "RHS-values post invert";
+            objlp_report.blockWriteLREAL(stdout, ref msg, lp.rhs[0], 0, lp.rows);
         ///#endif
 
             Cleanup:
             /* Check for numerical instability indicated by frequent refactorizations */
-            test = get_refactfrequency(lp, 0);
-            if (test < MIN_REFACTFREQUENCY)
+            test = objLpCls.get_refactfrequency(lp, 0);
+            if (test < lp_lib.MIN_REFACTFREQUENCY)
             {
-                test = get_refactfrequency(lp, 1);
-                report(lp, NORMAL, "invert: Refactorization frequency %.1g indicates numeric instability.\n", test);
-                lp.spx_status = NUMFAILURE;
+                test = objLpCls.get_refactfrequency(lp, 1);
+                msg = "invert: Refactorization frequency %.1g indicates numeric instability.\n";
+                objlp_report.report(lp, lp_lib.NORMAL, ref msg, test);
+                lp.spx_status = lp_lib.NUMFAILURE;
             }
-
+            /*NOT REQUIRED
             FREE(usedpos);
-            return ((MYBOOL)(singularities <= 0));
+            */
+            return ((bool)(singularities <= 0));
         } // invert
 
     }

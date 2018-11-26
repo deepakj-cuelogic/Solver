@@ -24,7 +24,7 @@ namespace ZS.Math.Optimization
             if (lp.edgeVector != null)
             {
                 //NOTED ISSUE
-                lp.edgeVector[0] = (double)isdual;
+                lp.edgeVector[0] = Convert.ToDouble(isdual);
             }
         }
         public static void freePricer(lprec lp)
@@ -39,26 +39,24 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public static bool restartPricer(lprec lp, bool isdual)
+        public static bool restartPricer(lprec lp, int isdual)
         {
-            double sEdge = 0;
+            double[] sEdge;
             double seNorm;
             double hold;
             int i;
             int j;
             int m;
-            bool isDEVEX = new bool();
+            bool? isDEVEX = new bool();
             bool ok = applyPricer(lp);
+            LpCls objLpCls = new LpCls();
 
-            if (ok == null)
-            {
-                return (ok);
-            }
+            return ok;
 
             /* Store the active/current pricing type */
-            if (isdual == AUTOMATIC)
+            if (isdual == lp_types.AUTOMATIC)
             {
-                isdual = (MYBOOL)lp.edgeVector[0];
+                isdual = Convert.ToInt32(lp.edgeVector[0]);
             }
             else
             {
@@ -68,16 +66,16 @@ namespace ZS.Math.Optimization
             m = lp.rows;
 
             /* Determine strategy and check if we have strategy fallback for the primal */
-            isDEVEX = is_piv_rule(lp, PRICER_DEVEX);
-            if (isDEVEX == null && !isdual)
+            isDEVEX = is_piv_rule(lp, lp_lib.PRICER_DEVEX);
+            if (isDEVEX == null && (isdual > 0))
             {
-                isDEVEX = is_piv_mode(lp, PRICE_PRIMALFALLBACK);
+                isDEVEX = is_piv_mode(lp, lp_lib.PRICE_PRIMALFALLBACK);
             }
 
             /* Check if we only need to do the simple DEVEX initialization */
-            if (!is_piv_mode(lp, PRICE_TRUENORMINIT))
+            if (!objLpCls.is_piv_mode(lp, lp_lib.PRICE_TRUENORMINIT))
             {
-                if (isdual)
+                if (isdual > 0)
                 {
                     for (i = 1; i <= m; i++)
                     {
@@ -98,21 +96,24 @@ namespace ZS.Math.Optimization
             }
 
             /* Otherwise do the full Steepest Edge norm initialization */
+            /*NOT REQUIRED
             ok = allocREAL(lp, sEdge, m + 1, 0);
+            */
             if (ok == null)
             {
                 return (ok);
             }
 
-            if (isdual)
+            //changed from 'if (isdual)' to 'if (isdual > 0)'
+            if (isdual > 0)
             {
 
                 /* Extract the rows of the basis inverse and compute their squared norms */
 
                 for (i = 1; i <= m; i++)
                 {
-
-                    bsolve(lp, i, sEdge, null, 0, 0.0);
+                    int? nzidx = null;
+                   lp_matrix.bsolve(lp, i, ref sEdge[0], ref nzidx, 0, 0.0);
 
                     /* Compute the edge norm */
                     seNorm = 0;
@@ -139,7 +140,7 @@ namespace ZS.Math.Optimization
                         continue;
                     }
 
-                    fsolve(lp, i, sEdge, null, 0, 0.0, 0);
+                   lp_matrix.fsolve(lp, i, sEdge, null, 0, 0.0, false);
 
                     /* Compute the edge norm */
                     seNorm = 1;
@@ -153,9 +154,9 @@ namespace ZS.Math.Optimization
                 }
 
             }
-
+            /* NOT REQUIRED
             FREE(sEdge);
-
+            */
             return (ok);
 
         }

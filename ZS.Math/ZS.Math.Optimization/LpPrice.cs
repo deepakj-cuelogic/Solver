@@ -25,7 +25,7 @@ namespace ZS.Math.Optimization
             double[] nullpara2 = null;
             //ORIGINAL LINE: compute_reducedcosts(lp, true, rownr, null, 1, prow, nzprow, null, null, lp_matrix.MAT_ROUNDDEFAULT);
             compute_reducedcosts(lp, true, rownr, ref nullpara, true, ref prow, ref nzprow, ref nullpara2, ref nullpara, lp_matrix.MAT_ROUNDDEFAULT);
-            objLpCls.clear_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
+            LpCls.clear_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
 
             /* Find a suitably non-singular variable to enter ("most orthogonal") */
             bestindex = 0;
@@ -52,7 +52,7 @@ namespace ZS.Math.Optimization
             return (bestindex);
         }
 
-        internal static void compute_reducedcosts(lprec lp, bool isdual, int row_nr, ref int[] coltarget, bool dosolve, ref double[] prow, ref int[] nzprow, ref double[] drow, ref int[] nzdrow, int roundmode)
+        internal static void compute_reducedcosts(lprec lp, bool? isdual, int row_nr, ref int[] coltarget, bool? dosolve, ref double[] prow, ref int[] nzprow, ref double[] drow, ref int[] nzdrow, int roundmode)
         {
             LpCls objLpCls = new LpCls();
             double epsvalue = lprec.epsvalue; // Any larger value can produce a suboptimal result
@@ -64,7 +64,12 @@ namespace ZS.Math.Optimization
             }
             else
             {
-                double[] bVector = 0;
+                /// <summary> FIX_20521988-5de6-4a36-b964-ff9504331085 26/11/18
+                /// PREVIOUS: double[] bVector = 0;
+                /// ERROR IN PREVIOUS: Cannot implicitly convert type 'int' to 'double[]'
+                /// FIX 1: List<double> bVector = new List<double>();
+                /// </summary>
+                List<double> bVector = new List<double>();
 
                 ///#if 1
                 if ((lp.multivars == null) && (lp.P1extraDim == 0))
@@ -74,17 +79,30 @@ namespace ZS.Math.Optimization
                 else
                 {
                     ///#endif
-                    bVector = lp.bsolveVal;
+                    /// FIX_20521988-5de6-4a36-b964-ff9504331085 26/11/18
+                    /// PREVIOUS bVector = lp.bsolveVal;
+                    bVector.Add(lp.bsolveVal);
                 }
                 if (dosolve != null)
                 {
-                    lp_matrix.bsolve(lp, 0, ref bVector[], ref lp.bsolveIdx, epsvalue * lp_lib.DOUBLEROUND, 1.0);
-                    if (isdual == null && (row_nr == 0) && (lp.improve!=0 && lp_lib.IMPROVE_SOLUTION!=0) && !LpCls.refactRecent(lp) && serious_facterror(lp, ref bVector, lp.rows, lprec.epsvalue))
+                    ///FIX_20521988-5de6-4a36-b964-ff9504331085 26/11/18
+                    /// PREVIOUS: ref bVector[0]
+                    double rhsvector = bVector[0];
+                    int? nzidx = lp.bsolveIdx;
+                    lp_matrix.bsolve(lp, 0, ref rhsvector, ref nzidx, epsvalue * lp_lib.DOUBLEROUND, 1.0);
+                    if (isdual == null && (row_nr == 0) && (lp.improve!=0 && lp_lib.IMPROVE_SOLUTION!=0) && !LpCls.refactRecent(lp) && serious_facterror(lp, ref rhsvector, lp.rows, lprec.epsvalue))
                     {
                         lp.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
                     }
                 }
-                lp_matrix.prod_xA(lp, coltarget, bVector, lp.bsolveIdx, epsvalue, 1.0, drow, nzdrow, roundmode);
+                ///FIX_20521988-5de6-4a36-b964-ff9504331085 26/11/18
+                /// need to convert List<double> to double[] for passing as a parameter 
+                double[] arrbVector = new double[bVector.Count];
+                for (int idx = 0; idx < bVector.Count; idx++)
+                {
+                    arrbVector[idx] = bVector[idx];
+                }
+                lp_matrix.prod_xA(lp, coltarget, arrbVector, lp.bsolveIdx, epsvalue, 1.0, drow, nzdrow, roundmode);
             }
         }
 
@@ -165,7 +183,7 @@ namespace ZS.Math.Optimization
                 ib = mat.col_end[j - 1];
                 ie = mat.col_end[j];
                 nz += ie - ib;
-                sum = objLpCls.get_OF_active(lp, j + lp.rows, bvector);
+                sum = LpCls.get_OF_active(lp, j + lp.rows, bvector);
                 for (; ib < ie; ib++)
                 {
                     //ORIGINAL CODE: sum += lp_matrix.COL_MAT_VALUE(ib) * bvector[lp_matrix.COL_MAT_ROWNR(ib)];

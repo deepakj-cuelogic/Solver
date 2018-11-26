@@ -19,10 +19,29 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: #define my_reldiff(x, y)       (((x) - (y)) / (1.0 + fabs((REAL) (y))))
         public static Func<double, double,double> my_reldiff = (x, y) => (((x) - (y)) / (1.0 + System.Math.Abs((double)(y))));
 
+        //ORIGINAL LINE: #define my_roundzero(val, eps)  if (fabs((REAL) (val)) < eps) val = 0
+        public static Action<double, double> my_roundzero = delegate (double val, double eps) { if (System.Math.Abs(val) < eps) val = 0; };
+
         internal static string RESULTVALUEMASK = "%18.12g";
-
+        
+        /* Library load status values */
         internal const int LIB_LOADED = 0;
+        internal const int LIB_NOTFOUND = 1;
+        internal const int LIB_NOINFO = 2;
+        internal const int LIB_NOFUNCTION = 3;
+        internal const int LIB_VERINVALID = 4;
+        internal const string LIB_STR_LOADED = "Successfully loaded";
+        internal const string LIB_STR_NOTFOUND = "File not found";
+        internal const string LIB_STR_NOINFO = "No version data";
+        internal const string LIB_STR_NOFUNCTION = "Missing function header";
+        internal const string LIB_STR_VERINVALID = "Incompatible version";
+        internal const int LIB_STR_MAXLEN = 23;
 
+        /* Byte-sized Booleans and extended options */
+        internal const byte FALSE = 0;
+        internal const byte TRUE = 1;
+        internal const byte AUTOMATIC = 2;
+        internal const byte DYNAMIC = 4;
     }
     internal static class DefineConstants
     {

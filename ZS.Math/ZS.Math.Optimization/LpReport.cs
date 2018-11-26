@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -81,7 +82,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public void blockWriteLREAL(FILE output, ref string label, double vector, int first, int last)
+        public void blockWriteLREAL(FileStream output, ref string label, double vector, int first, int last)
         {
             throw new NotImplementedException();
         }

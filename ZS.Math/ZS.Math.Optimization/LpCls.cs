@@ -36,7 +36,7 @@ namespace ZS.Math.Optimization
         //TODO: return type can  be changed to bool??
         internal new bool userabort(lprec lp, int message)
         {
-            byte abort;
+            bool abort;
             int spx_save;
 
             spx_save = lp.spx_status;
@@ -53,8 +53,8 @@ namespace ZS.Math.Optimization
             {
                 lp.usermessage(lp, lp.msghandle, message);
             }
-            abort = Convert.ToByte(lp.spx_status != RUNNING);
-            if (abort == 0)
+            abort = Convert.ToBoolean(lp.spx_status != RUNNING);
+            if (!abort)
             {
                 lp.spx_status = spx_save;
             }
@@ -638,14 +638,10 @@ namespace ZS.Math.Optimization
             return true;
         }
 
-        private bool set_BFP(lprec lp, ref string filename)
-        {
-            throw new NotImplementedException();
-        }
-        private bool set_XLI(lprec lp, ref string filename)
+        private new bool set_XLI(lprec lp, ref string filename)
         /* (Re)mapping of external language interface variant methods is done here */
         {
-            int result = LIB_LOADED;
+            int result = lp_types.LIB_LOADED;
 
             //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
 #if LoadLanguageLib == TRUE
@@ -665,7 +661,7 @@ namespace ZS.Math.Optimization
             {
                 if (!is_nativeXLI(lp))
                 {
-                    return (0);
+                    return false;
                 }
 #if !ExcludeNativeLanguage
                 lp.xli_name = xli_name;
@@ -758,41 +754,43 @@ namespace ZS.Math.Optimization
 	}
 #endif
                 /* Do validation */
-                if ((result != LIB_LOADED) || ((lp.xli_name == null) || (lp.xli_compatible == null) || (lp.xli_readmodel == null) || (lp.xli_writemodel == null)))
+                if ((result != lp_types.LIB_LOADED) || ((lp.xli_name == null) || (lp.xli_compatible == null) || (lp.xli_readmodel == null) || (lp.xli_writemodel == null)))
                 {
-                    set_XLI(lp, null);
-                    if (result == LIB_LOADED)
+                    filename = null;
+                    set_XLI(lp, ref filename);
+                    if (result == lp_types.LIB_LOADED)
                     {
-                        result = LIB_NOFUNCTION;
+                        result = lp_types.LIB_NOFUNCTION;
                     }
                 }
             }
             //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
             if (filename != null)
             {
-                string info = new string(new char[LIB_STR_MAXLEN + 1]);
+                string info = new string(new char[lp_types.LIB_STR_MAXLEN + 1]);
                 switch (result)
                 {
-                    case LIB_NOTFOUND:
-                        info = LIB_STR_NOTFOUND;
+                    case lp_types.LIB_NOTFOUND:
+                        info = lp_types.LIB_STR_NOTFOUND;
                         break;
-                    case LIB_NOINFO:
-                        info = LIB_STR_NOINFO;
+                    case lp_types.LIB_NOINFO:
+                        info = lp_types.LIB_STR_NOINFO;
                         break;
-                    case LIB_NOFUNCTION:
-                        info = LIB_STR_NOFUNCTION;
+                    case lp_types.LIB_NOFUNCTION:
+                        info = lp_types.LIB_STR_NOFUNCTION;
                         break;
-                    case LIB_VERINVALID:
-                        info = LIB_STR_VERINVALID;
+                    case lp_types.LIB_VERINVALID:
+                        info = lp_types.LIB_STR_VERINVALID;
                         break;
                     default:
-                        info = LIB_STR_LOADED;
+                        info = lp_types.LIB_STR_LOADED;
                         break;
                 }
-                report(lp, IMPORTANT, "set_XLI: %s '%s'\n", info, filename);
+                string msg = "set_XLI: {0} '{1}'\n";
+                report(lp, IMPORTANT, ref msg, info, filename);
             }
             //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
-            return ((bool)(result == LIB_LOADED));
+            return ((bool)(result == lp_types.LIB_LOADED));
         }
 
         //----------------------------------------------------------------------------------------
@@ -994,7 +992,7 @@ namespace ZS.Math.Optimization
             }
             else
             {
-                n = lp.matA.rows;
+                n = (lp.matA.rows != null) ? Convert.ToInt32(lp.matA.rows) : 0;
             }
             if (lp.rows != n)
             {
@@ -1582,12 +1580,12 @@ namespace ZS.Math.Optimization
             }
             else
             {
-                return (lp.matL.rows);
+                return ((lp.matL.rows != null) ? Convert.ToInt32(lp.matL.rows) : 0);
             }
         }
 
 
-        private bool is_constr_type(lprec lp, int rownr, int mask)
+        private new bool is_constr_type(lprec lp, int rownr, int mask)
         {
             if ((rownr < 0) || (rownr > lp.rows))
             {
@@ -1948,7 +1946,7 @@ namespace ZS.Math.Optimization
         {
             return ((bool)((lp.anti_degen == testmask) || ((lp.anti_degen & testmask) != 0)));
         }
-        internal new long get_total_iter(lprec lp)
+        internal static new long get_total_iter(lprec lp)
         {
             return (lp.total_iter + lp.current_iter);
         }
@@ -2235,7 +2233,7 @@ namespace ZS.Math.Optimization
             {
                 //ORIGINAL LINE: register int *basvar = lp->var_basic;
 
-                int basvar = lp.var_basic;
+                int basvar = lp.var_basic[0];
 
                 for (i = 1, crow[0]++, basvar++; i <= n; i++, crow[0]++, basvar++)
                 {
@@ -2272,7 +2270,7 @@ namespace ZS.Math.Optimization
            needs __WINAPI call model since it may be called from BFPs */
         internal int obtain_column(lprec lp, int varin, ref double[] pcol, ref int[] nzlist, ref int maxabs)
         {
-            double value = lp_types.my_chsign(lp.is_lower, -1);
+            double value = lp_types.my_chsign(lp.is_lower[0], -1);
             if (varin > lp.rows)
             {
                 varin -= lp.rows;
@@ -2387,7 +2385,7 @@ namespace ZS.Math.Optimization
             return (nzcount);
         }
 
-        internal new double get_OF_active(lprec lp, int varnr, double mult)
+        internal static new double get_OF_active(lprec lp, int varnr, double mult)
         {
             int colnr = varnr - lp.rows;
             double holdOF = 0;
@@ -2459,7 +2457,7 @@ namespace ZS.Math.Optimization
             }
         }
 
-        internal new void clear_action(ref int actionvar, int actionmask)
+        internal static new void clear_action(ref int actionvar, int actionmask)
         {
             actionvar &= ~actionmask;
         }
@@ -2486,9 +2484,9 @@ namespace ZS.Math.Optimization
             }
             */
 
-            if ((lp.var_is_free != null) && (lp.var_is_free > 0))
+            if ((lp.var_is_free != null) && (Convert.ToInt32(lp.var_is_free) > 0))
             {
-                del_column(lp, lp.var_is_free); // delete corresponding split column (is always after this column)
+                del_column(lp, Convert.ToInt32(lp.var_is_free)); // delete corresponding split column (is always after this column)
             }
 
             varmap_delete(lp, Convert.ToInt32(lp_types.my_chsign(preparecompact, lp.rows + colnr)), -1, null);
@@ -2565,14 +2563,14 @@ namespace ZS.Math.Optimization
                 //NOT REQUIRED
                 //  allocREAL(lp, lp.obj, lp.columns_alloc + 1, 1);
             }
-            for (i = 1, value = lp.obj + 1; i <= lp.columns; i++, value++)
+            for (i = 1, value = lp.obj[0] + 1; i <= lp.columns; i++, value++)
             {
                 value = lp.orig_obj[i];
                 lp.modifyOF1(lp, lp.rows + i, ref value, 1.0);
             }
         }
 
-        internal new bool modifyOF1(lprec lp, int index, ref double ofValue, double mult)
+        internal static new bool modifyOF1(lprec lp, int index, ref double ofValue, double mult)
         /* Adjust objective function values for primal/dual phase 1, if appropriate */
         {
             bool accept = true;
@@ -2657,7 +2655,7 @@ namespace ZS.Math.Optimization
             initialize_solution(lp, shiftbounds);
 
             /* Compute x(b) = Inv(B)*RHS (Ref. lp_solve inverse logic and Chvatal p. 121) */
-            lp.bfp_ftran_normal(lp, lp.rhs, null);
+            lp.bfp_ftran_normal(lp, ref lp.rhs[0], 0);
             if (!lp.obj_in_basis)
             {
                 int i;
@@ -2674,16 +2672,16 @@ namespace ZS.Math.Optimization
             }
 
             /* Round the values (should not be greater than the factor used in bfp_pivotRHS) */
-            roundVector(lp.rhs, lp.rows, lp.epsvalue);
+            lp_utils.roundVector(ref lp.rhs, lp.rows, lprec.epsvalue);
 
-            clear_action(lp.spx_action, ACTION_RECOMPUTE);
+            clear_action(ref lp.spx_action, ACTION_RECOMPUTE);
         }
 
         /* Transform RHS by adjusting for the bound state of variables;
          optionally rebase upper bound, and account for this in later calls */
         internal static void initialize_solution(lprec lp, bool shiftbounds)
         {
-            int i;
+            int i = 0;
             int k1;
             int k2;
 
@@ -2698,18 +2696,20 @@ namespace ZS.Math.Optimization
             MATrec mat = lp.matA;
             string msg;
             LpCls objLpCls = new LpCls();
+            lp_report objlp_report = new lp_report();
 
             /* Set bounding status indicators */
             if (lp.bb_bounds != null)
             {
-                if (shiftbounds == INITSOL_SHIFTZERO)
+                // FIX_f704961d-fce1-40f9-82dd-f53b69d68636 26/11/18
+                if (shiftbounds && (INITSOL_SHIFTZERO == 0))
                 {
                     if (lp.bb_bounds.UBzerobased)
                     {
                         msg = "initialize_solution: The upper bounds are already zero-based at refactorization %d\n";
                         lp.report(lp, SEVERE, ref msg, lp.bfp_refactcount(lp, commonlib.BFP_STAT_REFACT_TOTAL));
                     }
-                    lp.bb_bounds.UBzerobased = 1;
+                    lp.bb_bounds.UBzerobased = true;
                 }
                 else if (!lp.bb_bounds.UBzerobased)
                 {
@@ -2722,12 +2722,13 @@ namespace ZS.Math.Optimization
             //NOTED IDDUE: Commented temp
             //i = objLpCls.is_action(lp.anti_degen, lp_lib.ANTIDEGEN_RHSPERTURB) && (lp.monitor != null) && lp.monitor.active;
             //NOTED IDDUE:
-            if (sizeof(lp.rhs) == sizeof(lp.orig_rhs) && i == 0)
+            // sizeof() NOT REQUIRED
+            if (lp.rhs == lp.orig_rhs && i == 0)
             {
                 //NOT REQUIRED
                 //MEMCOPY(lp.rhs, lp.orig_rhs, lp.rows + 1);
             }
-            else if (i)
+            else if (i > 0)
             {
                 lp.rhs[0] = lp.orig_rhs[0];
                 for (i = 1; i <= lp.rows; i++)
@@ -2738,7 +2739,7 @@ namespace ZS.Math.Optimization
                     }
                     else
                     {
-                        theta = lp_utils.rand_uniform(lp, lprec.epsperturb);
+                        theta = lp_utils.rand_uniform(lp, lp.epsperturb);
                         /*        if(lp->orig_upbo[i] < lp->infinite)
                                   lp->orig_upbo[i] += theta; */
                     }
@@ -2761,7 +2762,12 @@ namespace ZS.Math.Optimization
                 loB = lp.lowbo[i];
 
                 /* Shift to "ranged" upper bound, tantamount to defining zero-based variables */
-                if (shiftbounds == INITSOL_SHIFTZERO)
+                /// <summary> FIX_f704961d-fce1-40f9-82dd-f53b69d68636 26/11/18
+                /// PREVIOUS: if (shiftbounds == INITSOL_SHIFTZERO)
+                /// ERROR IN PREVIOUS: Operator '==' cannot be applied to operands of type 'bool' and 'int'
+                /// FIX 1: if (shiftbounds && (INITSOL_SHIFTZERO == 0))
+                /// </ summary >
+                if (shiftbounds && (INITSOL_SHIFTZERO == 0))
                 {
                     if ((loB > -lp.infinite) && (upB < lp.infinite))
                     {
@@ -2769,12 +2775,14 @@ namespace ZS.Math.Optimization
                     }
                     if (lp.upbo[i] < 0)
                     {
-                        report(lp, SEVERE, "initialize_solution: Invalid rebounding; variable %d at refact %d, iter %.0f\n", i, lp.bfp_refactcount(lp, BFP_STAT_REFACT_TOTAL), (double)get_total_iter(lp));
+                        msg = "initialize_solution: Invalid rebounding; variable {0} at refact {1}, iter %.0f\n";
+                        objlp_report.report(lp, SEVERE, ref msg, i, lp.bfp_refactcount(lp, LpBFPLib.BFP_STAT_REFACT_TOTAL), (double)get_total_iter(lp));
                     }
                 }
 
                 /* Use "ranged" upper bounds */
-                else if (shiftbounds == INITSOL_USEZERO)
+                // FIX_f704961d-fce1-40f9-82dd-f53b69d68636 26/11/18
+                else if (shiftbounds && (INITSOL_SHIFTZERO == 0))
                 {
                     if ((loB > -lp.infinite) && (upB < lp.infinite))
                     {
@@ -2783,7 +2791,8 @@ namespace ZS.Math.Optimization
                 }
 
                 /* Shift upper bound back to original value */
-                else if (shiftbounds == INITSOL_ORIGINAL)
+                // FIX_f704961d-fce1-40f9-82dd-f53b69d68636 26/11/18
+                else if (shiftbounds && (INITSOL_SHIFTZERO == 0))
                 {
                     if ((loB > -lp.infinite) && (upB < lp.infinite))
                     {
@@ -2794,7 +2803,8 @@ namespace ZS.Math.Optimization
                 }
                 else
                 {
-                    report(lp, SEVERE, "initialize_solution: Invalid option value '%d'\n", shiftbounds);
+                    msg = "initialize_solution: Invalid option value '{0}'\n";
+                    objlp_report.report(lp, SEVERE, ref msg, shiftbounds);
                 }
 
                 /* Set the applicable adjustment */
@@ -2823,15 +2833,15 @@ namespace ZS.Math.Optimization
                     colnr = i - lp.rows;
                     k1 = mat.col_end[colnr - 1];
                     k2 = mat.col_end[colnr];
-                    matRownr = COL_MAT_ROWNR(k1);
-                    matValue = COL_MAT_VALUE(k1);
+                    matRownr = lp_matrix.COL_MAT_ROWNR(k1);
+                    matValue = lp_matrix.COL_MAT_VALUE(k1);
 
                     /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
                     value = get_OF_active(lp, i, theta);
                     lp.rhs[0] -= value;
 
                     /* Do the normal case */
-                    for (; k1 < k2; k1++, matRownr += matRowColStep, matValue += matValueStep)
+                    for (; k1 < k2; k1++, matRownr += lp_matrix.matRowColStep, matValue += lp_matrix.matValueStep)
                     {
                         lp.rhs[matRownr] -= theta * matValue;
                     }
@@ -2846,13 +2856,15 @@ namespace ZS.Math.Optimization
             }
 
             /* Do final pass to get the maximum value */
-            i = idamax(lp.rows, lp.rhs, 1);
-            lp.rhsmax = Math.abs(lp.rhs[i]);
+            i = myblas.idamax(lp.rows, ref lp.rhs, 1);
+            lp.rhsmax = System.Math.Abs(lp.rhs[i]);
 
-            if (shiftbounds == INITSOL_SHIFTZERO)
+            // FIX_f704961d-fce1-40f9-82dd-f53b69d68636 26/11/18
+            if (shiftbounds && (INITSOL_SHIFTZERO == 0))
             {
-                clear_action(lp.spx_action, ACTION_REBASE);
+                clear_action(ref lp.spx_action, ACTION_REBASE);
             }
+        }
 
         internal new bool write_MPS(lprec lp, FileStream output)
         {
@@ -3016,6 +3028,8 @@ namespace ZS.Math.Optimization
         /* (Re)mapping of basis factorization variant methods is done here */
         {
             int result = lp_types.LIB_LOADED;
+            lp_report objlp_report = new lp_report();
+            string msg = "";
 
             /* Release the BFP and basis if we are active */
             if (lp.invB != null)
@@ -3042,7 +3056,7 @@ namespace ZS.Math.Optimization
             {
                 if (!is_nativeBFP(lp))
                 {
-                    return (0);
+                    return true;
                 }
 #if !ExcludeNativeInverse
                 lp.bfp_name = bfp_name;
@@ -3334,39 +3348,41 @@ internal static class StringFunctions
 	  result = LIB_NOTFOUND;
 #endif
                 /* Do validation */
-                if ((result != LIB_LOADED) || ((lp.bfp_name == null) || (lp.bfp_compatible == null) || (lp.bfp_free == null) || (lp.bfp_resize == null) || (lp.bfp_nonzeros == null) || (lp.bfp_memallocated == null) || (lp.bfp_restart == null) || (lp.bfp_mustrefactorize == null) || (lp.bfp_preparefactorization == null) || (lp.bfp_factorize == null) || (lp.bfp_finishupdate == null) || (lp.bfp_ftran_normal == null) || (lp.bfp_ftran_prepare == null) || (lp.bfp_btran_normal == null) || (lp.bfp_status == null) || (lp.bfp_implicitslack == null) || (lp.bfp_indexbase == null) || (lp.bfp_rowoffset == null) || (lp.bfp_pivotmax == null) || (lp.bfp_init == null) || (lp.bfp_pivotalloc == null) || (lp.bfp_colcount == null) || (lp.bfp_canresetbasis == null) || (lp.bfp_finishfactorization == null) || (lp.bfp_updaterefactstats == null) || (lp.bfp_prepareupdate == null) || (lp.bfp_pivotRHS == null) || (lp.bfp_btran_double == null) || (lp.bfp_efficiency == null) || (lp.bfp_pivotvector == null) || (lp.bfp_pivotcount == null) || (lp.bfp_refactcount == null) || (lp.bfp_isSetI == null) || (lp.bfp_findredundant == null)))
+                if ((result != lp_types.LIB_LOADED) || ((lp.bfp_name == null) || (lp.bfp_compatible == null) || (lp.bfp_free == null) || (lp.bfp_resize == null) || (lp.bfp_nonzeros == null) || (lp.bfp_memallocated == null) || (lp.bfp_restart == null) || (lp.bfp_mustrefactorize == null) || (lp.bfp_preparefactorization == null) || (lp.bfp_factorize == null) || (lp.bfp_finishupdate == null) || (lp.bfp_ftran_normal == null) || (lp.bfp_ftran_prepare == null) || (lp.bfp_btran_normal == null) || (lp.bfp_status == null) || (lp.bfp_implicitslack == null) || (lp.bfp_indexbase == null) || (lp.bfp_rowoffset == null) || (lp.bfp_pivotmax == null) || (lp.bfp_init == null) || (lp.bfp_pivotalloc == null) || (lp.bfp_colcount == null) || (lp.bfp_canresetbasis == null) || (lp.bfp_finishfactorization == null) || (lp.bfp_updaterefactstats == null) || (lp.bfp_prepareupdate == null) || (lp.bfp_pivotRHS == null) || (lp.bfp_btran_double == null) || (lp.bfp_efficiency == null) || (lp.bfp_pivotvector == null) || (lp.bfp_pivotcount == null) || (lp.bfp_refactcount == null) || (lp.bfp_isSetI == null) || (lp.bfp_findredundant == null)))
                 {
-                    set_BFP(lp, null);
-                    if (result == LIB_LOADED)
+                    filename = null;
+                    set_BFP(lp, ref filename);
+                    if (result == lp_types.LIB_LOADED)
                     {
-                        result = LIB_NOFUNCTION;
+                        result = lp_types.LIB_NOFUNCTION;
                     }
                 }
             }
             if (filename != null)
             {
-                string info = new string(new char[LIB_STR_MAXLEN + 1]);
+                string info = new string(new char[lp_types.LIB_STR_MAXLEN + 1]);
                 switch (result)
                 {
-                    case LIB_NOTFOUND:
-                        info = LIB_STR_NOTFOUND;
+                    case lp_types.LIB_NOTFOUND:
+                        info = lp_types.LIB_STR_NOTFOUND;
                         break;
-                    case LIB_NOINFO:
-                        info = LIB_STR_NOINFO;
+                    case lp_types.LIB_NOINFO:
+                        info = lp_types.LIB_STR_NOINFO;
                         break;
-                    case LIB_NOFUNCTION:
-                        info = LIB_STR_NOFUNCTION;
+                    case lp_types.LIB_NOFUNCTION:
+                        info = lp_types.LIB_STR_NOFUNCTION;
                         break;
-                    case LIB_VERINVALID:
-                        info = LIB_STR_VERINVALID;
+                    case lp_types.LIB_VERINVALID:
+                        info = lp_types.LIB_STR_VERINVALID;
                         break;
                     default:
-                        info = LIB_STR_LOADED;
+                        info = lp_types.LIB_STR_LOADED;
                         break;
                 }
-                report(lp, IMPORTANT, "set_BFP: %s '%s'\n", info, filename);
+                msg = "set_BFP: {0} '{1}'\n";
+                objlp_report.report(lp, IMPORTANT, ref msg, info, filename);
             }
-            return ((MYBOOL)(result == LIB_LOADED));
+            return ((bool)(result == lp_types.LIB_LOADED));
         }
     }
 }

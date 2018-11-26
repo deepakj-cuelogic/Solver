@@ -31,7 +31,9 @@ namespace ZS.Math.Optimization
 
             /* Do the LUSOL btran */
             //NOTED ISSUE
-            i = objlusol.LUSOL_btran(lu.LUSOL, pcol - Convert.ToDouble(objLpBFP1.bfp_rowoffset(lp)), nzidx);
+            double[] b = new double[1];
+            b[0] = pcol[0] - Convert.ToDouble(objLpBFP1.bfp_rowoffset(lp));
+            i = objlusol.LUSOL_btran(lu.LUSOL, b, nzidx);
             if (i != commonlib.LUSOL_INFORM_LUSUCCESS)
             {
                 msg = "bfp_btran_normal: Failed at iter %.0f, pivot %d;\n%s\n";
@@ -67,11 +69,12 @@ namespace ZS.Math.Optimization
             {
                 return ((bool)(lp.upbo[variable] - lp.lowbo[variable] < lprec.epsprimal));
             }
-            if (!is_nativeBLAS())
+            if (!myblas.is_nativeBLAS())
             {
-                unload_BLAS();
+                myblas.unload_BLAS();
             }
-            LUSOL_FREE(LUSOL);
+            //NOT REQUIRED
+            //LUSOL_FREE(LUSOL);
         }
 
         internal void LUSOL_matfree(LUSOLmat[] mat)

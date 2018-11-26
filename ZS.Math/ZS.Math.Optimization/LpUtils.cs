@@ -223,7 +223,7 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
 
-        internal static void roundVector(ref double myvector, int endpos, double roundzero)
+        internal static void roundVector(ref double[] myvector, int endpos, double roundzero)
         {
             throw new NotImplementedException();
         }

@@ -378,7 +378,7 @@ namespace ZS.Math.Optimization
         public byte use_col_names;      // Flag to indicate if names for columns are used
 
         public byte lag_trace;          // Print information on Lagrange progression
-        public byte spx_trace;          // Print information on simplex progression
+        public bool spx_trace;          // Print information on simplex progression
         public byte bb_trace;           // TRUE to print extra debug information
         /// <summary>
         /// changed from byte to bool 6/11/18
@@ -399,7 +399,7 @@ namespace ZS.Math.Optimization
         public double best_solution; /* sum_alloc+1 : Solution array of optimal 'Integer' LP,
                                    structured as the solution array above */
         public double full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
-        public double edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
+        public double[] edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
 
         public double drow; // sum+1: Reduced costs of the last simplex
         //ORIGINAL LINE: int *nzdrow;
@@ -417,7 +417,7 @@ namespace ZS.Math.Optimization
         public double? objfromvalue; /* columns_alloc+1 :The value of the variables when objective value
                                    is at its from value of the last LP */
         public double[] orig_obj; // Unused pointer - Placeholder for OF not part of B
-        public double obj; // Special vector used to temporarily change the OF vector
+        public double[] obj; // Special vector used to temporarily change the OF vector
 
         public long current_iter; // Number of iterations in the current/last simplex
         public long total_iter; // Number of iterations over all B&B steps
@@ -509,7 +509,7 @@ namespace ZS.Math.Optimization
         public double bsolveVal; // rows+1: bsolved solution vector for reduced costs
 
         //ORIGINAL LINE: int *bsolveIdx;
-        public int bsolveIdx; // rows+1: Non-zero indeces of bsolveVal
+        public int[] bsolveIdx; // rows+1: Non-zero indeces of bsolveVal
 
         /* RHS storage */
         public double[] orig_rhs; /* rows_alloc+1 : The RHS after scaling and sign
@@ -535,7 +535,7 @@ namespace ZS.Math.Optimization
         /// </summary>
         public double[] orig_lowbo; //  "       "
         //ORIGINAL LINE: REAL* lowbo;             /*  " " : Lower bound after transformation and B&B work */
-        public double lowbo;
+        public double[] lowbo;
 
 
         /* User data and basis factorization matrices (ETA or LU, product form) */
@@ -601,7 +601,7 @@ namespace ZS.Math.Optimization
         /* Solver thresholds */
         internal double infinite;           /* Limit for object range */
         double negrange;           /* Limit for negative variable range */
-        double epsmachine;         /* Default machine accuracy */
+        internal double epsmachine;         /* Default machine accuracy */
 
         /// <summary>
         /// Assign to zero due to unaccesible to other class
@@ -624,7 +624,7 @@ namespace ZS.Math.Optimization
         
 
         internal double epspivot;           /* Pivot reject tolerance */
-        double epsperturb;         /* Perturbation scalar */
+        internal double epsperturb;         /* Perturbation scalar */
         double epssolution;        /* The solution tolerance for final validation */
 
         /* Branch & Bound working parameters */
@@ -724,40 +724,40 @@ namespace ZS.Math.Optimization
         public delegate int BFPint_lpintrealcbintint(lprec lp, int items, getcolumnex_func cb, ref int maprow, int mapcol);
         
         /* Refactorization engine interface routines (for object DLL/SO BFPs) */
-        BFPchar bfp_name;
-        BFPbool_lpintintint bfp_compatible;
-        BFPbool_lpintintchar bfp_init;
-        BFP_lp bfp_free;
-        BFPbool_lpint bfp_resize;
-        BFPint_lp bfp_memallocated;
-        BFPbool_lp bfp_restart;
-        BFPbool_lp bfp_mustrefactorize;
-        BFPint_lp bfp_preparefactorization;
-        BFPint_lpintintboolbool bfp_factorize;
-        BFP_lp bfp_finishfactorization;
-        BFP_lp bfp_updaterefactstats;
-        BFPlreal_lpintintreal bfp_prepareupdate;
-        BFPreal_lplrealreal bfp_pivotRHS;
-        BFPbool_lpbool bfp_finishupdate;
-        BFP_lprealint bfp_ftran_prepare;
-        BFP_lprealint bfp_ftran_normal;
+        internal BFPchar bfp_name;
+        internal BFPbool_lpintintint bfp_compatible;
+        internal BFPbool_lpintintchar bfp_init;
+        internal BFP_lp bfp_free;
+        internal BFPbool_lpint bfp_resize;
+        internal BFPint_lp bfp_memallocated;
+        internal BFPbool_lp bfp_restart;
+        internal BFPbool_lp bfp_mustrefactorize;
+        internal BFPint_lp bfp_preparefactorization;
+        internal BFPint_lpintintboolbool bfp_factorize;
+        internal BFP_lp bfp_finishfactorization;
+        internal BFP_lp bfp_updaterefactstats;
+        internal BFPlreal_lpintintreal bfp_prepareupdate;
+        internal BFPreal_lplrealreal bfp_pivotRHS;
+        internal BFPbool_lpbool bfp_finishupdate;
+        internal BFP_lprealint bfp_ftran_prepare;
+        internal BFP_lprealint bfp_ftran_normal;
         internal BFP_lprealint bfp_btran_normal;
-        BFP_lprealintrealint bfp_btran_double;
-        BFPint_lp bfp_status;
-        BFPint_lpbool bfp_nonzeros;
-        BFPbool_lp bfp_implicitslack;
-        BFPint_lp bfp_indexbase;
-        BFPint_lp bfp_rowoffset;
-        BFPint_lp bfp_pivotmax;
-        BFPbool_lpint bfp_pivotalloc;
-        BFPint_lp bfp_colcount;
-        BFPbool_lp bfp_canresetbasis;
-        BFPreal_lp bfp_efficiency;
-        BFPrealp_lp bfp_pivotvector;
-        BFPint_lp bfp_pivotcount;
-        BFPint_lpint bfp_refactcount;
-        BFPbool_lp bfp_isSetI;
-        BFPint_lpintrealcbintint bfp_findredundant;
+        internal BFP_lprealintrealint bfp_btran_double;
+        internal BFPint_lp bfp_status;
+        internal BFPint_lpbool bfp_nonzeros;
+        internal BFPbool_lp bfp_implicitslack;
+        internal BFPint_lp bfp_indexbase;
+        internal BFPint_lp bfp_rowoffset;
+        internal BFPint_lp bfp_pivotmax;
+        internal BFPbool_lpint bfp_pivotalloc;
+        internal BFPint_lp bfp_colcount;
+        internal BFPbool_lp bfp_canresetbasis;
+        internal BFPreal_lp bfp_efficiency;
+        internal BFPrealp_lp bfp_pivotvector;
+        internal BFPint_lp bfp_pivotcount;
+        internal BFPint_lpint bfp_refactcount;
+        internal BFPbool_lp bfp_isSetI;
+        internal BFPint_lpintrealcbintint bfp_findredundant;
 
         /* Prototypes for external language libraries                                */
         /* ------------------------------------------------------------------------- */
@@ -771,10 +771,10 @@ namespace ZS.Math.Optimization
         public delegate byte XLIbool_lpcharcharbool(lprec lp, ref string filename, ref string options, byte results);
 
         /* External language interface routines (for object DLL/SO XLIs) */
-        XLIchar xli_name;
-        XLIbool_lpintintint xli_compatible;
-        XLIbool_lpcharcharcharint xli_readmodel;
-        XLIbool_lpcharcharbool xli_writemodel;
+        internal XLIchar xli_name;
+        internal XLIbool_lpintintint xli_compatible;
+        internal XLIbool_lpcharcharcharint xli_readmodel;
+        internal XLIbool_lpcharcharbool xli_writemodel;
 
         /* Prototypes for callbacks from basis inverse/factorization libraries       */
         /* ------------------------------------------------------------------------- */
@@ -1967,7 +1967,7 @@ namespace ZS.Math.Optimization
 
         public byte has_BFP(lprec lp)
         { throw new NotImplementedException(); }
-        public byte is_nativeBFP(lprec lp)
+        public bool is_nativeBFP(lprec lp)
         { throw new NotImplementedException(); }
         internal bool set_BFP(lprec lp, ref string filename)
         { throw new NotImplementedException(); }
@@ -1979,7 +1979,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte has_XLI(lprec lp)
         { throw new NotImplementedException(); }
-        public byte is_nativeXLI(lprec lp)
+        public bool is_nativeXLI(lprec lp)
         { throw new NotImplementedException(); }
         public byte set_XLI(lprec lp, ref string filename)
         { throw new NotImplementedException(); }

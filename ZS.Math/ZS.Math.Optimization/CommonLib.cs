@@ -232,7 +232,7 @@ namespace ZS.Math.Optimization
         /// ERROR 2 IN PREVIOUS: Cannot apply indexing with[] to an expression of type 'double'	ZS.Math.Optimization
         /// FIX 2_1: changed 'ref double item' to 'ref double[] item'
         /// </summary>
-        public static double sortREALByINT(ref double[] item, ref int?[] weight, int size, int offset, bool unique)
+        public static double sortREALByINT(ref double?[] item, ref int?[] weight, int size, int offset, bool unique)
         {
             int i;
             int ii;
@@ -248,12 +248,12 @@ namespace ZS.Math.Optimization
                     {
                         if (unique)
                         {
-                            return (item[ii]);
+                            return ((item != null) ? Convert.ToDouble(item[ii]) : 0);
                         }
                     }
                     else
                     {
-                        saveI = item[ii];
+                        saveI = (item != null) ? Convert.ToDouble(item[ii]) : 0;
                         /// <summary> FIX_2be20793-24c7-43c7-b004-301fe9846a02  16/11/18
                         /// PREVIOUS: saveW = weight[ii];
                         /// ERROR IN PREVIOUS: Cannot implicitly convert type 'int?' to 'int'.An explicit conversion exists (are you missing a cast?)

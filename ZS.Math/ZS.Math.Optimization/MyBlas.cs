@@ -72,7 +72,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public static double ddot(int n, ref double dx, int incx, ref double dy, int incy)
         { throw new NotImplementedException(); }
-        public static int idamax(int n, ref double x, int @is)
+        public static int idamax(int n, ref double[] x, int @is)
         { throw new NotImplementedException(); }
         public static int idamin(int n, ref double x, int @is)
         { throw new NotImplementedException(); }
