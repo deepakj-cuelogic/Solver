@@ -108,6 +108,8 @@ namespace ZS.Math.Optimization
         public const int matValueStep = 1;
         static MATrec mat;
         public const int MAT_ROUNDRC = 4;
+        public const int MAT_ROUNDREL = 2;
+        public const int MAT_ROUNDDEFAULT = MAT_ROUNDREL;
 
         //ORIGINAL CODE: #define COL_MAT_ROWNR(item)       (mat->col_mat_rownr[item])
         internal static Func<int, int> COL_MAT_ROWNR = (item) => (mat.col_mat_rownr[item]);
@@ -1018,7 +1020,7 @@ namespace ZS.Math.Optimization
 
         }
         static int prod_Ax(lprec lp, int[] coltarget, double[] input, int[] nzinput, double roundzero, double ofscalar, double[] output, int[] nzoutput, int roundmode) { throw new NotImplementedException(); }
-        static int prod_xA(lprec lp, int coltarget, double[] input, int[] nzinput, double roundzero, double ofscalar, double[] output, int[] nzoutput, int roundmode)
+        internal static int prod_xA(lprec lp, int[] coltarget, double[] input, int[] nzinput, double roundzero, double ofscalar, double[] output, int[] nzoutput, int roundmode)
         {
             LpCls objLpCls = new LpCls();
             int colnr;
@@ -1292,16 +1294,44 @@ namespace ZS.Math.Optimization
         static byte fimprove(lprec lp, double[] pcol, int nzidx, double roundzero) { throw new NotImplementedException(); }
         static void ftran(lprec lp, double[] rhsvector, int nzidx, double roundzero) { throw new NotImplementedException(); }
         static byte bimprove(lprec lp, double[] rhsvector, int nzidx, double roundzero) { throw new NotImplementedException(); }
-        static void btran(lprec lp, double[] rhsvector, int nzidx, double roundzero) { throw new NotImplementedException(); }
+        static void btran(lprec lp, double rhsvector, int nzidx, double roundzero)
+        {
+            lp.bfp_btran_normal(lp, ref rhsvector, nzidx);
+        }
 
         /* Combined equation solution and matrix product for simplex operations */
-        static byte fsolve(lprec lp, int varin, double[] pcol, int nzidx, double roundzero, double ofscalar, byte prepareupdate) { throw new NotImplementedException(); }
+        internal static bool fsolve(lprec lp, int varin, double[] pcol, int[] nzidx, double roundzero, double ofscalar, bool prepareupdate)
+        {
+            bool ok = true;
+            LpCls objLpCls = new LpCls();
+
+            if (varin > 0)
+            {
+                int Para = 0;
+                objLpCls.obtain_column(lp, varin, ref pcol, ref nzidx, ref Para);
+            }
+
+            /* Solve, adjusted for objective function scalar */
+            pcol[0] *= ofscalar;
+            if (prepareupdate)
+            {
+                lp.bfp_ftran_prepare(lp, ref pcol, Convert.ToInt32(nzidx));
+            }
+            else
+            {
+                ftran(lp, pcol, Convert.ToInt32(nzidx), roundzero);
+            }
+
+            return (ok);
+        }
         static byte bsolve(lprec lp, int row_nr, double[] rhsvector, int nzidx, double roundzero, double ofscalar) { throw new NotImplementedException(); }
-        static void bsolve_xA2(lprec lp, int[] coltarget,
+        internal static void bsolve_xA2(lprec lp, int[] coltarget,
                                           int row_nr1, ref double[] vector1, double roundzero1, int[] nzvector1,
                                           int row_nr2, double[] vector2, double roundzero2, int[] nzvector2, int roundmode)
         {
             double ofscalar = 1.0;
+            lp_LUSOL objLpLusol = new lp_LUSOL();
+            LpCls objLpCls = new LpCls();
 
             /* Clear and initialize first vector */
             if (nzvector1 == null)
@@ -1321,7 +1351,8 @@ namespace ZS.Math.Optimization
             if (vector2 == null)
             {
                 //NOTED ISSUE
-                lp.bfp_btran_normal(lp, ref vector1, null);
+                int[] lastParameter = null;
+                objLpLusol.bfp_btran_normal(lp, ref vector1, ref lastParameter);
                 prod_xA(lp, coltarget, vector1, null, roundzero1, ofscalar * 0, vector1, nzvector1, roundmode);
             }
             else
@@ -1330,11 +1361,13 @@ namespace ZS.Math.Optimization
                 /* Clear and initialize second vector */
                 if (nzvector2 == null)
                 {
-                    MEMCLEAR(vector2, lp.sum + 1);
+                    //NOT REQUIRED
+                    //MEMCLEAR(vector2, lp.sum + 1);
                 }
                 else
                 {
-                    MEMCLEAR(vector2, lp.rows + 1);
+                    //NOT REQUIRED
+                    //MEMCLEAR(vector2, lp.rows + 1);
                 }
                 if (lp.obj_in_basis || (row_nr2 > 0))
                 {
@@ -1344,12 +1377,14 @@ namespace ZS.Math.Optimization
                 }
                 else
                 {
-                    get_basisOF(lp, null, vector2, nzvector2);
+                    objLpCls.get_basisOF(lp, null, vector2, nzvector2);
                 }
 
                 /* A double BTRAN equation solver process is implemented "in-line" below in
                    order to save time and to implement different rounding for the two */
-                lp.bfp_btran_double(lp, vector1, null, vector2, null);
+                int bfp_btran_doubleParaNo3 = 0;
+                //NOTED ISSUE
+                lp.bfp_btran_double(lp, ref vector1, bfp_btran_doubleParaNo3, vector2, null);
 
                 /* Multiply solution vectors with matrix values */
                 prod_xA2(lp, coltarget, vector1, roundzero1, nzvector1, vector2, roundzero2, nzvector2, ofscalar, roundmode);
@@ -1374,5 +1409,162 @@ namespace ZS.Math.Optimization
         {
             return (mat.mat_alloc - mat.col_end[mat.columns]);
         }
+
+        internal static bool bsolve(lprec lp, int row_nr, ref double rhsvector, ref int nzidx, double roundzero, double ofscalar)
+        {
+            bool ok = true;
+
+            if (row_nr >= 0) // Note that row_nr == 0 returns the [1, 0...0 ] vector
+            {
+                int LastPara = 0;
+                row_nr = lp.obtain_column(lp, row_nr, ref rhsvector, ref nzidx, ref LastPara);
+            }
+
+            /* Solve, adjusted for objective function scalar */
+            rhsvector = ofscalar;
+            btran(lp, rhsvector, nzidx, roundzero);
+
+            return (ok);
+
+        } // bsolve
+
+        internal static bool invert(lprec lp, bool shiftbounds, bool final_Renamed)
+        {
+            bool usedpos;
+            bool resetbasis = new bool();
+            double test = new double();
+            int k;
+            int i;
+            int j;
+            int singularities;
+            int usercolB;
+            string msg;
+            LpCls objLpCls = new LpCls();
+
+            /* Make sure the tags are correct */
+            if (!lp_matrix.mat_validate(lp.matA))
+            {
+                lp.spx_status = lp_lib.INFEASIBLE;
+                return (0);
+            }
+
+            /* Create the inverse management object at the first call to invert() */
+            if (lp.invB == null)
+            {
+                msg = null;
+                lp.bfp_init(lp, lp.rows, 0, ref msg);
+            }
+            else
+            {
+                lp.bfp_preparefactorization(lp);
+            }
+            singularities = 0;
+
+            /* Must save spx_status since it is used to carry information about
+               the presence and handling of singular columns in the matrix */
+            if (objLpCls.userabort(lp, lp_lib.MSG_INVERT))
+            {
+                return (false);
+            }
+
+            ///#if Paranoia
+            if (lp.spx_trace)
+            {
+                msg = "invert: Iter %10g, fact-length %7d, OF " + lp_types.RESULTVALUEMASK + ".\n";
+                lp.report(lp, lp_lib.DETAILED, ref msg, (double)lp.get_total_iter(lp), lp.bfp_colcount(lp), (double)-lp.rhs[0]);
+            }
+            ///#endif
+
+            /* Store state of pre-existing basis, and at the same time check if
+               the basis is I; in this case take the easy way out */
+            //NOT REQUIRED
+            /*if (!allocMYBOOL(lp, usedpos, lp.sum + 1, 1))
+            {
+                lp.bb_break = 1;
+                return (0);
+            }*/
+            usedpos = true;
+            usercolB = 0;
+            for (i = 1; i <= lp.rows; i++)
+            {
+                k = lp.var_basic[i];
+                if (k > lp.rows)
+                {
+                    usercolB++;
+                }
+                usedpos = true;
+            }
+
+            ///#if Paranoia
+            if (!LpCls.verify_basis(lp))
+            {
+                msg = "invert: Invalid basis detected (iter %g).\n";
+                lp.report(lp, lp_lib.SEVERE, ref msg, (double)lp.get_total_iter(lp));
+            }
+            ///#endif
+
+            /* Tally matrix nz-counts and check if we should reset basis
+               indicators to all slacks */
+
+            //ORIGINAL LINE: resetbasis = (MYBOOL)((usercolB > 0) && lp->bfp_canresetbasis(lp));
+            //NOTED ISSUE
+            resetbasis = ((bool)((usercolB > 0) && lp.bfp_canresetbasis(lp)));
+            k = 0;
+            for (i = 1; i <= lp.rows; i++)
+            {
+                if (lp.var_basic[i] > lp.rows)
+                {
+                    k += mat_collength(lp.matA, lp.var_basic[i] - lp.rows) + (LpCls.is_OF_nz(lp, lp.var_basic[i] - lp.rows) ? 1 : 0);
+                }
+                if (resetbasis != null)
+                {
+                    j = lp.var_basic[i];
+                    if (j > lp.rows)
+                    {
+                        lp.is_basic[j] = false;
+                    }
+                    lp.var_basic[i] = i;
+                    lp.is_basic[i] = true;
+                }
+            }
+
+            /* Now do the refactorization */
+            //NOTED ISSUE
+            singularities = lp.bfp_factorize(lp, usercolB, k, ref usedpos, final_Renamed);
+
+            /* Do user reporting */
+            if (objLpCls.userabort(lp, lp_lib.MSG_INVERT))
+            {
+                goto Cleanup;
+            }
+
+            /* Finalize factorization/inversion */
+            lp.bfp_finishfactorization(lp);
+
+            /* Recompute the RHS ( Ref. lp_solve inverse logic and Chvatal p. 121 ) */
+            ///#if DebugInv
+           // blockWriteLREAL(stdout, "RHS-values pre invert", lp.rhs, 0, lp.rows);
+            ///#endif
+            recompute_solution(lp, shiftbounds);
+            restartPricer(lp, DefineConstants.AUTOMATIC);
+            
+            ///#if DebugInv
+            blockWriteLREAL(stdout, "RHS-values post invert", lp.rhs, 0, lp.rows);
+        ///#endif
+
+            Cleanup:
+            /* Check for numerical instability indicated by frequent refactorizations */
+            test = get_refactfrequency(lp, 0);
+            if (test < MIN_REFACTFREQUENCY)
+            {
+                test = get_refactfrequency(lp, 1);
+                report(lp, NORMAL, "invert: Refactorization frequency %.1g indicates numeric instability.\n", test);
+                lp.spx_status = NUMFAILURE;
+            }
+
+            FREE(usedpos);
+            return ((MYBOOL)(singularities <= 0));
+        } // invert
+
     }
 }

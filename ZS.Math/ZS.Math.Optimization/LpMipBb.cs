@@ -34,7 +34,7 @@ namespace ZS.Math.Optimization
         public byte isGUB;
         public int[] varmanaged; // Extended list of variables managed by this B&B level
         public byte isfloor; // State variable indicating the active B&B bound
-        public byte UBzerobased; // State variable indicating if bounds have been rebased
+        public bool UBzerobased; // State variable indicating if bounds have been rebased
     }
 
     public static class lp_mipbb

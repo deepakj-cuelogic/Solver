@@ -11,10 +11,65 @@ namespace ZS.Math.Optimization
         public const double MATHPREC = 1.0e-16;
         public const double ERRLIMIT = 1.0e-06;
         public const long MAXINT64 = 0;
-       // public const double REALXP = 0;
+        // public const double REALXP = 0;
+        public const int LUSOL_SOLVE_Atv_w = 6;
+        public const int BFP_STATUS_ERROR = 7;
+        public const int matRowColStep = 1;
+        public const int matValueStep = 1;
+        public const int BFP_STAT_REFACT_TOTAL = 0;
+
+        public const int LUSOL_INFORM_RANKLOSS = -1;
+
+        public const int LUSOL_INFORM_MIN = LUSOL_INFORM_RANKLOSS;
+        public const int LUSOL_INFORM_MAX = LUSOL_INFORM_NOMEMLEFT;
+
+        //START:ADDED BELOW CONSTANT FOR METHOD LU6SOL which is in lusol6a.cs file
+        public const int LUSOL_SOLVE_Lv_v = 1;  /* v  solves   L v = v(input). w  is not touched. */
+        public const int LUSOL_SOLVE_Ltv_v = 2;  /* v  solves   L'v = v(input). w  is not touched. */
+        public const int LUSOL_SOLVE_Uw_v = 3;  /* w  solves   U w = v.        v  is not altered. */
+        public const int LUSOL_SOLVE_Utv_w = 4;  /* v  solves   U'v = w.        w  is destroyed. */
+        public const int LUSOL_SOLVE_Aw_v = 5; /* w  solves   A w = v.        v  is altered as in 1. */
+       //NOTED ISSUE: Temporary set to 0
+       //public const int LUSOL_FTRAN   LUSOL_SOLVE_Aw_v = 0;
+       //NOTED ISSUE: Temporary set to 0
+       //public const int LUSOL_BTRAN  LUSOL_SOLVE_Atv_w = 0;
+
+        public const int LUSOL_SOLVE_Av_v = 7;  /* v  solves   A v = L D L'v = v(input). w  is not touched. */
+        public const int LUSOL_SOLVE_LDLtv_v = 8;  /* v  solves       L |D| L'v = v(input). w  is not touched. */
+        //END:ADDED BELOW CONSTANT FOR METHOD LU6SOL which is in lusol6a.cs file
+
+        //START:ADDED BELOW CONSTANT FOR METHOD LU6L which is in lusol6a.cs file
+        public const int LUSOL_IP_COLCOUNT_L0 = 20;
+        public const int LUSOL_IP_NONZEROS_L0 = 21;
+        public const int LUSOL_IP_NONZEROS_L = 23;
+        public const int LUSOL_RP_ZEROTOLERANCE = 3;
+        public const int LUSOL_INFORM_LUSUCCESS = 0;
+        public const int LUSOL_IP_INFORM = 10;
+        public const int LUSOL_IP_BTRANCOUNT = 31;
+        //END:ADDED BELOW CONSTANT FOR METHOD LU6L which is in lusol6a.cs file
+
+        //START:ADDED BELOW CONSTANT FOR METHOD LU1L0 which is in lusol6l0.cs file
+        public const int LUSOL_IP_ACCELERATION = 7;
+        public const int LUSOL_BASEORDER = 0;
+        public const int LUSOL_ACCELERATE_L0 = 4;
+        public const int LUSOL_INFORM_NOMEMLEFT = 10;
+        public const int LUSOL_IP_ROWCOUNT_L0 = 32;
+        public const int LUSOL_AUTOORDER = 2;
+        //public const int LUSOL_RP_SMARTRATIO = 0;
+        public const int ZERO = 0;
+        public const int LUSOL_IP_FTRANCOUNT = 30;
+        public const int LUSOL_ACCELERATE_U = 8;
+        public const int LUSOL_IP_RANK_U = 16;
+        public const int LUSOL_IP_NONZEROS_U = 24;
+        public const bool LUSOL_RP_SMARTRATIO = false;
+        public const int LUSOL_INFORM_LUSINGULAR = 1;
+        public const int LUSOL_RP_RESIDUAL_U = 20;
+        //END:ADDED BELOW CONSTANT FOR METHOD LU1L0 which is in lusol6l0.cs file
 
         static Func<double, double, double> MIN = (x, y) => ((x) < (y) ? (x) : (y));
         internal static Func<double, double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
+
+        internal static Func<bool, bool> my_boolstr = (x) => (!(x) ? false : true);
 
         internal static Action<int, int> SETMIN = delegate (int x, int y) { if (x > y) x = y; };
         public static Action<int, int> SETMAX = delegate (int x, int y) { if (x < y) x = y; };

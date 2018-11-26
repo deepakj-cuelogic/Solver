@@ -50,6 +50,7 @@
     <Compile Include="CommonLib.cs" />
     <Compile Include="corecrt_wstdio.cs" />
     <Compile Include="Ini.cs" />
+    <Compile Include="LpBFP1.cs" />
     <Compile Include="LpCls.cs" />
     <Compile Include="LpMatrix.cs" />
     <Compile Include="LpMipBb.cs" />
@@ -58,6 +59,10 @@
     <Compile Include="LpReport.cs" />
     <Compile Include="LpSos.cs" />
     <Compile Include="LpUtils.cs" />
+    <Compile Include="lusol.cs" />
+    <Compile Include="lusol6a.cs" />
+    <Compile Include="lusol6l0.cs" />
+    <Compile Include="lusol6u.cs" />
     <Compile Include="MyBlas.cs" />
     <Compile Include="Z_LpBfp.cs" />
     <Compile Include="LpBit.cs" />
