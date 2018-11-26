@@ -8,12 +8,43 @@ namespace ZS.Math.Optimization
 {
     public static class lp_Hash
     {
+        internal const int HASH_START_SIZE = 5000;  /* Hash table size for row and column name storage */
+        internal const int NUMHASHPRIMES = 45;
+
         private static readonly int HASH_1; //chanegd from uint to int as left/right shift does not work on long and uint
         private static readonly int HASH_2; //chanegd from long to int as left/right shift does not work on long and uint
         private static readonly int HASH_3; //chanegd from long to int as left/right shift does not work on long and uint
-        static hashtable create_hash_table(int size, int b)
+        internal static hashtable create_hash_table(int size, int b)
         {
-            throw new NotImplementedException();
+            int i;
+            int[] HashPrimes = { 29, 229, 883, 1671, 2791, 4801, 8629, 10007, 15289, 25303, 34843, 65269, 99709, 129403, 147673, 166669, 201403, 222163, 242729, 261431, 303491, 320237, 402761, 501131, 602309, 701507, 800999, 900551, 1000619, 1100837, 1200359, 1300021, 1400017, 1500007, 1750009, 2000003, 2500009, 3000017, 4000037, 5000011, 6000011, 7000003, 8000009, 9000011, 9999991 };
+            hashtable ht;
+
+            /* Find a good size for the hash table */
+            if (size < HASH_START_SIZE)
+            {
+                size = HASH_START_SIZE;
+            }
+            for (i = 0; i < NUMHASHPRIMES - 1; i++)
+            {
+                if (HashPrimes[i] > size)
+                {
+                    break;
+                }
+            }
+            size = HashPrimes[i];
+
+            /* Then allocate and initialize memory */
+            //C++ TO C# CONVERTER TODO TASK: The memory management function 'calloc' has no equivalent in C#:
+            ht = new hashtable();
+            //C++ TO C# CONVERTER TODO TASK: The memory management function 'calloc' has no equivalent in C#:
+            ht.table = new hashelem[System.Runtime.InteropServices.Marshal.SizeOf(ht.table)];
+            ht.size = size;
+            ht.@base = b;
+            ht.count = b - 1;
+
+            return ht;
+
         }
         static internal void free_hash_table(hashtable ht)
         {

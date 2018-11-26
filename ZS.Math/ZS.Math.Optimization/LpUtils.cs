@@ -246,7 +246,11 @@ namespace ZS.Math.Optimization
         }
         internal static void swapPTR(object[] item1, object[] item2)
         {
-            throw new NotImplementedException();
+            object hold;
+  hold = item1[0];
+  item1[0] = item2[0];
+  item2[0] = hold;
+
         }
         internal static double restoreINT(double valREAL, double epsilon)
         {
@@ -278,7 +282,6 @@ namespace ZS.Math.Optimization
             {
                 return (value * sign);
             }
-            //NOTED ISSUE:
             else if ((value < (double)commonlib.MAXINT64) && (modf((double)(value + precision), vmod) < precision))
             {
                 /* sign *= (LLONG) (value+precision); */
@@ -290,7 +293,7 @@ namespace ZS.Math.Optimization
             ///#define roundPrecisionBase2
             //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
             ///#if roundPrecisionBase2
-            ///NOTED ISSUE: frexp
+            //NOTED ISSUE: frexp
             value = frexp(value, vexp2);
             ///#else
             vexp2 = 0;
@@ -313,6 +316,16 @@ namespace ZS.Math.Optimization
 
             return (value);
 
+        }
+
+        private static double modf(double v, double vmod)
+        {
+            string input_decimal_number = (v + vmod).ToString();
+            string decimal_places = "";
+            var regex = new System.Text.RegularExpressions.Regex("(?<=[\\.])[0-9]+");
+            if (regex.IsMatch(input_decimal_number))
+                decimal_places = "0." + regex.Match(input_decimal_number).Value;
+            return Convert.ToDouble(decimal_places);
         }
 
         internal static int searchFor(int target, ref int attributes, int size, int offset, byte absolute)

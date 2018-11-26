@@ -563,7 +563,7 @@ namespace ZS.Math.Optimization
         double[] val_nonbasic;      /* Array to store current values of non-basic variables */
         // ORIGINAL CODE: MYBOOL    *is_basic; char* is string in C#, hence changed to bool[] 22/11/18
         internal bool[] is_basic;          /* sum_alloc+1: TRUE if the column is in the basis */
-        byte is_lower;          /*  "       " : TRUE if the variable is at its
+        internal bool[] is_lower;          /*  "       " : TRUE if the variable is at its
                                    lower bound (or in the basis), FALSE otherwise */
 
         /* Simplex basis indicators */
@@ -1957,7 +1957,7 @@ namespace ZS.Math.Optimization
         /// changed from ref string to char on 12/11/18;
         /// changed return type from byte to bool on 12/11/18 
         /// </summary>
-        public bool set_lp_name(lprec lp, char lpname)
+        public bool set_lp_name(lprec lp, ref string lpname)
         { throw new NotImplementedException(); }
         public string get_lp_name(lprec lp)
         {
@@ -1969,7 +1969,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte is_nativeBFP(lprec lp)
         { throw new NotImplementedException(); }
-        public byte set_BFP(lprec lp, ref string filename)
+        internal bool set_BFP(lprec lp, ref string filename)
         { throw new NotImplementedException(); }
         /* Set basis factorization engine */
 
@@ -2023,7 +2023,7 @@ namespace ZS.Math.Optimization
         /// </summary>
         public byte add_constraintex(lprec lp, int count, ref double row, ref int? colno, int constr_type, double rh)
         { throw new NotImplementedException(); }
-        public byte set_add_rowmode(lprec lp, byte turnon)
+        internal bool set_add_rowmode(lprec lp, bool turnon)
         { throw new NotImplementedException(); }
         public byte is_add_rowmode(lprec lp)
         { throw new NotImplementedException(); }
@@ -2209,7 +2209,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public string get_row_name(lprec lp, int rownr)
+        internal string get_row_name(lprec lp, int rownr)
         { throw new NotImplementedException(); }
         public string get_origrow_name(lprec lp, int rownr)
         { throw new NotImplementedException(); }
@@ -2218,7 +2218,7 @@ namespace ZS.Math.Optimization
 
         public byte set_col_name(lprec lp, int colnr, ref string new_name)
         { throw new NotImplementedException(); }
-        public string get_col_name(lprec lp, int colnr)
+        internal string get_col_name(lprec lp, int colnr)
         { throw new NotImplementedException(); }
         public string get_origcol_name(lprec lp, int colnr)
         { throw new NotImplementedException(); }
@@ -2315,30 +2315,29 @@ namespace ZS.Math.Optimization
         /* Write a MPS file to output */
         public byte write_mps(lprec lp, ref string filename)
         { throw new NotImplementedException(); }
-        public byte write_MPS(lprec lp, FILE output)
+        public byte write_MPS(lprec lp, FileStream output)
         { throw new NotImplementedException(); }
-        public byte write_freemps(lprec lp, ref string filename)
+        public bool write_freemps(lprec lp, ref string filename)
         { throw new NotImplementedException(); }
-        public byte write_freeMPS(lprec lp, FILE output)
+        public bool write_freeMPS(lprec lp, FileStream output)
         { throw new NotImplementedException(); }
 
-        public byte write_lp(lprec lp, ref string filename)
+        public bool write_lp(lprec lp, ref string filename)
         { throw new NotImplementedException(); }
-        public byte write_LP(lprec lp, FILE output)
+        public bool write_LP(lprec lp, FileStream output)
         { throw new NotImplementedException(); }
         /* Write a LP file to output */
-
-        public byte LP_readhandle(lprec[] lp, FILE filename, int verbose, ref string lp_name)
+        public byte LP_readhandle(lprec[] lp, FileStream filename, int verbose, ref string lp_name)
         { throw new NotImplementedException(); }
-        public lprec read_lp(FILE filename, int verbose, ref string lp_name)
+        public lprec read_lp(FileStream filename, int verbose, ref string lp_name)
         { throw new NotImplementedException(); }
         public lprec read_LP(ref string filename, int verbose, ref string lp_name)
         { throw new NotImplementedException(); }
         /* Old-style lp format file parser */
 
-        public byte write_basis(lprec lp, ref string filename)
+        public bool write_basis(lprec lp, ref string filename)
         { throw new NotImplementedException(); }
-        public byte read_basis(lprec lp, ref string filename, ref string info)
+        public bool read_basis(lprec lp, ref string filename, ref string info)
         { throw new NotImplementedException(); }
         /* Read and write basis from/to file in CPLEX BAS format */
 
@@ -2720,7 +2719,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public void inc_columns(lprec lp, int delta)
         { throw new NotImplementedException(); }
-        public bool init_rowcol_names(lprec lp)
+        internal bool init_rowcol_names(lprec lp)
         { throw new NotImplementedException(); }
         public bool inc_row_space(lprec lp, int deltarows)
         { throw new NotImplementedException(); }

@@ -21,6 +21,8 @@ namespace ZS.Math.Optimization
 
         internal static string RESULTVALUEMASK = "%18.12g";
 
+        internal const int LIB_LOADED = 0;
+
     }
     internal static class DefineConstants
     {

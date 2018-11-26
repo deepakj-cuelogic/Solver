@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -33,7 +34,7 @@ namespace ZS.Math.Optimization
 
         /* Sparse problem matrix storage */
 #if MatrixColAccess == CAM_Record
-        public MATitem col_mat; // mat_alloc : The sparse data storage
+        public MATitem[] col_mat; // mat_alloc : The sparse data storage
 
         public int[] col_mat_rownr;
         public int[] col_mat_colnr;
@@ -74,8 +75,8 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: int *row_tag;
         public int[] row_tag; // user-definable tag associated with each row
 
-        public double colmax; // Array of maximum values of each column
-        public double rowmax; // Array of maximum values of each row
+        public double[] colmax; // Array of maximum values of each column
+        public double[] rowmax; // Array of maximum values of each row
 
         public double epsvalue; // Zero element rejection threshold
         public double infnorm; // The largest absolute value in the matrix
@@ -786,7 +787,102 @@ namespace ZS.Math.Optimization
         static int mat_checkcounts(MATrec mat, int rownum, int colnum, byte freeonexit) { throw new NotImplementedException(); }
         static int mat_expandcolumn(MATrec mat, int colnr, double[] column, int[] nzlist, byte signedA) { throw new NotImplementedException(); }
         static byte mat_computemax(MATrec mat) { throw new NotImplementedException(); }
-        static byte mat_transpose(MATrec mat) { throw new NotImplementedException(); }
+        internal static bool mat_transpose(MATrec mat)
+        {
+            int i;
+            int j;
+            int nz;
+            int k;
+            bool status;
+
+            status = mat_validate(mat);
+            if (status)
+            {
+                /* Create a column-ordered sparse element list; "column" index must be shifted */
+                nz = mat_nonzeros(mat);
+                if (nz > 0)
+                {
+                    //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if MatrixColAccess == CAM_Record
+                    /* PREVIOUS CODE:
+                    MATitem[] newmat;
+                    newmat = Arrays.InitializeWithDefaultInstances<MATitem>((mat.mat_alloc));
+                    as we don't know the required size of the array, we can't use newmat = new MATitem[]();
+                    need to check while implementing
+                    */
+                    //ArrayList newmat = new ArrayList();
+                    List<MATitem> newmat = new List<MATitem>();
+                    //newmat.Add(new MATitem());
+                    j = mat.row_end[0];
+                    for (i = nz - 1; i >= j; i--)
+                    {
+                        k = i - j;
+                        newmat[k] = mat.col_mat[mat.row_mat[i]];
+                        newmat[k].rownr = newmat[k].colnr;
+                    }
+                    for (i = j - 1; i >= 0; i--)
+                    {
+                        k = nz - j + i;
+                        newmat[k] = mat.col_mat[mat.row_mat[i]];
+                        newmat[k].rownr = newmat[k].colnr;
+                    }
+                    //pointers are replaced by object
+                    lp_utils.swapPTR(mat.col_mat, newmat.Cast<object>().ToArray());
+                    /*NOT REQUIRED
+                    FREE(newmat);*/
+#else
+	  double[] newValue = 0;
+	  int[] newRownr = 0;
+	  allocREAL(mat.lp, newValue, mat.mat_alloc, 0);
+	  allocINT(mat.lp, newRownr, mat.mat_alloc, 0);
+
+	  j = mat.row_end[0];
+	  for (i = nz - 1; i >= j ; i--)
+	  {
+		k = i - j;
+		newValue[k] = ROW_MAT_VALUE(i);
+		newRownr[k] = ROW_MAT_COLNR(i);
+	  }
+	  for (i = j - 1; i >= 0 ; i--)
+	  {
+		k = nz - j + i;
+		newValue[k] = ROW_MAT_VALUE(i);
+		newRownr[k] = ROW_MAT_COLNR(i);
+	  }
+
+	  swapPTR((object) mat.col_mat_rownr, (object) newRownr);
+	  swapPTR((object) mat.col_mat_value, (object) newValue);
+	  FREE(newValue);
+	  FREE(newRownr);
+#endif
+                }
+
+                /* Transfer row start to column start position; must adjust for different offsets */
+                if (mat.rows == mat.rows_alloc)
+                {
+                    inc_matcol_space(mat, 1);
+                }
+                j = mat.row_end[0];
+                for (i = mat.rows; i >= 1; i--)
+                {
+                    mat.row_end[i] -= j;
+                }
+                mat.row_end[mat.rows] = nz;
+               lp_utils.swapPTR(mat.row_end.Cast<Object>().ToArray(), mat.col_end.Cast<Object>().ToArray());
+
+                /* Swap arrays of maximum values */
+                lp_utils.swapPTR(mat.rowmax.Cast<object>().ToArray(), mat.colmax.Cast<object>().ToArray());
+
+                /* Swap array sizes */
+                lp_utils.swapINT(ref mat.rows, ref mat.columns);
+                lp_utils.swapINT(ref mat.rows_alloc, ref mat.columns_alloc);
+
+                /* Finally set current storage mode */
+                mat.is_roworder = (bool)!mat.is_roworder;
+                mat.row_end_valid = false;
+            }
+            return (status);
+        }
 
         /* Refactorization and recomputation routine */
         //byte __WINAPI invert(lprec lp, byte shiftbounds, byte final){throw new NotImplementedException();}

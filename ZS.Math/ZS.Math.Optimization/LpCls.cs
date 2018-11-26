@@ -34,7 +34,7 @@ namespace ZS.Math.Optimization
         /* Various interaction elements                                                       */
         /* ---------------------------------------------------------------------------------- */
         //TODO: return type can  be changed to bool??
-        private new byte userabort(lprec lp, int message)
+        internal new bool userabort(lprec lp, int message)
         {
             byte abort;
             int spx_save;
@@ -213,7 +213,7 @@ namespace ZS.Math.Optimization
             set_sense(lp, true);
         }
 
-        internal lprec make_lp(int rows, int columns)
+        internal new lprec make_lp(int rows, int columns)
         {
             lprec lp;
 
@@ -298,7 +298,8 @@ namespace ZS.Math.Optimization
             lp.rows = rows;
             lp.columns = columns;
             lp.sum = rows + columns;
-            varmap_clear(lp); lp.matA = lp_matrix.mat_create(lp, rows, columns, lprec.epsvalue);
+            varmap_clear(lp);
+            lp.matA = lp_matrix.mat_create(lp, rows, columns, lprec.epsvalue);
             lp.matL = null;
             lp.invB = null;
             lp.duals = null;
@@ -371,14 +372,270 @@ namespace ZS.Math.Optimization
             return true;
         }
 
-        private void reset_params(lprec lp)
+        private new void reset_params(lprec lp)
         {
             throw new NotImplementedException();
         }
 
-        private bool set_callbacks(lprec lp)
+        private new bool set_callbacks(lprec lp)
         {
-            throw new NotImplementedException();
+            /*NOT REQUIRED
+            // Assign API functions to lp structure (mainly for XLIs) 
+            lp.add_column = add_column;
+            lp.add_columnex = add_columnex;
+            lp.add_constraint = add_constraint;
+            lp.add_constraintex = add_constraintex;
+            lp.add_lag_con = add_lag_con;
+            lp.add_SOS = add_SOS;
+            lp.column_in_lp = column_in_lp;
+            lp.copy_lp = copy_lp;
+            lp.default_basis = default_basis;
+            lp.del_column = del_column;
+            lp.del_constraint = del_constraint;
+            lp.delete_lp = delete_lp;
+            lp.dualize_lp = dualize_lp;
+            lp.free_lp = free_lp;
+            lp.get_anti_degen = get_anti_degen;
+            lp.get_basis = get_basis;
+            lp.get_basiscrash = get_basiscrash;
+            lp.get_bb_depthlimit = get_bb_depthlimit;
+            lp.get_bb_floorfirst = get_bb_floorfirst;
+            lp.get_bb_rule = get_bb_rule;
+            lp.get_bounds_tighter = get_bounds_tighter;
+            lp.get_break_at_value = get_break_at_value;
+            lp.get_col_name = get_col_name;
+            lp.get_columnex = get_columnex;
+            lp.get_constr_type = get_constr_type;
+            lp.get_constr_value = get_constr_value;
+            lp.get_constraints = get_constraints;
+            lp.get_dual_solution = get_dual_solution;
+            lp.get_epsb = get_epsb;
+            lp.get_epsd = get_epsd;
+            lp.get_epsel = get_epsel;
+            lp.get_epsint = get_epsint;
+            lp.get_epsperturb = get_epsperturb;
+            lp.get_epspivot = get_epspivot;
+            lp.get_improve = get_improve;
+            lp.get_infinite = get_infinite;
+            lp.get_lambda = get_lambda;
+            lp.get_lowbo = get_lowbo;
+            lp.get_lp_index = get_lp_index;
+            lp.get_lp_name = get_lp_name;
+            lp.get_Lrows = get_Lrows;
+            lp.get_mat = get_mat;
+            lp.get_mat_byindex = get_mat_byindex;
+            lp.get_max_level = get_max_level;
+            lp.get_maxpivot = get_maxpivot;
+            lp.get_mip_gap = get_mip_gap;
+            lp.get_multiprice = get_multiprice;
+            lp.get_nameindex = get_nameindex;
+            lp.get_Ncolumns = get_Ncolumns;
+            lp.get_negrange = get_negrange;
+            lp.get_nonzeros = get_nonzeros;
+            lp.get_Norig_columns = get_Norig_columns;
+            lp.get_Norig_rows = get_Norig_rows;
+            lp.get_Nrows = get_Nrows;
+            lp.get_obj_bound = get_obj_bound;
+            lp.get_objective = get_objective;
+            lp.get_orig_index = get_orig_index;
+            lp.get_origcol_name = get_origcol_name;
+            lp.get_origrow_name = get_origrow_name;
+            lp.get_partialprice = get_partialprice;
+            lp.get_pivoting = get_pivoting;
+            lp.get_presolve = get_presolve;
+            lp.get_presolveloops = get_presolveloops;
+            lp.get_primal_solution = get_primal_solution;
+            lp.get_print_sol = get_print_sol;
+            lp.get_pseudocosts = get_pseudocosts;
+            lp.get_ptr_constraints = get_ptr_constraints;
+            lp.get_ptr_dual_solution = get_ptr_dual_solution;
+            lp.get_ptr_lambda = get_ptr_lambda;
+            lp.get_ptr_primal_solution = get_ptr_primal_solution;
+            lp.get_ptr_sensitivity_obj = get_ptr_sensitivity_obj;
+            lp.get_ptr_sensitivity_objex = get_ptr_sensitivity_objex;
+            lp.get_ptr_sensitivity_rhs = get_ptr_sensitivity_rhs;
+            lp.get_ptr_variables = get_ptr_variables;
+            lp.get_rh = get_rh;
+            lp.get_rh_range = get_rh_range;
+            lp.get_row = get_row;
+            lp.get_rowex = get_rowex;
+            lp.get_row_name = get_row_name;
+            lp.get_scalelimit = get_scalelimit;
+            lp.get_scaling = get_scaling;
+            lp.get_sensitivity_obj = get_sensitivity_obj;
+            lp.get_sensitivity_objex = get_sensitivity_objex;
+            lp.get_sensitivity_rhs = get_sensitivity_rhs;
+            lp.get_simplextype = get_simplextype;
+            lp.get_solutioncount = get_solutioncount;
+            lp.get_solutionlimit = get_solutionlimit;
+            lp.get_status = get_status;
+            lp.get_statustext = get_statustext;
+            lp.get_timeout = get_timeout;
+            lp.get_total_iter = get_total_iter;
+            lp.get_total_nodes = get_total_nodes;
+            lp.get_upbo = get_upbo;
+            lp.get_var_branch = get_var_branch;
+            lp.get_var_dualresult = get_var_dualresult;
+            lp.get_var_primalresult = get_var_primalresult;
+            lp.get_var_priority = get_var_priority;
+            lp.get_variables = get_variables;
+            lp.get_verbose = get_verbose;
+            lp.get_working_objective = get_working_objective;
+            lp.has_BFP = has_BFP;
+            lp.has_XLI = has_XLI;
+            lp.is_add_rowmode = is_add_rowmode;
+            lp.is_anti_degen = is_anti_degen;
+            lp.is_binary = is_binary;
+            lp.is_break_at_first = is_break_at_first;
+            lp.is_constr_type = is_constr_type;
+            lp.is_debug = is_debug;
+            lp.is_feasible = is_feasible;
+            lp.is_unbounded = is_unbounded;
+            lp.is_infinite = is_infinite;
+            lp.is_int = is_int;
+            lp.is_integerscaling = is_integerscaling;
+            lp.is_lag_trace = is_lag_trace;
+            lp.is_maxim = is_maxim;
+            lp.is_nativeBFP = is_nativeBFP;
+            lp.is_nativeXLI = is_nativeXLI;
+            lp.is_negative = is_negative;
+            lp.is_obj_in_basis = is_obj_in_basis;
+            lp.is_piv_mode = is_piv_mode;
+            lp.is_piv_rule = is_piv_rule;
+            lp.is_presolve = is_presolve;
+            lp.is_scalemode = is_scalemode;
+            lp.is_scaletype = is_scaletype;
+            lp.is_semicont = is_semicont;
+            lp.is_SOS_var = is_SOS_var;
+            lp.is_trace = is_trace;
+            lp.lp_solve_version = lp_solve_version;
+            lp.make_lp = make_lp;
+            lp.print_constraints = print_constraints;
+            lp.print_debugdump = print_debugdump;
+            lp.print_duals = print_duals;
+            lp.print_lp = print_lp;
+            lp.print_objective = print_objective;
+            lp.print_scales = print_scales;
+            lp.print_solution = print_solution;
+            lp.print_str = print_str;
+            lp.print_tableau = print_tableau;
+            lp.put_abortfunc = put_abortfunc;
+            lp.put_bb_nodefunc = put_bb_nodefunc;
+            lp.put_bb_branchfunc = put_bb_branchfunc;
+            lp.put_logfunc = put_logfunc;
+            lp.put_msgfunc = put_msgfunc;
+            lp.read_LP = read_LP;
+            lp.read_MPS = read_MPS;
+            lp.read_XLI = read_XLI;
+            lp.read_basis = read_basis;
+            lp.reset_basis = reset_basis;
+            lp.read_params = read_params;
+            lp.reset_params = reset_params;
+            lp.resize_lp = resize_lp;
+            lp.set_action = set_action;
+            lp.set_add_rowmode = set_add_rowmode;
+            lp.set_anti_degen = set_anti_degen;
+            lp.set_basisvar = set_basisvar;
+            lp.set_basis = set_basis;
+            lp.set_basiscrash = set_basiscrash;
+            lp.set_bb_depthlimit = set_bb_depthlimit;
+            lp.set_bb_floorfirst = set_bb_floorfirst;
+            lp.set_bb_rule = set_bb_rule;
+            lp.set_BFP = set_BFP;
+            lp.set_binary = set_binary;
+            lp.set_bounds = set_bounds;
+            lp.set_bounds_tighter = set_bounds_tighter;
+            lp.set_break_at_first = set_break_at_first;
+            lp.set_break_at_value = set_break_at_value;
+            lp.set_col_name = set_col_name;
+            lp.set_constr_type = set_constr_type;
+            lp.set_debug = set_debug;
+            lp.set_epsb = set_epsb;
+            lp.set_epsd = set_epsd;
+            lp.set_epsel = set_epsel;
+            lp.set_epsint = set_epsint;
+            lp.set_epslevel = set_epslevel;
+            lp.set_epsperturb = set_epsperturb;
+            lp.set_epspivot = set_epspivot;
+            lp.set_unbounded = set_unbounded;
+            lp.set_improve = set_improve;
+            lp.set_infinite = set_infinite;
+            lp.set_int = set_int;
+            lp.set_lag_trace = set_lag_trace;
+            lp.set_lowbo = set_lowbo;
+            lp.set_lp_name = set_lp_name;
+            lp.set_mat = set_mat;
+            lp.set_maxim = set_maxim;
+            lp.set_maxpivot = set_maxpivot;
+            lp.set_minim = set_minim;
+            lp.set_mip_gap = set_mip_gap;
+            lp.set_multiprice = set_multiprice;
+            lp.set_negrange = set_negrange;
+            lp.set_obj = set_obj;
+            lp.set_obj_bound = set_obj_bound;
+            lp.set_obj_fn = set_obj_fn;
+            lp.set_obj_fnex = set_obj_fnex;
+            lp.set_obj_in_basis = set_obj_in_basis;
+            lp.set_outputfile = set_outputfile;
+            lp.set_outputstream = set_outputstream;
+            lp.set_partialprice = set_partialprice;
+            lp.set_pivoting = set_pivoting;
+            lp.set_preferdual = set_preferdual;
+            lp.set_presolve = set_presolve;
+            lp.set_print_sol = set_print_sol;
+            lp.set_pseudocosts = set_pseudocosts;
+            lp.set_rh = set_rh;
+            lp.set_rh_range = set_rh_range;
+            lp.set_rh_vec = set_rh_vec;
+            lp.set_row = set_row;
+            lp.set_rowex = set_rowex;
+            lp.set_row_name = set_row_name;
+            lp.set_scalelimit = set_scalelimit;
+            lp.set_scaling = set_scaling;
+            lp.set_semicont = set_semicont;
+            lp.set_sense = set_sense;
+            lp.set_simplextype = set_simplextype;
+            lp.set_solutionlimit = set_solutionlimit;
+            lp.set_timeout = set_timeout;
+            lp.set_trace = set_trace;
+            lp.set_upbo = set_upbo;
+            lp.set_var_branch = set_var_branch;
+            lp.set_var_weights = set_var_weights;
+            lp.set_verbose = set_verbose;
+            lp.set_XLI = set_XLI;
+            lp.solve = solve;
+            lp.str_add_column = str_add_column;
+            lp.str_add_constraint = str_add_constraint;
+            lp.str_add_lag_con = str_add_lag_con;
+            lp.str_set_obj_fn = str_set_obj_fn;
+            lp.str_set_rh_vec = str_set_rh_vec;
+            lp.time_elapsed = time_elapsed;
+            lp.unscale = unscale;
+            lp.write_lp = write_lp;
+            lp.write_LP = write_LP;
+            lp.write_mps = write_mps;
+            lp.write_freemps = write_freemps;
+            lp.write_MPS = write_MPS;
+            lp.write_freeMPS = write_freeMPS;
+            lp.write_XLI = write_XLI;
+            lp.write_basis = write_basis;
+            lp.write_params = write_params;
+
+            // Utility functions (mainly for BFPs) 
+            lp.userabort = userabort;
+            lp.report = report;
+            lp.explain = explain;
+            lp.set_basisvar = set_basisvar;
+            lp.get_lpcolumn = obtain_column;
+            lp.get_basiscolumn = get_basiscolumn;
+            lp.get_OF_active = get_OF_active;
+            lp.getMDO = getMDO;
+            lp.invert = invert;
+            lp.set_action = set_action;
+            lp.clear_action = clear_action;
+            lp.is_action = is_action;
+            */
+            return true;
         }
 
         private bool set_BFP(lprec lp, ref string filename)
@@ -386,9 +643,273 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
         private bool set_XLI(lprec lp, ref string filename)
+        /* (Re)mapping of external language interface variant methods is done here */
         {
-            throw new NotImplementedException();
+            int result = LIB_LOADED;
+
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if LoadLanguageLib == TRUE
+  if (lp.hXLI != null)
+  {
+#if WIN32
+//C++ TO C# CONVERTER NOTE: There is no C# equivalent to 'FreeLibrary':
+//	FreeLibrary(lp.hXLI);
+#else
+	dlclose(lp.hXLI);
+#endif
+	lp.hXLI = null;
+  }
+#endif
+
+            if (filename == null)
+            {
+                if (!is_nativeXLI(lp))
+                {
+                    return (0);
+                }
+#if !ExcludeNativeLanguage
+                lp.xli_name = xli_name;
+                lp.xli_compatible = xli_compatible;
+                lp.xli_readmodel = xli_readmodel;
+                lp.xli_writemodel = xli_writemodel;
+#endif
+            }
+            else
+            {
+                //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if LoadLanguageLib == TRUE
+#if WIN32
+   /* Get a handle to the Windows DLL module. */
+	lp.hXLI = LoadLibrary(filename);
+
+   /* If the handle is valid, try to get the function addresses. */
+	if (lp.hXLI != null)
+	{
+	  lp.xli_compatible = (XLIbool_lpintintint) GetProcAddress(lp.hXLI, "xli_compatible");
+	  if (lp.xli_compatible == null)
+	  {
+		result = LIB_NOINFO;
+	  }
+	  else if (lp.xli_compatible(lp, XLIVERSION, MAJORVERSION, sizeof(REAL)))
+	  {
+
+		lp.xli_name = (XLIchar) GetProcAddress(lp.hXLI, "xli_name");
+		lp.xli_readmodel = (XLIbool_lpcharcharcharint) GetProcAddress(lp.hXLI, "xli_readmodel");
+		lp.xli_writemodel = (XLIbool_lpcharcharbool) GetProcAddress(lp.hXLI, "xli_writemodel");
+	  }
+	  else
+	  {
+		result = LIB_VERINVALID;
+	  }
+	}
+#else
+   /* First standardize UNIX .SO library name format. */
+	string xliname = new string(new char[260]);
+//C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+	char * ptr;
+
+	xliname = filename;
+	if ((ptr = StringFunctions.StrRChr(filename, '/')) == null)
+	{
+	  ptr = filename;
+	}
+	else
+	{
+	  ptr++;
+	}
+	xliname = xliname.Substring(0, (int)(ptr - filename));
+	if (string.Compare(ptr, 0, "lib", 0, 3))
+	{
+	  xliname += "lib";
+	}
+	xliname += ptr;
+	if (string.Compare(xliname.Substring(xliname.Length) - 3, ".so"))
+	{
+	  xliname += ".so";
+	}
+
+   /* Get a handle to the module. */
+	lp.hXLI = dlopen(xliname, RTLD_LAZY);
+
+   /* If the handle is valid, try to get the function addresses. */
+	if (lp.hXLI != null)
+	{
+	  lp.xli_compatible = (XLIbool_lpintintint) dlsym(lp.hXLI, "xli_compatible");
+	  if (lp.xli_compatible == null)
+	  {
+		result = LIB_NOINFO;
+	  }
+	  else if (lp.xli_compatible(lp, XLIVERSION, MAJORVERSION, sizeof(REAL)))
+	  {
+
+		lp.xli_name = (XLIchar) dlsym(lp.hXLI, "xli_name");
+		lp.xli_readmodel = (XLIbool_lpcharcharcharint) dlsym(lp.hXLI, "xli_readmodel");
+		lp.xli_writemodel = (XLIbool_lpcharcharbool) dlsym(lp.hXLI, "xli_writemodel");
+	  }
+	  else
+	  {
+		result = LIB_VERINVALID;
+	  }
+	}
+#endif
+	else
+	{
+	  result = LIB_NOTFOUND;
+	}
+#endif
+                /* Do validation */
+                if ((result != LIB_LOADED) || ((lp.xli_name == null) || (lp.xli_compatible == null) || (lp.xli_readmodel == null) || (lp.xli_writemodel == null)))
+                {
+                    set_XLI(lp, null);
+                    if (result == LIB_LOADED)
+                    {
+                        result = LIB_NOFUNCTION;
+                    }
+                }
+            }
+            //C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
+            if (filename != null)
+            {
+                string info = new string(new char[LIB_STR_MAXLEN + 1]);
+                switch (result)
+                {
+                    case LIB_NOTFOUND:
+                        info = LIB_STR_NOTFOUND;
+                        break;
+                    case LIB_NOINFO:
+                        info = LIB_STR_NOINFO;
+                        break;
+                    case LIB_NOFUNCTION:
+                        info = LIB_STR_NOFUNCTION;
+                        break;
+                    case LIB_VERINVALID:
+                        info = LIB_STR_VERINVALID;
+                        break;
+                    default:
+                        info = LIB_STR_LOADED;
+                        break;
+                }
+                report(lp, IMPORTANT, "set_XLI: %s '%s'\n", info, filename);
+            }
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            return ((bool)(result == LIB_LOADED));
         }
+
+        //----------------------------------------------------------------------------------------
+        //	Copyright © 2006 - 2018 Tangible Software Solutions, Inc.
+        //	This class can be used by anyone provided that the copyright notice remains intact.
+        //
+        //	This class provides the ability to replicate various classic C string functions
+        //	which don't have exact equivalents in the .NET Framework.
+        //----------------------------------------------------------------------------------------
+        internal static class StringFunctions
+        {
+            //------------------------------------------------------------------------------------
+            //	This method allows replacing a single character in a string, to help convert
+            //	C++ code where a single character in a character array is replaced.
+            //------------------------------------------------------------------------------------
+            public static string ChangeCharacter(string sourceString, int charIndex, char newChar)
+            {
+                return (charIndex > 0 ? sourceString.Substring(0, charIndex) : "")
+                    + newChar.ToString() + (charIndex < sourceString.Length - 1 ? sourceString.Substring(charIndex + 1) : "");
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'isxdigit' (and 'iswxdigit').
+            //------------------------------------------------------------------------------------
+            public static bool IsXDigit(char character)
+            {
+                if (char.IsDigit(character))
+                    return true;
+                else if ("ABCDEFabcdef".IndexOf(character) > -1)
+                    return true;
+                else
+                    return false;
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'strchr' (and 'wcschr').
+            //------------------------------------------------------------------------------------
+            public static string StrChr(string stringToSearch, char charToFind)
+            {
+                int index = stringToSearch.IndexOf(charToFind);
+                if (index > -1)
+                    return stringToSearch.Substring(index);
+                else
+                    return null;
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'strrchr' (and 'wcsrchr').
+            //------------------------------------------------------------------------------------
+            public static string StrRChr(string stringToSearch, char charToFind)
+            {
+                int index = stringToSearch.LastIndexOf(charToFind);
+                if (index > -1)
+                    return stringToSearch.Substring(index);
+                else
+                    return null;
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'strstr' (and 'wcsstr').
+            //------------------------------------------------------------------------------------
+            public static string StrStr(string stringToSearch, string stringToFind)
+            {
+                int index = stringToSearch.IndexOf(stringToFind);
+                if (index > -1)
+                    return stringToSearch.Substring(index);
+                else
+                    return null;
+            }
+
+            //------------------------------------------------------------------------------------
+            //	This method replicates the classic C string function 'strtok' (and 'wcstok').
+            //	Note that the .NET string 'Split' method cannot be used to replicate 'strtok' since
+            //	it doesn't allow changing the delimiters between each token retrieval.
+            //------------------------------------------------------------------------------------
+            private static string activeString;
+            private static int activePosition;
+            public static string StrTok(string stringToTokenize, string delimiters)
+            {
+                if (stringToTokenize != null)
+                {
+                    activeString = stringToTokenize;
+                    activePosition = -1;
+                }
+
+                //the stringToTokenize was never set:
+                if (activeString == null)
+                    return null;
+
+                //all tokens have already been extracted:
+                if (activePosition == activeString.Length)
+                    return null;
+
+                //bypass delimiters:
+                activePosition++;
+                while (activePosition < activeString.Length && delimiters.IndexOf(activeString[activePosition]) > -1)
+                {
+                    activePosition++;
+                }
+
+                //only delimiters were left, so return null:
+                if (activePosition == activeString.Length)
+                    return null;
+
+                //get starting position of string to return:
+                int startingPosition = activePosition;
+
+                //read until next delimiter:
+                do
+                {
+                    activePosition++;
+                } while (activePosition < activeString.Length && delimiters.IndexOf(activeString[activePosition]) == -1);
+
+                return activeString.Substring(startingPosition, activePosition - startingPosition);
+            }
+        }
+
 
         /// <summary>
         /// changed from 'ref double row' to 'ref double[] row' FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
@@ -1095,7 +1616,7 @@ namespace ZS.Math.Optimization
             if ((lp.var_type[colnr] & ISINTEGER))
             {
                 lp.int_vars--;
-                lp.var_type[colnr] &= ISINTEGER;                  
+                lp.var_type[colnr] &= ISINTEGER;
             }
             if (var_type)
             {
@@ -1417,7 +1938,7 @@ namespace ZS.Math.Optimization
                 }
             }
             return (countnz);
-         }
+        }
 
         internal new bool is_action(int actionvar, int testmask)
         {
@@ -1589,7 +2110,8 @@ namespace ZS.Math.Optimization
 
         /* INLINE */
         internal new bool is_splitvar(lprec lp, int colnr)
-        /* Two cases handled by var_is_free:
+        {
+            /* Two cases handled by var_is_free:
 
            1) LB:-Inf / UB:<Inf variables
               No helper column created, sign of var_is_free set negative with index to itself.
@@ -1599,7 +2121,6 @@ namespace ZS.Math.Optimization
 
            This function helps identify the helper column in 2).
         */
-        {
             //NOTED ISSUE:
             return ((bool)((lp.var_is_free != null) && (lp.var_is_free[colnr] < 0) && (-lp.var_is_free[colnr] != colnr)));
         }
@@ -1657,5 +2178,1195 @@ namespace ZS.Math.Optimization
             return (objlp_MPS.MPS_writefile(lp, MPSFIXED, ref filename));
         }
 
+        private new static int get_basisOF(lprec lp, int[] coltarget, double[] crow, int[] colno)
+        {
+
+            /* Fill vector of basic OF values or subtract incoming values from these.
+               This function is called twice during reduced cost updates when the basis
+               does not contain the basic OF vector as the top row.  The colno[] array
+               is filled with the count of non-zero values and the index to those. */
+
+            int i;
+            int n = lp.rows;
+            int nz = 0;
+            double[] obj = lp.obj;
+
+            //ORIGINAL LINE: register REAL epsvalue = lp->epsvalue;
+            double epsvalue = lprec.epsvalue;
+
+            /* Compute offset over the specified objective indeces (step 2) */
+            if (coltarget != null)
+            {
+                //ORIGINAL LINE: register int ix, m = coltarget[0];
+                int ix;
+                int m = coltarget[0];
+                //ORIGINAL LINE: register REAL value;
+                double value = new double();
+
+                for (i = 1, coltarget[0]++; i <= m; i++, coltarget[0]++)
+                {
+                    ix = coltarget[0];
+                    /* Finalize the computation of the reduced costs, based on the format that
+                       duals are computed as negatives, ref description for step 1 above */
+                    value = crow[ix];
+                    if (ix > n)
+                    {
+                        value += obj[ix - n];
+                    }
+                    /*      if(value != 0) { */
+                    if (System.Math.Abs(value) > epsvalue)
+                    {
+                        nz++;
+                        if (colno != null)
+                        {
+                            colno[nz] = ix;
+                        }
+                    }
+                    else
+                    {
+                        value = 0.0;
+                    }
+                    crow[ix] = value;
+                }
+            }
+
+            /* Get the basic objective function values (step 1) */
+            else
+            {
+                //ORIGINAL LINE: register int *basvar = lp->var_basic;
+
+                int basvar = lp.var_basic;
+
+                for (i = 1, crow[0]++, basvar++; i <= n; i++, crow[0]++, basvar++)
+                {
+                    /* Load the objective value of the active basic variable; note that we
+                       change the sign of the value to maintain computational compatibility with
+                       the calculation of duals using in-basis storage of the basic OF values */
+                    if (basvar <= n)
+                    {
+                        crow[0] = 0;
+                    }
+                    else
+                    {
+                        crow[0] = -obj[(basvar) - n];
+                    }
+                    if (crow[0] != 0)
+                    {
+                        /*      if(fabs(*crow) > epsvalue) { */
+                        nz++;
+                        if (colno != null)
+                        {
+                            colno[nz] = i;
+                        }
+                    }
+                }
+            }
+            if (colno != null)
+            {
+                colno[0] = nz;
+            }
+            return (nz);
+        }
+
+        /* Retrieve a column vector from the data matrix [1..rows, rows+1..rows+columns];
+           needs __WINAPI call model since it may be called from BFPs */
+        internal int obtain_column(lprec lp, int varin, ref double[] pcol, ref int[] nzlist, ref int maxabs)
+        {
+            double value = lp_types.my_chsign(lp.is_lower, -1);
+            if (varin > lp.rows)
+            {
+                varin -= lp.rows;
+                varin = expand_column(lp, varin, ref pcol, ref nzlist, value, ref maxabs);
+            }
+            else if (lp.obj_in_basis || (varin > 0))
+            {
+                varin = singleton_column(lp, varin, ref pcol, ref nzlist, value, ref maxabs);
+            }
+            else
+            {
+                varin = get_basisOF(lp, null, pcol, nzlist);
+            }
+
+            return (varin);
+        }
+
+        internal static int expand_column(lprec lp, int col_nr, ref double[] column, ref int[] nzlist, double mult, ref int maxabs)
+        {
+            int i;
+            int ie;
+            int j;
+            int maxidx;
+            int nzcount;
+            double value;
+            double maxval;
+            MATrec mat = lp.matA;
+
+            double matValue = new double();
+
+            int matRownr;
+
+            /* Retrieve a column from the user data matrix A */
+            maxval = 0;
+            maxidx = -1;
+            if (nzlist == null)
+            {
+                //NOT REQUIRED
+                //MEMCLEAR(column, lp.rows + 1);
+                i = mat.col_end[col_nr - 1];
+                ie = mat.col_end[col_nr];
+                matRownr = lp_matrix.COL_MAT_ROWNR(i);
+                matValue = lp_matrix.COL_MAT_VALUE(i);
+                nzcount = i;
+                for (; i < ie; i++, matRownr += commonlib.matRowColStep, matValue += commonlib.matValueStep)
+                {
+                    j = matRownr;
+                    value = matValue;
+                    if (j > 0)
+                    {
+                        value *= mult;
+                        if (System.Math.Abs(value) > maxval)
+                        {
+                            maxval = System.Math.Abs(value);
+                            maxidx = j;
+                        }
+                    }
+                    column[j] = value;
+                }
+                nzcount = i - nzcount;
+
+                /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
+                if (lp.obj_in_basis)
+                {
+                    column[0] = lp.get_OF_active(lp, lp.rows + col_nr, mult);
+                    if (column[0] != 0)
+                    {
+                        nzcount++;
+                    }
+                }
+            }
+            else
+            {
+                nzcount = 0;
+
+                /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
+                if (lp.obj_in_basis)
+                {
+                    value = lp.get_OF_active(lp, lp.rows + col_nr, mult);
+                    if (value != 0)
+                    {
+                        nzcount++;
+                        nzlist[nzcount] = 0;
+                        column[nzcount] = value;
+                    }
+                }
+
+                /* Loop over the non-zero column entries */
+                i = mat.col_end[col_nr - 1];
+                ie = mat.col_end[col_nr];
+                matRownr = lp_matrix.COL_MAT_ROWNR(i);
+                matValue = lp_matrix.COL_MAT_VALUE(i);
+                for (; i < ie; i++, matRownr += commonlib.matRowColStep, matValue += commonlib.matValueStep)
+                {
+                    j = matRownr;
+                    value = (matValue) * mult;
+                    nzcount++;
+                    nzlist[nzcount] = j;
+                    column[nzcount] = value;
+                    if (System.Math.Abs(value) > maxval)
+                    {
+                        maxval = System.Math.Abs(value);
+                        maxidx = nzcount;
+                    }
+                }
+            }
+
+            if (maxabs != null)
+            {
+                maxabs = maxidx;
+            }
+            return (nzcount);
+        }
+
+        internal new double get_OF_active(lprec lp, int varnr, double mult)
+        {
+            int colnr = varnr - lp.rows;
+            double holdOF = 0;
+            string msg = "";
+
+            ///#if Paranoia
+            if ((colnr <= 0) || (colnr > lp.columns))
+            {
+                msg = "get_OF_active: Invalid column index %d supplied\n";
+                lp.report(lp, SEVERE, ref msg, colnr);
+            }
+            else
+            {
+                ///#endif
+                if (lp.obj == null)
+                {
+                    if (colnr > 0)
+                    {
+                        holdOF = lp.orig_obj[colnr];
+                    }
+                    modifyOF1(lp, varnr, ref holdOF, mult);
+                }
+                else if (colnr > 0)
+                {
+                    holdOF = lp.obj[colnr] * mult;
+                }
+            }
+
+            return (holdOF);
+        }
+
+        internal static int singleton_column(lprec lp, int row_nr, ref double[] column, ref int[] nzlist, double value, ref int maxabs)
+        {
+            int nz = 1;
+
+            if (nzlist == null)
+            {
+                //NOT REQUIRED
+                //MEMCLEAR(column, lp.rows + 1);
+                column[row_nr] = value;
+            }
+            else
+            {
+                column[nz] = value;
+                nzlist[nz] = row_nr;
+            }
+
+            if (maxabs != null)
+            {
+                maxabs = row_nr;
+            }
+            return (nz);
+        }
+
+        internal new static bool refactRecent(lprec lp)
+        {
+            int pivcount = lp.bfp_pivotcount(lp);
+            if (pivcount == 0)
+            {
+                return (Convert.ToBoolean(DefineConstants.AUTOMATIC));
+            }
+            else if (pivcount < 2 * DEF_MAXPIVOTRETRY)
+            {
+                return (true);
+            }
+            else
+            {
+                return (false);
+            }
+        }
+
+        internal new void clear_action(ref int actionvar, int actionmask)
+        {
+            actionvar &= ~actionmask;
+        }
+
+        internal new bool del_column(lprec lp, int colnr)
+        {
+            bool preparecompact = (bool)(colnr < 0);
+            string msg;
+
+            if (preparecompact != null)
+            {
+                colnr = -colnr;
+            }
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                msg = "del_column: Column %d out of range\n";
+                lp.report(lp, IMPORTANT, ref msg, colnr);
+                return (false);
+            }
+            /*
+            if(lp->matA->is_roworder) {
+              report(lp, IMPORTANT, "del_column: Cannot delete column while in row entry mode.\n");
+              return(FALSE);
+            }
+            */
+
+            if ((lp.var_is_free != null) && (lp.var_is_free > 0))
+            {
+                del_column(lp, lp.var_is_free); // delete corresponding split column (is always after this column)
+            }
+
+            varmap_delete(lp, Convert.ToInt32(lp_types.my_chsign(preparecompact, lp.rows + colnr)), -1, null);
+            shift_coldata(lp, Convert.ToInt32(lp_types.my_chsign(preparecompact, colnr)), -1, null);
+            if (!lp.varmap_locked)
+            {
+                lp_presolve.presolve_setOrig(lp, lp.rows, lp.columns);
+                if (lp.names_used)
+                {
+                    del_varnameex(lp, lp.col_name, lp.columns, lp.colname_hashtab, colnr, null);
+                }
+            }
+            ///#if Paranoia
+            if (is_BasisReady(lp) && (lp.P1extraDim == 0) && !verify_basis(lp))
+            {
+                msg = "del_column: Invalid basis detected at column %d (%d)\n";
+                lp.report(lp, SEVERE, ref msg, colnr, lp.columns);
+            }
+            ///#endif
+
+            return (true);
+        }
+
+        internal new static bool verify_basis(lprec lp)
+        {
+            int i;
+            int ii;
+            int k = 0;
+            bool result = false;
+
+            for (i = 1; i <= lp.rows; i++)
+            {
+                ii = lp.var_basic[i];
+                if ((ii < 1) || (ii > lp.sum) || !lp.is_basic[ii])
+                {
+                    k = i;
+                    ii = 0;
+                    goto Done;
+                }
+            }
+
+            ii = lp.rows;
+            for (i = 1; i <= lp.sum; i++)
+            {
+                if (lp.is_basic[i])
+                {
+                    ii--;
+                }
+            }
+            //ORIGINAL LINE: result = (MYBOOL)(ii == 0);
+            result = ((bool)(ii == 0));
+            Done:
+            ///#if false
+            //  if(!result)
+            //    ii = 0;
+            ///#endif
+            return (result);
+        }
+
+        internal new static void set_OF_p1extra(lprec lp, double p1extra)
+        {
+            int i;
+            string msg;
+            double value = new double();
+
+            if (lp.spx_trace)
+            {
+                msg = "set_OF_p1extra: Set dual objective offset to %g at iter %.0f.\n";
+                lp.report(lp, DETAILED, ref msg, p1extra, (double)lp.get_total_iter(lp));
+            }
+            lp.P1extraVal = p1extra;
+            if (lp.obj == null)
+            {
+                //NOT REQUIRED
+                //  allocREAL(lp, lp.obj, lp.columns_alloc + 1, 1);
+            }
+            for (i = 1, value = lp.obj + 1; i <= lp.columns; i++, value++)
+            {
+                value = lp.orig_obj[i];
+                lp.modifyOF1(lp, lp.rows + i, ref value, 1.0);
+            }
+        }
+
+        internal new bool modifyOF1(lprec lp, int index, ref double ofValue, double mult)
+        /* Adjust objective function values for primal/dual phase 1, if appropriate */
+        {
+            bool accept = true;
+
+            /* Primal simplex: Set user variables to zero or BigM-scaled */
+            if (((lp.simplex_mode & SIMPLEX_Phase1_PRIMAL) != 0) && (System.Math.Abs(lp.P1extraDim) > 0))
+            {
+                ///#if ! Phase1EliminateRedundant
+                if (lp.P1extraDim < 0)
+                {
+                    if (index > lp.sum + lp.P1extraDim)
+                    {
+                        accept = false;
+                    }
+                }
+                else
+                {
+                    ///#endif
+                    if ((index <= lp.sum - lp.P1extraDim) || (mult == 0))
+                    {
+                        if ((mult == 0) || (lp.bigM == 0))
+                        {
+                            accept = false;
+                        }
+                        else
+                        {
+                            (ofValue) /= lp.bigM;
+                        }
+                    }
+                }
+            }
+
+            /* Dual simplex: Subtract P1extraVal from objective function values */
+            else if (((lp.simplex_mode & SIMPLEX_Phase1_DUAL) != 0) && (index > lp.rows))
+            {
+                ///#if 1
+                //                Can it introduce degeneracy in some cases? */
+
+                if ((lp.P1extraVal != 0) && (lp.orig_obj[index - lp.rows] > 0))
+                {
+                    ofValue = 0;
+                }
+                else
+                ///#endif
+                {
+                    ofValue -= lp.P1extraVal;
+
+                    ///#if false
+                    //      if(is_action(lp->anti_degen, ANTIDEGEN_RHSPERTURB))
+                    //        *ofValue -= rand_uniform(lp, lp->epsperturb);
+                    ///#endif
+                }
+            }
+
+            /* Do scaling and test for zero */
+            if (accept != null)
+            {
+                (ofValue) *= mult;
+                if (System.Math.Abs(ofValue) < lp.epsmachine)
+                {
+                    (ofValue) = 0;
+                    accept = false;
+                }
+            }
+            else
+            {
+                (ofValue) = 0;
+            }
+
+            return (accept);
+        }
+
+        internal new static bool is_OF_nz(lprec lp, int colnr)
+        {
+            return ((bool)(lp.orig_obj[colnr] != 0));
+        }
+
+        /* This routine recomputes the basic variables using the full inverse */
+        internal static void recompute_solution(lprec lp, bool shiftbounds)
+        {
+            /* Compute RHS = b - A(n)*x(n) */
+            initialize_solution(lp, shiftbounds);
+
+            /* Compute x(b) = Inv(B)*RHS (Ref. lp_solve inverse logic and Chvatal p. 121) */
+            lp.bfp_ftran_normal(lp, lp.rhs, null);
+            if (!lp.obj_in_basis)
+            {
+                int i;
+                int ib;
+                int n = lp.rows;
+                for (i = 1; i <= n; i++)
+                {
+                    ib = lp.var_basic[i];
+                    if (ib > n)
+                    {
+                        lp.rhs[0] -= get_OF_active(lp, ib, lp.rhs[i]);
+                    }
+                }
+            }
+
+            /* Round the values (should not be greater than the factor used in bfp_pivotRHS) */
+            roundVector(lp.rhs, lp.rows, lp.epsvalue);
+
+            clear_action(lp.spx_action, ACTION_RECOMPUTE);
+        }
+
+        /* Transform RHS by adjusting for the bound state of variables;
+         optionally rebase upper bound, and account for this in later calls */
+        internal static void initialize_solution(lprec lp, bool shiftbounds)
+        {
+            int i;
+            int k1;
+            int k2;
+
+            //ORIGINAL LINE: int *matRownr;
+            int matRownr;
+            int colnr;
+            double theta = new double();
+            double value = new double();
+            double matValue;
+            double loB = new double();
+            double upB = new double();
+            MATrec mat = lp.matA;
+            string msg;
+            LpCls objLpCls = new LpCls();
+
+            /* Set bounding status indicators */
+            if (lp.bb_bounds != null)
+            {
+                if (shiftbounds == INITSOL_SHIFTZERO)
+                {
+                    if (lp.bb_bounds.UBzerobased)
+                    {
+                        msg = "initialize_solution: The upper bounds are already zero-based at refactorization %d\n";
+                        lp.report(lp, SEVERE, ref msg, lp.bfp_refactcount(lp, commonlib.BFP_STAT_REFACT_TOTAL));
+                    }
+                    lp.bb_bounds.UBzerobased = 1;
+                }
+                else if (!lp.bb_bounds.UBzerobased)
+                {
+                    msg = "initialize_solution: The upper bounds are not zero-based at refactorization %d\n";
+                    lp.report(lp, SEVERE, ref msg, lp.bfp_refactcount(lp, commonlib.BFP_STAT_REFACT_TOTAL));
+                }
+            }
+
+            /* Initialize the working RHS/basic variable solution vector */
+            //NOTED IDDUE: Commented temp
+            //i = objLpCls.is_action(lp.anti_degen, lp_lib.ANTIDEGEN_RHSPERTURB) && (lp.monitor != null) && lp.monitor.active;
+            //NOTED IDDUE:
+            if (sizeof(lp.rhs) == sizeof(lp.orig_rhs) && i == 0)
+            {
+                //NOT REQUIRED
+                //MEMCOPY(lp.rhs, lp.orig_rhs, lp.rows + 1);
+            }
+            else if (i)
+            {
+                lp.rhs[0] = lp.orig_rhs[0];
+                for (i = 1; i <= lp.rows; i++)
+                {
+                    if (objLpCls.is_constr_type(lp, i, EQ))
+                    {
+                        theta = lp_utils.rand_uniform(lp, lprec.epsvalue);
+                    }
+                    else
+                    {
+                        theta = lp_utils.rand_uniform(lp, lprec.epsperturb);
+                        /*        if(lp->orig_upbo[i] < lp->infinite)
+                                  lp->orig_upbo[i] += theta; */
+                    }
+                    lp.rhs[i] = lp.orig_rhs[i] + theta;
+                }
+            }
+            else
+            {
+                for (i = 0; i <= lp.rows; i++)
+                {
+                    lp.rhs[i] = lp.orig_rhs[i];
+                }
+            }
+
+            /* Adjust active RHS for variables at their active upper/lower bounds */
+            for (i = 1; i <= lp.sum; i++)
+            {
+
+                upB = lp.upbo[i];
+                loB = lp.lowbo[i];
+
+                /* Shift to "ranged" upper bound, tantamount to defining zero-based variables */
+                if (shiftbounds == INITSOL_SHIFTZERO)
+                {
+                    if ((loB > -lp.infinite) && (upB < lp.infinite))
+                    {
+                        lp.upbo[i] -= loB;
+                    }
+                    if (lp.upbo[i] < 0)
+                    {
+                        report(lp, SEVERE, "initialize_solution: Invalid rebounding; variable %d at refact %d, iter %.0f\n", i, lp.bfp_refactcount(lp, BFP_STAT_REFACT_TOTAL), (double)get_total_iter(lp));
+                    }
+                }
+
+                /* Use "ranged" upper bounds */
+                else if (shiftbounds == INITSOL_USEZERO)
+                {
+                    if ((loB > -lp.infinite) && (upB < lp.infinite))
+                    {
+                        upB += loB;
+                    }
+                }
+
+                /* Shift upper bound back to original value */
+                else if (shiftbounds == INITSOL_ORIGINAL)
+                {
+                    if ((loB > -lp.infinite) && (upB < lp.infinite))
+                    {
+                        lp.upbo[i] += loB;
+                        upB += loB;
+                    }
+                    continue;
+                }
+                else
+                {
+                    report(lp, SEVERE, "initialize_solution: Invalid option value '%d'\n", shiftbounds);
+                }
+
+                /* Set the applicable adjustment */
+                if (lp.is_lower[i])
+                {
+                    theta = loB;
+                }
+                else
+                {
+                    theta = upB;
+                }
+
+
+                /* Check if we need to pass through the matrix;
+                   remember that basis variables are always lower-bounded */
+                if (theta == 0)
+                {
+                    continue;
+                }
+
+                /* Do user and artificial variables */
+                if (i > lp.rows)
+                {
+
+                    /* Get starting and ending indeces in the NZ vector */
+                    colnr = i - lp.rows;
+                    k1 = mat.col_end[colnr - 1];
+                    k2 = mat.col_end[colnr];
+                    matRownr = COL_MAT_ROWNR(k1);
+                    matValue = COL_MAT_VALUE(k1);
+
+                    /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
+                    value = get_OF_active(lp, i, theta);
+                    lp.rhs[0] -= value;
+
+                    /* Do the normal case */
+                    for (; k1 < k2; k1++, matRownr += matRowColStep, matValue += matValueStep)
+                    {
+                        lp.rhs[matRownr] -= theta * matValue;
+                    }
+                }
+
+                /* Do slack variables (constraint "bounds")*/
+                else
+                {
+                    lp.rhs[i] -= theta;
+                }
+
+            }
+
+            /* Do final pass to get the maximum value */
+            i = idamax(lp.rows, lp.rhs, 1);
+            lp.rhsmax = Math.abs(lp.rhs[i]);
+
+            if (shiftbounds == INITSOL_SHIFTZERO)
+            {
+                clear_action(lp.spx_action, ACTION_REBASE);
+            }
+
+        internal new bool write_MPS(lprec lp, FileStream output)
+        {
+            lp_MPS objlp_MPS = new lp_MPS();
+            return (objlp_MPS.MPS_writehandle(lp, MPSFIXED, output));
+        }
+        internal new bool write_freemps(lprec lp, ref string filename)
+        {
+            lp_MPS objlp_MPS = new lp_MPS();
+            return (objlp_MPS.MPS_writefile(lp, MPSFREE, ref filename));
+        }
+
+        internal new bool write_freeMPS(lprec lp, FileStream output)
+        {
+            lp_MPS objlp_MPS = new lp_MPS();
+            return (objlp_MPS.MPS_writehandle(lp, MPSFREE, output));
+        }
+
+        internal new bool write_lp(lprec lp, ref string filename)
+        {
+            lp_wlp objlp_wlp = new lp_wlp();
+            return (objlp_wlp.LP_writefile(lp, ref filename));
+        }
+
+        internal new bool write_LP(lprec lp, FileStream output)
+        {
+            lp_wlp objlp_wlp = new lp_wlp();
+            return (objlp_wlp.LP_writehandle(lp, output));
+        }
+
+#if !PARSER_LP
+        internal new bool LP_readhandle(lprec[] lp, FileStream filename, int verbose, ref string lp_name)
+        {
+            return false;
+        }
+        internal new lprec read_lp(FileStream filename, int verbose, ref string lp_name)
+        {
+            return null;
+        }
+        internal new lprec read_LP(ref string filename, int verbose, ref string lp_name)
+        {
+            return (null);
+        }
+#endif
+
+        internal new bool write_basis(lprec lp, ref string filename)
+        {
+            lp_MPS objlp_MPS = new lp_MPS();
+            int typeMPS = MPSFIXED;
+            return (objlp_MPS.MPS_writeBAS(lp, typeMPS, ref filename));
+        }
+
+        internal new bool read_basis(lprec lp, ref string filename, ref string info)
+        {
+            /*int typeMPS = MPSFIXED;
+
+            lp_MPS objlp_MPS = new lp_MPS();
+            typeMPS = MPS_readBAS(lp, typeMPS, filename, info);*/
+
+            /* Code basis */
+            /*if (typeMPS != 0)
+            {
+                set_action(lp.spx_action, ACTION_REBASE | ACTION_REINVERT | ACTION_RECOMPUTE);
+                lp.basis_valid = 1; // Do not re-initialize basis on entering Solve
+                lp.var_basic[0] = 0; // Set to signal that this is a non-default basis
+            }
+            return ((bool)typeMPS);*/
+            throw new NotImplementedException();
+        }
+
+        internal new bool set_col_name(lprec lp, int colnr, ref string new_name)
+        {
+            lp_report objlp_report = new lp_report();
+            if ((colnr > lp.columns + 1) || (colnr < 1))
+            {
+                string msg = "set_col_name: Column {0} out of range";
+                objlp_report.report(lp, IMPORTANT, ref msg, colnr);
+            }
+
+            if ((colnr > lp.columns) && !append_columns(lp, colnr - lp.columns))
+                return false;
+            if (!lp.names_used)
+                init_rowcol_names(lp);
+            rename_var(lp, colnr, ref new_name, lp.col_name, lp.colname_hashtab);
+
+            return true;
+        }
+
+        internal static new bool init_rowcol_names(lprec lp)
+        {
+            if (!lp.names_used)
+            {
+                //C++ TO C# CONVERTER TODO TASK: The memory management function 'calloc' has no equivalent in C#:
+                lp.row_name = new hashelem[System.Runtime.InteropServices.Marshal.SizeOf(lp.col_name)];
+                //C++ TO C# CONVERTER TODO TASK: The memory management function 'calloc' has no equivalent in C#:
+                lp.col_name = new hashelem[System.Runtime.InteropServices.Marshal.SizeOf(lp.col_name)];
+                lp.rowname_hashtab = lp_Hash.create_hash_table(lp.rows_alloc + 1, 0);
+                lp.colname_hashtab = lp_Hash.create_hash_table(lp.columns_alloc + 1, 1);
+                lp.names_used = true;
+            }
+            return true;
+        }
+
+        internal new bool set_add_rowmode(lprec lp, bool turnon)
+        {
+            if ((lp.solvecount == 0) && (turnon ^ lp.matA.is_roworder))
+                return (lp_matrix.mat_transpose(lp.matA));
+            else
+                return false;
+        }
+
+        internal new string get_row_name(lprec lp, int rownr)
+        {
+            lp_report objlp_report = new lp_report();
+            if ((rownr < 0) || (rownr > lp.rows + 1))
+            {
+                string msg = "get_row_name: Row {0} out of range";
+                objlp_report.report(lp, IMPORTANT, ref msg, rownr);
+                return (null);
+            }
+
+            if ((lp.presolve_undo.var_to_orig != null) && lp.wasPresolved)
+            {
+                if (lp.presolve_undo.var_to_orig[rownr] == 0)
+                {
+                    rownr = -rownr;
+                }
+                else
+                {
+                    rownr = lp.presolve_undo.var_to_orig[rownr];
+                }
+            }
+            return (get_origrow_name(lp, rownr));
+        }
+
+        internal string get_col_name(lprec lp, int colnr)
+        {
+            lp_report objlp_report = new lp_report();
+            if ((colnr > lp.columns + 1) || (colnr < 1))
+            {
+                string msg = "get_col_name: Column {0} out of range";
+                objlp_report.report(lp, IMPORTANT, ref msg, colnr);
+                return (null);
+            }
+
+            if ((lp.presolve_undo.var_to_orig != null) && lp.wasPresolved)
+            {
+                if (lp.presolve_undo.var_to_orig[lp.rows + colnr] == 0)
+                {
+                    colnr = -colnr;
+                }
+                else
+                {
+                    colnr = lp.presolve_undo.var_to_orig[lp.rows + colnr];
+                }
+            }
+            return (get_origcol_name(lp, colnr));
+        }
+
+        internal new bool set_BFP(lprec lp, ref string filename)
+        /* (Re)mapping of basis factorization variant methods is done here */
+        {
+            int result = lp_types.LIB_LOADED;
+
+            /* Release the BFP and basis if we are active */
+            if (lp.invB != null)
+            {
+                //NOTED ISSUE
+                //bfp_free(lp);
+            }
+
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if LoadInverseLib == TRUE
+  if (lp.hBFP != null)
+  {
+#if WIN32
+//C++ TO C# CONVERTER NOTE: There is no C# equivalent to 'FreeLibrary':
+//	FreeLibrary(lp.hBFP);
+#else
+	dlclose(lp.hBFP);
+#endif
+	lp.hBFP = null;
+  }
+#endif
+
+            if (filename == null)
+            {
+                if (!is_nativeBFP(lp))
+                {
+                    return (0);
+                }
+#if !ExcludeNativeInverse
+                lp.bfp_name = bfp_name;
+                lp.bfp_compatible = bfp_compatible;
+                lp.bfp_free = bfp_free;
+                lp.bfp_resize = bfp_resize;
+                lp.bfp_nonzeros = bfp_nonzeros;
+                lp.bfp_memallocated = bfp_memallocated;
+                lp.bfp_restart = bfp_restart;
+                lp.bfp_mustrefactorize = bfp_mustrefactorize;
+                lp.bfp_preparefactorization = bfp_preparefactorization;
+                lp.bfp_factorize = bfp_factorize;
+                lp.bfp_finishupdate = bfp_finishupdate;
+                lp.bfp_ftran_normal = bfp_ftran_normal;
+                lp.bfp_ftran_prepare = bfp_ftran_prepare;
+                lp.bfp_btran_normal = bfp_btran_normal;
+                lp.bfp_status = bfp_status;
+                lp.bfp_implicitslack = bfp_implicitslack;
+                lp.bfp_indexbase = bfp_indexbase;
+                lp.bfp_rowoffset = bfp_rowoffset;
+                lp.bfp_pivotmax = bfp_pivotmax;
+                lp.bfp_init = bfp_init;
+                lp.bfp_pivotalloc = bfp_pivotalloc;
+                lp.bfp_colcount = bfp_colcount;
+                lp.bfp_canresetbasis = bfp_canresetbasis;
+                lp.bfp_finishfactorization = bfp_finishfactorization;
+                lp.bfp_updaterefactstats = bfp_updaterefactstats;
+                lp.bfp_prepareupdate = bfp_prepareupdate;
+                lp.bfp_pivotRHS = bfp_pivotRHS;
+                lp.bfp_btran_double = bfp_btran_double;
+                lp.bfp_efficiency = bfp_efficiency;
+                lp.bfp_pivotvector = bfp_pivotvector;
+                lp.bfp_pivotcount = bfp_pivotcount;
+                lp.bfp_refactcount = bfp_refactcount;
+                lp.bfp_isSetI = bfp_isSetI;
+                lp.bfp_findredundant = bfp_findredundant;
+#endif
+            }
+            else
+            {
+                //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if LoadInverseLib == TRUE
+#if WIN32
+   /* Get a handle to the Windows DLL module. */
+	lp.hBFP = LoadLibrary(filename);
+
+   /* If the handle is valid, try to get the function addresses. */
+	if (lp.hBFP != null)
+	{
+	  lp.bfp_compatible = (BFPbool_lpintintint) GetProcAddress(lp.hBFP, "bfp_compatible");
+	  if (lp.bfp_compatible == null)
+	  {
+		result = LIB_NOINFO;
+	  }
+	  else if (lp.bfp_compatible(lp, BFPVERSION, MAJORVERSION, sizeof(REAL)))
+	  {
+
+	  lp.bfp_name = (BFPchar) GetProcAddress(lp.hBFP, "bfp_name");
+	  lp.bfp_free = (BFP_lp) GetProcAddress(lp.hBFP, "bfp_free");
+	  lp.bfp_resize = (BFPbool_lpint) GetProcAddress(lp.hBFP, "bfp_resize");
+	  lp.bfp_nonzeros = (BFPint_lpbool) GetProcAddress(lp.hBFP, "bfp_nonzeros");
+	  lp.bfp_memallocated = (BFPint_lp) GetProcAddress(lp.hBFP, "bfp_memallocated");
+	  lp.bfp_restart = (BFPbool_lp) GetProcAddress(lp.hBFP, "bfp_restart");
+	  lp.bfp_mustrefactorize = (BFPbool_lp) GetProcAddress(lp.hBFP, "bfp_mustrefactorize");
+	  lp.bfp_preparefactorization = (BFPint_lp) GetProcAddress(lp.hBFP, "bfp_preparefactorization");
+	  lp.bfp_factorize = (BFPint_lpintintboolbool) GetProcAddress(lp.hBFP, "bfp_factorize");
+	  lp.bfp_finishupdate = (BFPbool_lpbool) GetProcAddress(lp.hBFP, "bfp_finishupdate");
+	  lp.bfp_ftran_normal = (BFP_lprealint) GetProcAddress(lp.hBFP, "bfp_ftran_normal");
+	  lp.bfp_ftran_prepare = (BFP_lprealint) GetProcAddress(lp.hBFP, "bfp_ftran_prepare");
+	  lp.bfp_btran_normal = (BFP_lprealint) GetProcAddress(lp.hBFP, "bfp_btran_normal");
+	  lp.bfp_status = (BFPint_lp) GetProcAddress(lp.hBFP, "bfp_status");
+    lp.bfp_implicitslack = (BFPbool_lp) GetProcAddress(lp.hBFP, "bfp_implicitslack");
+	  lp.bfp_indexbase = (BFPint_lp) GetProcAddress(lp.hBFP, "bfp_indexbase");
+	  lp.bfp_rowoffset = (BFPint_lp) GetProcAddress(lp.hBFP, "bfp_rowoffset");
+	  lp.bfp_pivotmax = (BFPint_lp) GetProcAddress(lp.hBFP, "bfp_pivotmax");
+	  lp.bfp_init = (BFPbool_lpintintchar) GetProcAddress(lp.hBFP, "bfp_init");
+	  lp.bfp_pivotalloc = (BFPbool_lpint) GetProcAddress(lp.hBFP, "bfp_pivotalloc");
+	  lp.bfp_colcount = (BFPint_lp) GetProcAddress(lp.hBFP, "bfp_colcount");
+	  lp.bfp_canresetbasis = (BFPbool_lp) GetProcAddress(lp.hBFP, "bfp_canresetbasis");
+	  lp.bfp_finishfactorization = (BFP_lp) GetProcAddress(lp.hBFP, "bfp_finishfactorization");
+	  lp.bfp_updaterefactstats = (BFP_lp) GetProcAddress(lp.hBFP, "bfp_updaterefactstats");
+	  lp.bfp_prepareupdate = (BFPlreal_lpintintreal) GetProcAddress(lp.hBFP, "bfp_prepareupdate");
+	  lp.bfp_pivotRHS = (BFPreal_lplrealreal) GetProcAddress(lp.hBFP, "bfp_pivotRHS");
+	  lp.bfp_btran_double = (BFP_lprealintrealint) GetProcAddress(lp.hBFP, "bfp_btran_double");
+	  lp.bfp_efficiency = (BFPreal_lp) GetProcAddress(lp.hBFP, "bfp_efficiency");
+	  lp.bfp_pivotvector = (BFPrealp_lp) GetProcAddress(lp.hBFP, "bfp_pivotvector");
+	  lp.bfp_pivotcount = (BFPint_lp) GetProcAddress(lp.hBFP, "bfp_pivotcount");
+	  lp.bfp_refactcount = (BFPint_lpint) GetProcAddress(lp.hBFP, "bfp_refactcount");
+	  lp.bfp_isSetI = (BFPbool_lp) GetProcAddress(lp.hBFP, "bfp_isSetI");
+	  lp.bfp_findredundant = (BFPint_lpintrealcbintint) GetProcAddress(lp.hBFP, "bfp_findredundant");
+}
+	  else
+		result = LIB_VERINVALID;
+	}
+#else
+   /* First standardize UNIX .SO library name format. */
+	string bfpname = new string(new char[260]);
+//C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+	char * ptr;
+
+	bfpname = filename;
+	if ((ptr = StringFunctions.StrRChr(filename, '/')) == null)
+	{
+	  ptr = filename;
+	}
+	else
+	{
+	  ptr++;
+	}
+	bfpname = bfpname.Substring(0, (int)(ptr - filename));
+	if (string.Compare(ptr, 0, "lib", 0, 3))
+	{
+	  bfpname += "lib";
+	}
+	bfpname += ptr;
+	if (string.Compare(bfpname.Substring(bfpname.Length) - 3, ".so"))
+	{
+	  bfpname += ".so";
+	}
+
+   /* Get a handle to the module. */
+	lp.hBFP = dlopen(bfpname, RTLD_LAZY);
+
+   /* If the handle is valid, try to get the function addresses. */
+	if (lp.hBFP != null)
+	{
+	  lp.bfp_compatible = (BFPbool_lpintintint) dlsym(lp.hBFP, "bfp_compatible");
+	  if (lp.bfp_compatible == null)
+	  {
+		result = LIB_NOINFO;
+	  }
+	  else if (lp.bfp_compatible(lp, BFPVERSION, MAJORVERSION, sizeof(REAL)))
+	  {
+
+	  lp.bfp_name = (BFPchar) dlsym(lp.hBFP, "bfp_name");
+	  lp.bfp_free = (BFP_lp) dlsym(lp.hBFP, "bfp_free");
+	  lp.bfp_resize = (BFPbool_lpint) dlsym(lp.hBFP, "bfp_resize");
+	  lp.bfp_nonzeros = (BFPint_lpbool) dlsym(lp.hBFP, "bfp_nonzeros");
+	  lp.bfp_memallocated = (BFPint_lp) dlsym(lp.hBFP, "bfp_memallocated");
+	  lp.bfp_restart = (BFPbool_lp) dlsym(lp.hBFP, "bfp_restart");
+	  lp.bfp_mustrefactorize = (BFPbool_lp) dlsym(lp.hBFP, "bfp_mustrefactorize");
+	  lp.bfp_preparefactorization = (BFPint_lp) dlsym(lp.hBFP, "bfp_preparefactorization");
+	  lp.bfp_factorize = (BFPint_lpintintboolbool) dlsym(lp.hBFP, "bfp_factorize");
+	  lp.bfp_finishupdate = (BFPbool_lpbool) dlsym(lp.hBFP, "bfp_finishupdate");
+	  lp.bfp_ftran_normal = (BFP_lprealint) dlsym(lp.hBFP, "bfp_ftran_normal");
+	  lp.bfp_ftran_prepare = (BFP_lprealint) dlsym(lp.hBFP, "bfp_ftran_prepare");
+	  lp.bfp_btran_normal = (BFP_lprealint) dlsym(lp.hBFP, "bfp_btran_normal");
+	  lp.bfp_status = (BFPint_lp) dlsym(lp.hBFP, "bfp_status");
+	  lp.bfp_implicitslack = (BFPbool_lp) dlsym(lp.hBFP, "bfp_implicitslack");
+	  lp.bfp_indexbase = (BFPint_lp) dlsym(lp.hBFP, "bfp_indexbase");
+	  }
+
+//----------------------------------------------------------------------------------------
+//	Copyright © 2006 - 2018 Tangible Software Solutions, Inc.
+//	This class can be used by anyone provided that the copyright notice remains intact.
+//
+//	This class provides the ability to replicate various classic C string functions
+//	which don't have exact equivalents in the .NET Framework.
+//----------------------------------------------------------------------------------------
+internal static class StringFunctions
+{
+	//------------------------------------------------------------------------------------
+	//	This method allows replacing a single character in a string, to help convert
+	//	C++ code where a single character in a character array is replaced.
+	//------------------------------------------------------------------------------------
+	public static string ChangeCharacter(string sourceString, int charIndex, char newChar)
+	{
+		return (charIndex > 0 ? sourceString.Substring(0, charIndex) : "")
+			+ newChar.ToString() + (charIndex < sourceString.Length - 1 ? sourceString.Substring(charIndex + 1) : "");
+	}
+
+	//------------------------------------------------------------------------------------
+	//	This method replicates the classic C string function 'isxdigit' (and 'iswxdigit').
+	//------------------------------------------------------------------------------------
+	public static bool IsXDigit(char character)
+	{
+		if (char.IsDigit(character))
+			return true;
+		else if ("ABCDEFabcdef".IndexOf(character) > -1)
+			return true;
+		else
+			return false;
+	}
+
+	//------------------------------------------------------------------------------------
+	//	This method replicates the classic C string function 'strchr' (and 'wcschr').
+	//------------------------------------------------------------------------------------
+	public static string StrChr(string stringToSearch, char charToFind)
+	{
+		int index = stringToSearch.IndexOf(charToFind);
+		if (index > -1)
+			return stringToSearch.Substring(index);
+		else
+			return null;
+	}
+
+	//------------------------------------------------------------------------------------
+	//	This method replicates the classic C string function 'strrchr' (and 'wcsrchr').
+	//------------------------------------------------------------------------------------
+	public static string StrRChr(string stringToSearch, char charToFind)
+	{
+		int index = stringToSearch.LastIndexOf(charToFind);
+		if (index > -1)
+			return stringToSearch.Substring(index);
+		else
+			return null;
+	}
+
+	//------------------------------------------------------------------------------------
+	//	This method replicates the classic C string function 'strstr' (and 'wcsstr').
+	//------------------------------------------------------------------------------------
+	public static string StrStr(string stringToSearch, string stringToFind)
+	{
+		int index = stringToSearch.IndexOf(stringToFind);
+		if (index > -1)
+			return stringToSearch.Substring(index);
+		else
+			return null;
+	}
+
+	//------------------------------------------------------------------------------------
+	//	This method replicates the classic C string function 'strtok' (and 'wcstok').
+	//	Note that the .NET string 'Split' method cannot be used to replicate 'strtok' since
+	//	it doesn't allow changing the delimiters between each token retrieval.
+	//------------------------------------------------------------------------------------
+	private static string activeString;
+	private static int activePosition;
+	public static string StrTok(string stringToTokenize, string delimiters)
+	{
+		if (stringToTokenize != null)
+		{
+			activeString = stringToTokenize;
+			activePosition = -1;
+		}
+
+		//the stringToTokenize was never set:
+		if (activeString == null)
+			return null;
+
+		//all tokens have already been extracted:
+		if (activePosition == activeString.Length)
+			return null;
+
+		//bypass delimiters:
+		activePosition++;
+		while (activePosition < activeString.Length && delimiters.IndexOf(activeString[activePosition]) > -1)
+		{
+			activePosition++;
+		}
+
+		//only delimiters were left, so return null:
+		if (activePosition == activeString.Length)
+			return null;
+
+		//get starting position of string to return:
+		int startingPosition = activePosition;
+
+		//read until next delimiter:
+		do
+		{
+			activePosition++;
+		} while (activePosition < activeString.Length && delimiters.IndexOf(activeString[activePosition]) == -1);
+
+		return activeString.Substring(startingPosition, activePosition - startingPosition);
+	}
+    lp.bfp_rowoffset = (BFPint_lp) dlsym(lp.hBFP, "bfp_rowoffset");
+	  lp.bfp_pivotmax = (BFPint_lp) dlsym(lp.hBFP, "bfp_pivotmax");
+	  lp.bfp_init = (BFPbool_lpintintchar) dlsym(lp.hBFP, "bfp_init");
+	  lp.bfp_pivotalloc = (BFPbool_lpint) dlsym(lp.hBFP, "bfp_pivotalloc");
+	  lp.bfp_colcount = (BFPint_lp) dlsym(lp.hBFP, "bfp_colcount");
+	  lp.bfp_canresetbasis = (BFPbool_lp) dlsym(lp.hBFP, "bfp_canresetbasis");
+	  lp.bfp_finishfactorization = (BFP_lp) dlsym(lp.hBFP, "bfp_finishfactorization");
+	  lp.bfp_updaterefactstats = (BFP_lp) dlsym(lp.hBFP, "bfp_updaterefactstats");
+	  lp.bfp_prepareupdate = (BFPlreal_lpintintreal) dlsym(lp.hBFP, "bfp_prepareupdate");
+	  lp.bfp_pivotRHS = (BFPreal_lplrealreal) dlsym(lp.hBFP, "bfp_pivotRHS");
+	  lp.bfp_btran_double = (BFP_lprealintrealint) dlsym(lp.hBFP, "bfp_btran_double");
+	  lp.bfp_efficiency = (BFPreal_lp) dlsym(lp.hBFP, "bfp_efficiency");
+	  lp.bfp_pivotvector = (BFPrealp_lp) dlsym(lp.hBFP, "bfp_pivotvector");
+	  lp.bfp_pivotcount = (BFPint_lp) dlsym(lp.hBFP, "bfp_pivotcount");
+	  lp.bfp_refactcount = (BFPint_lpint) dlsym(lp.hBFP, "bfp_refactcount");
+	  lp.bfp_isSetI = (BFPbool_lp) dlsym(lp.hBFP, "bfp_isSetI");
+	  lp.bfp_findredundant = (BFPint_lpintrealcbintint) dlsym(lp.hBFP, "bfp_findredundant");
+}
+	  else
+		result = LIB_VERINVALID;
+	}
+#endif
+	else
+	  result = LIB_NOTFOUND;
+#endif
+                /* Do validation */
+                if ((result != LIB_LOADED) || ((lp.bfp_name == null) || (lp.bfp_compatible == null) || (lp.bfp_free == null) || (lp.bfp_resize == null) || (lp.bfp_nonzeros == null) || (lp.bfp_memallocated == null) || (lp.bfp_restart == null) || (lp.bfp_mustrefactorize == null) || (lp.bfp_preparefactorization == null) || (lp.bfp_factorize == null) || (lp.bfp_finishupdate == null) || (lp.bfp_ftran_normal == null) || (lp.bfp_ftran_prepare == null) || (lp.bfp_btran_normal == null) || (lp.bfp_status == null) || (lp.bfp_implicitslack == null) || (lp.bfp_indexbase == null) || (lp.bfp_rowoffset == null) || (lp.bfp_pivotmax == null) || (lp.bfp_init == null) || (lp.bfp_pivotalloc == null) || (lp.bfp_colcount == null) || (lp.bfp_canresetbasis == null) || (lp.bfp_finishfactorization == null) || (lp.bfp_updaterefactstats == null) || (lp.bfp_prepareupdate == null) || (lp.bfp_pivotRHS == null) || (lp.bfp_btran_double == null) || (lp.bfp_efficiency == null) || (lp.bfp_pivotvector == null) || (lp.bfp_pivotcount == null) || (lp.bfp_refactcount == null) || (lp.bfp_isSetI == null) || (lp.bfp_findredundant == null)))
+                {
+                    set_BFP(lp, null);
+                    if (result == LIB_LOADED)
+                    {
+                        result = LIB_NOFUNCTION;
+                    }
+                }
+            }
+            if (filename != null)
+            {
+                string info = new string(new char[LIB_STR_MAXLEN + 1]);
+                switch (result)
+                {
+                    case LIB_NOTFOUND:
+                        info = LIB_STR_NOTFOUND;
+                        break;
+                    case LIB_NOINFO:
+                        info = LIB_STR_NOINFO;
+                        break;
+                    case LIB_NOFUNCTION:
+                        info = LIB_STR_NOFUNCTION;
+                        break;
+                    case LIB_VERINVALID:
+                        info = LIB_STR_VERINVALID;
+                        break;
+                    default:
+                        info = LIB_STR_LOADED;
+                        break;
+                }
+                report(lp, IMPORTANT, "set_BFP: %s '%s'\n", info, filename);
+            }
+            return ((MYBOOL)(result == LIB_LOADED));
+        }
     }
 }

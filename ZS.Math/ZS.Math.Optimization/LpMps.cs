@@ -1111,7 +1111,7 @@ namespace ZS.Math.Optimization
             else
                 output = lp.outstream;
 
-            /// <summary>
+            /// <summary> FIX_3aef9b13-7390-44b4-a845-3ab28200caec 22/11/18
             /// PREVIOUS: ok = MPS_writefileex(lp, typeMPS, (object)output, write_lpdata);
             /// ERROR IN PREVIOUS: cannot convert from 'method group' to 'lp_lib.write_modeldata_func'
             /// FIX 1: definition for 'write_lpdata' is not clear, hence sent null for now
@@ -1676,7 +1676,9 @@ namespace ZS.Math.Optimization
                 }
                 else
                 {
+
                     /*NOTED ISSUE: START
+                     * NEED TO Add C# equivalent for sprintf which will format the input in given format(%12.10f) and return the length
                     if (((i = sprintf(_str, "%12.10f", (double)value)) > 12) && (_str[12] >= '5'))
                     {
                         for (i = 11; i >= 0; i--)
@@ -1897,9 +1899,22 @@ namespace ZS.Math.Optimization
         }
 
 
-        public byte MPS_writehandle(lprec lp, int typeMPS, FILE output)
+        internal bool MPS_writehandle(lprec lp, int typeMPS, FileStream output)
         {
-            throw new NotImplementedException();
+            bool ok;
+            LpCls objLpCls = new LpCls();
+
+            if (output != null)
+            {
+                objLpCls.set_outputstream(lp, output);
+            }
+
+            output = lp.outstream;
+            //null: FIX_3aef9b13-7390-44b4-a845-3ab28200caec 22/11/18
+            ok = MPS_writefileex(lp, typeMPS, (object)output, null);
+
+            return (ok);
+
         }
 
         /* Read and write BAS files */
@@ -1907,9 +1922,105 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public byte MPS_writeBAS(lprec lp, int typeMPS, ref string filename)
+        public bool MPS_writeBAS(lprec lp, int typeMPS, ref string filename)
         {
-            throw new NotImplementedException();
+            int ib = 0;
+            int in1 = 0;
+            bool ok;
+            string name1 = "";
+            string name2 = "";
+            FileStream output = null;
+            MPSnameDelegate MPSname;
+            string name0 = "";
+            lp_report objlp_report = new lp_report();
+            LpCls objLpCls = new LpCls();
+            StreamWriter writer = new StreamWriter(output);
+            string msg = "";
+            string getrowcolname = "";
+
+            /* Set name formatter */
+            if ((typeMPS & lp_lib.MPSFIXED) == lp_lib.MPSFIXED)
+            {
+                MPSname = MPSnameFIXED;
+            }
+            else if ((typeMPS & lp_lib.MPSFREE) == lp_lib.MPSFREE)
+            {
+                MPSname = MPSnameFREE;
+            }
+            else
+            {
+                msg = "MPS_writeBAS: unrecognized MPS name type.\n";
+                objlp_report.report(lp, lp_lib.IMPORTANT, ref msg);
+                return false;
+            }
+
+            /* Open the FileStream for writing */
+            ok = (bool)((filename == null) || ((output = File.OpenWrite(filename)) != null));
+            if (!ok)
+            {
+                return ok;
+            }
+            if (filename == null && lp.outstream != null)
+            {
+                output = lp.outstream;
+            }
+
+            //ORIGINAL CODE: fprintf(output, , get_lp_name(lp), lp.rows, lp.columns, (double)get_total_iter(lp));
+            writer.Flush();
+            writer.Write("NAME          {0} Rows {1} Cols {2} Iters %.0f\n", objLpCls.get_lp_name(lp), lp.rows, lp.columns, (double)objLpCls.get_total_iter(lp));
+
+            ib = lp.rows;
+            in1 = 0;
+            while ((ib < lp.sum) || (in1 < lp.sum))
+            {
+
+                /* Find next basic variable (skip slacks) */
+                ib++;
+                while ((ib <= lp.sum) && !lp.is_basic[ib])
+                {
+                    ib++;
+                }
+
+                /* Find next non-basic variable (skip lower-bounded structural variables) */
+                in1++;
+                while ((in1 <= lp.sum) && (lp.is_basic[in1] || ((in1 > lp.rows) && lp.is_lower[in1])))
+                {
+                    in1++;
+                }
+
+                /* Check if we have a basic/non-basic variable pair */
+                if ((ib <= lp.sum) && (in1 <= lp.sum))
+                {
+                    getrowcolname = (ib <= lp.rows ? objLpCls.get_row_name(lp, ib) : objLpCls.get_col_name(lp, ib - lp.rows));
+                    name1 = MPSname(ref name0, ref getrowcolname);
+                    getrowcolname = (in1 <= lp.rows ? objLpCls.get_row_name(lp, in1) : objLpCls.get_col_name(lp, in1 - lp.rows));
+                        name2 = MPSname(ref name0, ref getrowcolname);
+                    //ORIGINAL CODE: fprintf(output, " %2s %s  %s\n", (lp.is_lower[in1] ? "XL" : "XU"), name1, name2);
+                    writer.Flush();
+                    writer.Write(" {0} {1}  {2}\n", (lp.is_lower[in1] ? "XL" : "XU"), name1, name2);
+
+                }
+
+                /* Otherwise just write the bound state of the non-basic variable */
+                else if (in1 <= lp.sum)
+                {
+                    getrowcolname = (in1 <= lp.rows ? objLpCls.get_row_name(lp, in1) : objLpCls.get_col_name(lp, in1 - lp.rows));
+                                name1 = MPSname(ref name0, ref getrowcolname);
+                    //ORIGINAL CODE: fprintf(output, " %2s %s\n", (lp.is_lower[in1] ? "LL" : "UL"), name1);
+                    writer.Flush();
+                    writer.Write(" {0} {1}\n", (lp.is_lower[in1] ? "LL" : "UL"), name1);
+                }
+
+            }
+            //ORIGINAL CODE: fprintf(output, "ENDATA\n");
+            writer.Flush();
+            writer.Write("ENDATA\n");
+            
+            if (filename != null)
+            {
+                output.Close();
+            }
+            return (ok);
         }
 
         /// <summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
