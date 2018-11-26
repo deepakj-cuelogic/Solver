@@ -202,5 +202,20 @@ namespace ZS.Math.Optimization
             return ((bool)(err >= tolerance));
         }
 
+        internal static multirec multi_create(lprec lp, bool truncinf)
+        {
+            multirec multi;
+           
+            multi = new multirec();
+            if (multi != null)
+            {
+                multi.active = 1;
+                multi.lp = lp;
+                multi.epszero = lprec.epsprimal;
+                multi.truncinf = truncinf;
+            }
+
+            return (multi);
+        }
     }
 }

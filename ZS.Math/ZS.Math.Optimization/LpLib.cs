@@ -379,7 +379,7 @@ namespace ZS.Math.Optimization
 
         public byte lag_trace;          // Print information on Lagrange progression
         public bool spx_trace;          // Print information on simplex progression
-        public byte bb_trace;           // TRUE to print extra debug information
+        public bool bb_trace;           // TRUE to print extra debug information
         /// <summary>
         /// changed from byte to bool 6/11/18
         /// </summary>
@@ -567,7 +567,7 @@ namespace ZS.Math.Optimization
                                    lower bound (or in the basis), FALSE otherwise */
 
         /* Simplex basis indicators */
-        int[] rejectpivot;       /* List of unacceptable pivot choices due to division-by-zero */
+        internal int[] rejectpivot;       /* List of unacceptable pivot choices due to division-by-zero */
         BBPSrec bb_PseudoCost;     /* Data structure for costing of node branchings */
         int bb_PseudoUpdates;   /* Maximum number of updates for pseudo-costs */
         internal int bb_strongbranches;  /* The number of strong B&B branches performed */
@@ -635,7 +635,7 @@ namespace ZS.Math.Optimization
         internal int bb_level;           /* Solver B&B working variable (recursion depth) */
         int bb_maxlevel;        /* The deepest B&B level of the last solution */
         int bb_limitlevel;      /* The maximum B&B level allowed */
-        long bb_totalnodes;      /* Total number of nodes processed in B&B */
+        internal long bb_totalnodes;      /* Total number of nodes processed in B&B */
         int bb_solutionlevel;   /* The B&B level of the last / best solution */
         int bb_cutpoolsize;     /* Size of the B&B cut pool */
         int bb_cutpoolused;     /* Currently used cut pool */
@@ -1471,7 +1471,7 @@ namespace ZS.Math.Optimization
 
         /* Solution recomputation options (internal) */
         public const int INITSOL_SHIFTZERO = 0;
-        public const int INITSOL_USEZERO = 1;
+        public const bool INITSOL_USEZERO = true;
         public const int INITSOL_ORIGINAL = 2;
 
         /* Strategy codes to avoid or recover from degenerate pivots,

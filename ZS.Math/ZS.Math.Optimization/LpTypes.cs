@@ -117,27 +117,27 @@ namespace ZS.Math.Optimization
 
     public class multirec
     {
-        lprec lp;
-        int size;                   /* The maximum number of multiply priced rows/columns */
-        int used;                   /* The current / active number of multiply priced rows/columns */
-        int limit;                  /* The active/used count at which a full update is triggered */
-        pricerec[] items;           /* Array of best multiply priced rows/columns */
-        int[] freeList;             /* The indeces of available positions in "items" */
-        QSORTrec[] sortedList;      /* List of pointers to "pricerec" items in sorted order */
-        double[] stepList;          /* Working array (values in sortedList order) */
-        double[] valueList;         /* Working array (values in sortedList order) */
-        int[] indexSet;             /* The final exported index list of pivot variables */
-        int active;                 /* Index of currently active multiply priced row/column */
+        internal lprec lp;
+        int size;                   // The maximum number of multiply priced rows/columns /
+        int used;                   // The current / active number of multiply priced rows/columns /
+        int limit;                  // The active/used count at which a full update is triggered /
+        pricerec[] items;           // Array of best multiply priced rows/columns /
+        int[] freeList;             // The indeces of available positions in "items" /
+        QSORTrec[] sortedList;      // List of pointers to "pricerec" items in sorted order /
+        double[] stepList;          // Working array(values in sortedList order) /
+        double[] valueList;         // Working array(values in sortedList order) /
+        int[] indexSet;             // The final exported index list of pivot variables /
+        internal int active;                 // Index of currently active multiply priced row/column /
         int retries;
         double step_base;
         double step_last;
         double obj_base;
         double obj_last;
-        double epszero;
+        internal double epszero;
         double maxpivot;
         double maxbound;
         byte sorted;
-        byte truncinf;
+        internal bool truncinf;
         byte objcheck;
         byte dirty;
     }
