@@ -88,9 +88,9 @@ namespace ZS.Math.Optimization
                     ///FIX_20521988-5de6-4a36-b964-ff9504331085 26/11/18
                     /// PREVIOUS: ref bVector[0]
                     double rhsvector = bVector[0];
-                    int? nzidx = lp.bsolveIdx;
+                    int? nzidx = (lp.bsolveIdx != null) ? Convert.ToInt32(lp.bsolveIdx) : 0;
                     lp_matrix.bsolve(lp, 0, ref rhsvector, ref nzidx, epsvalue * lp_lib.DOUBLEROUND, 1.0);
-                    if (isdual == null && (row_nr == 0) && (lp.improve!=0 && lp_lib.IMPROVE_SOLUTION!=0) && !LpCls.refactRecent(lp) && serious_facterror(lp, ref rhsvector, lp.rows, lprec.epsvalue))
+                    if (isdual == null && (row_nr == 0) && (lp.improve != 0 && lp_lib.IMPROVE_SOLUTION != 0) && !LpCls.refactRecent(lp) && serious_facterror(lp, ref rhsvector, lp.rows, lprec.epsvalue))
                     {
                         lp.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
                     }
@@ -111,7 +111,8 @@ namespace ZS.Math.Optimization
             partialrec blockdata;
 
             //NOTED ISSUE
-            blockdata = commonlib.IF(isrow, lp.rowblocks, lp.colblocks);
+            //RESOLVED ON 26/11/18
+            blockdata = (partialrec)commonlib.IF(isrow, lp.rowblocks, lp.colblocks);
             if (blockdata == null)
             {
                 return (1);
@@ -131,10 +132,10 @@ namespace ZS.Math.Optimization
             partialrec blockdata;
 
             //NOTED ISSUE
-            blockdata = commonlib.IF(isrow, lp.rowblocks, lp.colblocks);
+            blockdata = (partialrec)commonlib.IF(isrow, lp.rowblocks, lp.colblocks);
             if (blockdata == null)
             {
-                return (commonlib.IF(isrow, lp.rows, lp.sum));
+                return (Convert.ToInt32(commonlib.IF(isrow, lp.rows, lp.sum)));
             }
             else
             {
@@ -202,5 +203,23 @@ namespace ZS.Math.Optimization
             return ((bool)(err >= tolerance));
         }
 
+        /* Multiple pricing routines */
+        private static multirec multi_create(lprec lp, bool truncinf)
+        {
+            multirec multi;
+
+            //C++ TO JAVA CONVERTER TODO TASK: The memory management function 'calloc' has no equivalent in Java:
+            //C++ TO JAVA CONVERTER TODO TASK: There is no Java equivalent to 'sizeof':
+            multi = new multirec();
+            if (multi != null)
+            {
+                multi.active = 1;
+                multi.lp = lp;
+                multi.epszero = lprec.epsprimal;
+                multi.truncinf = truncinf;
+            }
+
+            return (multi);
+        }
     }
 }

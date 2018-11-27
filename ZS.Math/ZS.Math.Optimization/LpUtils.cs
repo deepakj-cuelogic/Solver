@@ -348,14 +348,16 @@ namespace ZS.Math.Optimization
         internal static double rand_uniform(lprec lp, double range)
         {
             bool randomized = false; /* static ok here for reentrancy/multithreading */
-
+            Random rnd = new Random();
             if (!randomized)
             {
                 randomized = true;
                 //NOTED ISSUE
-                srand((unsigned)time(NULL));
+                //srand((unsigned)time(NULL));
+                //RESOLVED 
+                rnd.Next(-1, 1);
             }
-            range *= (double)rand() / (double)RAND_MAX;
+            range *= (double)rnd.Next() / (double)rnd.Next();
             return (range);
         }
 

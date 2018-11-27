@@ -3384,5 +3384,10 @@ internal static class StringFunctions
             }
             return ((bool)(result == lp_types.LIB_LOADED));
         }
+        internal new bool is_piv_rule(lprec lp, int rule)
+        {
+            return ((bool)(get_piv_rule(lp) == rule));
+        }
+
     }
 }

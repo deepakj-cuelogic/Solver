@@ -17,13 +17,13 @@ namespace ZS.Math.Optimization
         public static Func<bool, double, double, double> my_if = (t, x, y) => ((t) ? (x) : (y));
 
         //ORIGINAL LINE: #define my_reldiff(x, y)       (((x) - (y)) / (1.0 + fabs((REAL) (y))))
-        public static Func<double, double,double> my_reldiff = (x, y) => (((x) - (y)) / (1.0 + System.Math.Abs((double)(y))));
+        public static Func<double, double, double> my_reldiff = (x, y) => (((x) - (y)) / (1.0 + System.Math.Abs((double)(y))));
 
         //ORIGINAL LINE: #define my_roundzero(val, eps)  if (fabs((REAL) (val)) < eps) val = 0
         public static Action<double, double> my_roundzero = delegate (double val, double eps) { if (System.Math.Abs(val) < eps) val = 0; };
 
         internal static string RESULTVALUEMASK = "%18.12g";
-        
+
         /* Library load status values */
         internal const int LIB_LOADED = 0;
         internal const int LIB_NOTFOUND = 1;
@@ -117,7 +117,7 @@ namespace ZS.Math.Optimization
 
     public class multirec
     {
-        lprec lp;
+        internal lprec lp;
         int size;                   /* The maximum number of multiply priced rows/columns */
         int used;                   /* The current / active number of multiply priced rows/columns */
         int limit;                  /* The active/used count at which a full update is triggered */
@@ -127,17 +127,17 @@ namespace ZS.Math.Optimization
         double[] stepList;          /* Working array (values in sortedList order) */
         double[] valueList;         /* Working array (values in sortedList order) */
         int[] indexSet;             /* The final exported index list of pivot variables */
-        int active;                 /* Index of currently active multiply priced row/column */
+        internal int active;                 /* Index of currently active multiply priced row/column */
         int retries;
         double step_base;
         double step_last;
         double obj_base;
         double obj_last;
-        double epszero;
+        internal double epszero;
         double maxpivot;
         double maxbound;
         byte sorted;
-        byte truncinf;
+        internal bool truncinf;
         byte objcheck;
         byte dirty;
     }

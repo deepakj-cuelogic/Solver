@@ -379,7 +379,7 @@ namespace ZS.Math.Optimization
 
         public byte lag_trace;          // Print information on Lagrange progression
         public bool spx_trace;          // Print information on simplex progression
-        public byte bb_trace;           // TRUE to print extra debug information
+        public bool bb_trace;           // TRUE to print extra debug information
         /// <summary>
         /// changed from byte to bool 6/11/18
         /// </summary>
@@ -483,14 +483,14 @@ namespace ZS.Math.Optimization
         public int sc_vars; // Number of semi-continuous variables
         public double[] sc_lobound; /* sum_columns+1 : TRUE if variable is semi-continuous;
                                    value replaced by conventional lower bound during solve */
-                                  //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
-                                  //ORIGINAL LINE: int *var_is_free;
+                                    //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+                                    //ORIGINAL LINE: int *var_is_free;
         public int?[] var_is_free; // columns+1: Index of twin variable if variable is free
-                                //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
-                                //ORIGINAL LINE: int *var_priority;
-        /// <summary>
-        /// changed int? from int as set to null
-        /// </summary>
+                                   //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+                                   //ORIGINAL LINE: int *var_priority;
+                                   /// <summary>
+                                   /// changed int? from int as set to null
+                                   /// </summary>
         public int? var_priority; // columns: Priority-mapping of variables
 
         public SOSgroup GUB; // Pointer to record containing GUBs
@@ -567,7 +567,7 @@ namespace ZS.Math.Optimization
                                    lower bound (or in the basis), FALSE otherwise */
 
         /* Simplex basis indicators */
-        int[] rejectpivot;       /* List of unacceptable pivot choices due to division-by-zero */
+        internal int[] rejectpivot;       /* List of unacceptable pivot choices due to division-by-zero */
         BBPSrec bb_PseudoCost;     /* Data structure for costing of node branchings */
         int bb_PseudoUpdates;   /* Maximum number of updates for pseudo-costs */
         internal int bb_strongbranches;  /* The number of strong B&B branches performed */
@@ -621,7 +621,7 @@ namespace ZS.Math.Optimization
         /// </summary>
         public const double epsdual = 0;            /* For rounding reduced costs to zero */
 
-        
+
 
         internal double epspivot;           /* Pivot reject tolerance */
         internal double epsperturb;         /* Perturbation scalar */
@@ -635,7 +635,7 @@ namespace ZS.Math.Optimization
         internal int bb_level;           /* Solver B&B working variable (recursion depth) */
         int bb_maxlevel;        /* The deepest B&B level of the last solution */
         int bb_limitlevel;      /* The maximum B&B level allowed */
-        long bb_totalnodes;      /* Total number of nodes processed in B&B */
+        internal long bb_totalnodes;      /* Total number of nodes processed in B&B */
         int bb_solutionlevel;   /* The B&B level of the last / best solution */
         int bb_cutpoolsize;     /* Size of the B&B cut pool */
         int bb_cutpoolused;     /* Currently used cut pool */
@@ -722,7 +722,7 @@ namespace ZS.Math.Optimization
         public delegate int getcolumnex_func(lprec lp, int colnr, ref double nzvalues, ref int nzrows, ref int mapin);
         // ORIGINAL LINE: typedef int    (BFP_CALLMODEL BFPint_lpintrealcbintint)(lprec* lp, int items, getcolumnex_func cb, int* maprow, int* mapcol);
         public delegate int BFPint_lpintrealcbintint(lprec lp, int items, getcolumnex_func cb, ref int maprow, int mapcol);
-        
+
         /* Refactorization engine interface routines (for object DLL/SO BFPs) */
         internal BFPchar bfp_name;
         internal BFPbool_lpintintint bfp_compatible;
@@ -825,7 +825,7 @@ namespace ZS.Math.Optimization
         public delegate void lphandleint_func(lprec lp, object userhandle, int message);
         // ORIGINAL LINE: typedef int    (__WINAPI lphandleint_intfunc)(lprec* lp, void* userhandle, int message);
         public delegate int lphandleint_intfunc(lprec lp, object userhandle, int message);
-        
+
 
         /* API typedef definitions                                                   */
         /* ------------------------------------------------------------------------- */
@@ -953,7 +953,7 @@ namespace ZS.Math.Optimization
         // ORIGINAL LINE: typedef int (__WINAPI get_orig_index_func)(lprec* lp, int lp_index);
         public delegate int get_orig_index_func(lprec lp, int lp_index);
         // ORIGINAL LINE: typedef char* (__WINAPI get_origcol_name_func)(lprec* lp, int colnr);
-        public delegate string  get_origcol_name_func(lprec lp, int colnr);
+        public delegate string get_origcol_name_func(lprec lp, int colnr);
         // ORIGINAL LINE: typedef char* (__WINAPI get_origrow_name_func)(lprec* lp, int rownr);
         public delegate string get_origrow_name_func(lprec lp, int rownr);
         // ORIGINAL LINE: typedef void (__WINAPI get_partialprice_func)(lprec* lp, int* blockcount, int* blockstart, MYBOOL isrow);
@@ -1471,7 +1471,7 @@ namespace ZS.Math.Optimization
 
         /* Solution recomputation options (internal) */
         public const int INITSOL_SHIFTZERO = 0;
-        public const int INITSOL_USEZERO = 1;
+        public const bool INITSOL_USEZERO = true;
         public const int INITSOL_ORIGINAL = 2;
 
         /* Strategy codes to avoid or recover from degenerate pivots,
@@ -1902,9 +1902,9 @@ namespace ZS.Math.Optimization
 
         /* Prototypes for user call-back functions                                   */
         /* ------------------------------------------------------------------------- */
-        
-        
-        
+
+
+
 
         // ORIGINAL LINE: typedef int    (__WINAPI lphandle_intfunc)(lprec* lp, void* userhandle);
         public delegate int lphandle_intfunc(lprec lp, object userhandle);
@@ -2113,7 +2113,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         /* Returns the column index if column is already present in lp, otherwise 0.
             (Does not look at bounds and types, only looks at matrix values */
-            
+
         public int get_columnex(lprec lp, int colnr, ref double[] column, ref int?[] nzrow)
         { throw new NotImplementedException(); }
         public byte get_column(lprec lp, int colnr, ref double column)
@@ -2971,6 +2971,6 @@ namespace ZS.Math.Optimization
         }
 
 
-        
+
     }
 }

@@ -53,15 +53,14 @@ namespace ZS.Math.Optimization
         public const int LUSOL_BASEORDER = 0;
         public const int LUSOL_ACCELERATE_L0 = 4;
         public const int LUSOL_INFORM_NOMEMLEFT = 10;
-        public const int LUSOL_IP_ROWCOUNT_L0 = 32;
-        public const int LUSOL_AUTOORDER = 2;
+        
+        
         //public const int LUSOL_RP_SMARTRATIO = 0;
         public const int ZERO = 0;
         public const int LUSOL_IP_FTRANCOUNT = 30;
         public const int LUSOL_ACCELERATE_U = 8;
         public const int LUSOL_IP_RANK_U = 16;
         public const int LUSOL_IP_NONZEROS_U = 24;
-        public const bool LUSOL_RP_SMARTRATIO = false;
         public const int LUSOL_INFORM_LUSINGULAR = 1;
         public const int LUSOL_RP_RESIDUAL_U = 20;
         //END:ADDED BELOW CONSTANT FOR METHOD LU1L0 which is in lusol6l0.cs file
@@ -76,7 +75,7 @@ namespace ZS.Math.Optimization
 
         static Func<int, int, int, int> LIMIT = (lo, x, hi) => ((x < (lo) ? lo : ((x) > hi ? hi : x)));
         static Func<int, int, int, bool> BETWEEN = (x, a, b) => ((x - a) * (x - b) <= 0);
-        internal static Func<bool, int, int, int> IF = (t, x, y) => ((t) ? (x) : (y));
+        internal static Func<bool, object, object, object> IF = (t, x, y) => ((t) ? (x) : (y));
         static Func<object, object> SIGN = (x) => ((int)(x) < 0 ? -1 : 1);
 
         static Func<double, double, double> DELTA_SIZE = (newSize, oldSize) =>

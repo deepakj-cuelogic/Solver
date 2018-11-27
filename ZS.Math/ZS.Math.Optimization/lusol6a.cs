@@ -418,10 +418,9 @@ namespace ZS.Math.Optimization
           int L2;
           int NRANK;
           int NRANK1;
-
-          //NOTED ISSUE
-          int ip = LUSOL.ip + 1;
-          int iq = LUSOL.iq + 1;
+            
+          int ip = LUSOL.ip[0] + 1;
+          int iq = LUSOL.iq[0] + 1;
           double SMALL = new double();
 
         //ORIGINAL LINE: register REAL T;

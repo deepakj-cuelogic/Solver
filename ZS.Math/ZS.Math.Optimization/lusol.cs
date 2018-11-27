@@ -7,6 +7,23 @@ namespace ZS.Math.Optimization
 {
     public class lusol
     {
+        public const int LUSOL_RP_SMARTRATIO = 0;
+        public const int LUSOL_IP_ROWCOUNT_L0 = 32;
+        public const int LUSOL_AUTOORDER = 2;
+        public const int LUSOL_IP_ACCELERATION = 7;
+        public const int LUSOL_BASEORDER = 0;
+        public const int LUSOL_ACCELERATE_L0 = 4;
+        public const int LUSOL_INFORM_NOMEMLEFT = 10;
+
+
+        //public const int LUSOL_RP_SMARTRATIO = 0;
+        public const int ZERO = 0;
+        public const int LUSOL_IP_FTRANCOUNT = 30;
+        public const int LUSOL_ACCELERATE_U = 8;
+        public const int LUSOL_IP_RANK_U = 16;
+        public const int LUSOL_IP_NONZEROS_U = 24;
+        public const int LUSOL_INFORM_LUSINGULAR = 1;
+        public const int LUSOL_RP_RESIDUAL_U = 20;
         internal int LUSOL_btran(LUSOLrec LUSOL, double[] b, int[] NZidx)
         {
             int inform = 0;

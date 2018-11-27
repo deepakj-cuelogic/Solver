@@ -12,7 +12,7 @@ namespace ZS.Math.Optimization
         public const int CAM_Record = 0;
         public const int CAM_Vector = 1;
         public const int CAM = 0;
-        
+
 
 
 #if CAM == CAM_Record
@@ -51,7 +51,7 @@ namespace ZS.Math.Optimization
         public int[] col_end; /* columns_alloc+1 : col_end[i] is the index of the first element after column i; column[i] is stored in elements col_end[i-1] to col_end[i]-1 */
         //ORIGINAL LINE: int *col_tag;
         public int[] col_tag; // user-definable tag associated with each column
-        
+
 #if MatrixRowAccess == RAM_Index
         //ORIGINAL LINE: int *row_mat;
         public int[] row_mat; /* mat_alloc : From index 0, row_mat contains the row-ordered index of the elements of col_mat */
@@ -110,7 +110,7 @@ namespace ZS.Math.Optimization
         static MATrec mat;
         public const int MAT_ROUNDRC = 4;
         public const int MAT_ROUNDREL = 2;
-        //public const int MAT_ROUNDDEFAULT = MAT_ROUNDREL;
+        public const int MAT_ROUNDDEFAULT = MAT_ROUNDREL;
 
         /* Constants for matrix product rounding options */
         internal const int MAT_ROUNDNONE = 0;
@@ -270,7 +270,7 @@ namespace ZS.Math.Optimization
                 }
                 else if (isNZ == null && (row != null) && (row[0] != 0))
                 {
-                    value = saved = (row != null) ? Convert.ToDouble(row[0]) : 0; 
+                    value = saved = (row != null) ? Convert.ToDouble(row[0]) : 0;
 #if DoMatrixRounding
 	  value = roundToPrecision(value, mat.epsvalue);
 #endif
@@ -451,7 +451,7 @@ namespace ZS.Math.Optimization
             {
                 if (count > 1)
                 {
-                   commonlib.sortREALByINT(ref column, ref rowno, count, 0, true);
+                    commonlib.sortREALByINT(ref column, ref rowno, count, 0, true);
                 }
                 if ((rowno[0] < 0))
                 {
@@ -470,7 +470,7 @@ namespace ZS.Math.Optimization
                 row = -1;
                 for (i = ((isNZ != null || !mat.is_roworder) ? 0 : 1); i <= count; i++)
                 {
-                    value =  (column[i] != null) ? Convert.ToDouble(column[i]) : 0;
+                    value = (column[i] != null) ? Convert.ToDouble(column[i]) : 0;
                     if (System.Math.Abs(value) > mat.epsvalue)
                     {
                         if (isNZ != null)
@@ -521,8 +521,8 @@ namespace ZS.Math.Optimization
                 {
                     ///NOTED ISSUE
                     //double? (column != null) ? Convert.ToDouble(column[0]) : 0 + Convert.ToDouble(mat.rows)
-                    double c = (mat.rows != null) ? Convert.ToDouble(mat.rows): 0;
-                    mat_appendcol(lp.matL, objLpCls.get_Lrows(lp), column +  c, null, mult, checkrowmode);
+                    double c = (mat.rows != null) ? Convert.ToDouble(mat.rows) : 0;
+                    mat_appendcol(lp.matL, objLpCls.get_Lrows(lp), column + c, null, mult, checkrowmode);
                 }
 
             }
@@ -579,14 +579,14 @@ namespace ZS.Math.Optimization
                     colnr = COL_MAT_COLNR(j);
                     for (; j < je; j++, rownr += matRowColStep, colnr += matRowColStep)
                     {
-/*#if Paranoia
-		if ((*rownr < 0) || (*rownr > mat.rows))
-		{
-		  report(mat.lp, SEVERE, "mat_validate: Matrix value storage error row %d [0..%d], column %d [1..%d]\n", *rownr, mat.rows, *colnr, mat.columns);
-		  mat.lp.spx_status = UNKNOWNERROR;
-		  return (0);
-		}
-#endif*/
+                        /*#if Paranoia
+                                if ((*rownr < 0) || (*rownr > mat.rows))
+                                {
+                                  report(mat.lp, SEVERE, "mat_validate: Matrix value storage error row %d [0..%d], column %d [1..%d]\n", *rownr, mat.rows, *colnr, mat.columns);
+                                  mat.lp.spx_status = UNKNOWNERROR;
+                                  return (0);
+                                }
+                        #endif*/
                         colnr = i;
                         if (rownr == 0)
                         {
@@ -632,13 +632,13 @@ namespace ZS.Math.Optimization
             if ((column < 1) || (column > mat.columns))
             {
                 string msg = "mat_findelm: Column {0} out of range\n";
-               objlpReport.report(mat.lp, lp_lib.IMPORTANT, ref msg , column);
+                objlpReport.report(mat.lp, lp_lib.IMPORTANT, ref msg, column);
                 return (-1);
             }
             if ((row < 0) || (row > mat.rows))
             {
                 string msg = "mat_findelm: Row {0} out of range\n";
-                objlpReport.report(mat.lp, lp_lib.IMPORTANT, ref msg , row);
+                objlpReport.report(mat.lp, lp_lib.IMPORTANT, ref msg, row);
                 return (-1);
             }
 
@@ -706,13 +706,13 @@ namespace ZS.Math.Optimization
             bool isA;
             LpCls objLpCls = new LpCls();
 
-            #if Paranoia
+#if Paranoia
               if ((col_nr < 1) || (col_nr > mat.columns))
               {
 	            report(mat.lp, IMPORTANT, "mult_column: Column %d out of range\n", col_nr);
 	            return;
               }
-            #endif
+#endif
             if (mult == 1.0)
                 return;
 
@@ -781,7 +781,7 @@ namespace ZS.Math.Optimization
                 }
                 else
                 {
-                //#endif
+                    //#endif
                     k1 = mat.row_end[row_nr - 1];
                 }
                 k2 = mat.row_end[row_nr];
@@ -886,7 +886,7 @@ namespace ZS.Math.Optimization
                     mat.row_end[i] -= j;
                 }
                 mat.row_end[(mat.rows != null) ? Convert.ToInt32(mat.rows) : 0] = nz;
-               lp_utils.swapPTR(mat.row_end.Cast<Object>().ToArray(), mat.col_end.Cast<Object>().ToArray());
+                lp_utils.swapPTR(mat.row_end.Cast<Object>().ToArray(), mat.col_end.Cast<Object>().ToArray());
 
                 /* Swap arrays of maximum values */
                 lp_utils.swapPTR(mat.rowmax.Cast<object>().ToArray(), mat.colmax.Cast<object>().ToArray());
@@ -911,7 +911,7 @@ namespace ZS.Math.Optimization
         static byte vec_expand(double[] nzvector, int nzindex, double[] densevector, int startpos, int endpos) { throw new NotImplementedException(); }
 
         /* Sparse matrix products */
-        static bool get_colIndexA(lprec lp, int varset, int colindex, bool append)  
+        static bool get_colIndexA(lprec lp, int varset, int colindex, bool append)
         {
             int i;
             int varnr;
@@ -960,14 +960,14 @@ namespace ZS.Math.Optimization
             /* Adjust for partial pricing */
             if ((varset & lp_lib.SCAN_PARTIALBLOCK) != 0)
             {
-               commonlib.SETMAX(vb, LpPrice.partial_blockStart(lp, false));
-               commonlib.SETMIN(ve, LpPrice.partial_blockEnd(lp, false));
+                commonlib.SETMAX(vb, LpPrice.partial_blockStart(lp, false));
+                commonlib.SETMIN(ve, LpPrice.partial_blockEnd(lp, false));
             }
 
             /* Determine exclusion columns */
             //ORIGINAL LINE: omitfixed = (bool)((varset & OMIT_FIXED) != 0);
             omitfixed = ((bool)((varset & lp_lib.OMIT_FIXED) != 0));
-            
+
             //ORIGINAL LINE: omitnonfixed = (bool)((varset & OMIT_NONFIXED) != 0);
             omitnonfixed = ((bool)((varset & lp_lib.OMIT_NONFIXED) != 0));
             if (omitfixed != null && omitnonfixed != null)
@@ -991,11 +991,11 @@ namespace ZS.Math.Optimization
                 if (varnr > nrows)
                 {
                     //ORIGINAL CODE : if ((varnr <= nsum - P1extraDim) && !(varset & lp_lib.SCAN_USERVARS))
-                    if ((varnr <= nsum - P1extraDim) && (varset!=0 && lp_lib.SCAN_USERVARS!=0))
+                    if ((varnr <= nsum - P1extraDim) && (varset != 0 && lp_lib.SCAN_USERVARS != 0))
                     {
                         continue;
                     }
-                    
+
                     ///#if 1
                     /* Skip empty columns */
                     if ((mat_collength(lp.matA, varnr - nrows) == 0))
@@ -1068,7 +1068,7 @@ namespace ZS.Math.Optimization
             double matValue;
 
             //ORIGINAL LINE: register int *matRownr;
-          
+
             int matRownr;
 
             /* Clean output area (only necessary if we are returning the full vector) */
@@ -1262,14 +1262,14 @@ namespace ZS.Math.Optimization
                         }
                         if ((roundmode & lp_matrix.MAT_ROUNDABS) != 0)
                         {
-                           lp_types.my_roundzero(v, roundzero);
+                            lp_types.my_roundzero(v, roundzero);
                         }
                     }
 
                     /* Special handling of small reduced cost values */
                     if (isRC == null || (lp_types.my_chsign(lp.is_lower[varnr], v) < 0))
                     {
-                       commonlib.SETMAX(Convert.ToInt32(vmax), Convert.ToInt32(System.Math.Abs(v)));
+                        commonlib.SETMAX(Convert.ToInt32(vmax), Convert.ToInt32(System.Math.Abs(v)));
                     }
                     vmax *= roundzero;
                     for (ib = 1; ib <= countNZ; ib++)
@@ -1567,15 +1567,15 @@ namespace ZS.Math.Optimization
 
             /* Recompute the RHS ( Ref. lp_solve inverse logic and Chvatal p. 121 ) */
             ///#if DebugInv
-           // blockWriteLREAL(stdout, "RHS-values pre invert", lp.rhs, 0, lp.rows);
+            // blockWriteLREAL(stdout, "RHS-values pre invert", lp.rhs, 0, lp.rows);
             ///#endif
-           LpCls.recompute_solution(lp, shiftbounds);
+            LpCls.recompute_solution(lp, shiftbounds);
             LpPricePSE.restartPricer(lp, DefineConstants.AUTOMATIC);
 
             ///#if DebugInv
             msg = "RHS-values post invert";
             objlp_report.blockWriteLREAL(stdout, ref msg, lp.rhs[0], 0, lp.rows);
-        ///#endif
+            ///#endif
 
             Cleanup:
             /* Check for numerical instability indicated by frequent refactorizations */

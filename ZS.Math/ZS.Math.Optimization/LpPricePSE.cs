@@ -66,10 +66,10 @@ namespace ZS.Math.Optimization
             m = lp.rows;
 
             /* Determine strategy and check if we have strategy fallback for the primal */
-            isDEVEX = is_piv_rule(lp, lp_lib.PRICER_DEVEX);
+            isDEVEX = objLpCls.is_piv_rule(lp, lp_lib.PRICER_DEVEX);
             if (isDEVEX == null && (isdual > 0))
             {
-                isDEVEX = is_piv_mode(lp, lp_lib.PRICE_PRIMALFALLBACK);
+                isDEVEX = objLpCls.is_piv_mode(lp, lp_lib.PRICE_PRIMALFALLBACK);
             }
 
             /* Check if we only need to do the simple DEVEX initialization */
@@ -113,7 +113,7 @@ namespace ZS.Math.Optimization
                 for (i = 1; i <= m; i++)
                 {
                     int? nzidx = null;
-                   lp_matrix.bsolve(lp, i, ref sEdge[0], ref nzidx, 0, 0.0);
+                    lp_matrix.bsolve(lp, i, ref sEdge[0], ref nzidx, 0, 0.0);
 
                     /* Compute the edge norm */
                     seNorm = 0;
@@ -140,7 +140,7 @@ namespace ZS.Math.Optimization
                         continue;
                     }
 
-                   lp_matrix.fsolve(lp, i, sEdge, null, 0, 0.0, false);
+                    lp_matrix.fsolve(lp, i, sEdge, null, 0, 0.0, false);
 
                     /* Compute the edge norm */
                     seNorm = 1;

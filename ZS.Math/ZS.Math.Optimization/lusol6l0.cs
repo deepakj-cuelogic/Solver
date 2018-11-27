@@ -68,11 +68,11 @@ namespace ZS.Math.Optimization
                     K++;
                 }
             }
-            LUSOL.luparm[commonlib.LUSOL_IP_ROWCOUNT_L0] = K;
+            LUSOL.luparm[lusol.LUSOL_IP_ROWCOUNT_L0] = K;
 
             /* Check if we should apply "smarts" before proceeding to the row matrix creation */
             //NOTED ISSUE:
-            if ((LUSOL.luparm[commonlib.LUSOL_IP_ACCELERATION] & commonlib.LUSOL_AUTOORDER) && ((double)LUSOL.luparm[commonlib.LUSOL_IP_ROWCOUNT_L0] / LUSOL.m > LUSOL.parmlu[commonlib.LUSOL_RP_SMARTRATIO]))
+            if ((LUSOL.luparm[lusol.LUSOL_IP_ACCELERATION] > 0 & lusol.LUSOL_AUTOORDER > 0) && ((double)LUSOL.luparm[lusol.LUSOL_IP_ROWCOUNT_L0] / LUSOL.m > LUSOL.parmlu[lusol.LUSOL_RP_SMARTRATIO]))
             {          
                   goto Finish;
             }
@@ -89,7 +89,7 @@ namespace ZS.Math.Optimization
             /* Cumulate row counts to get vector offsets; first row is leftmost
                (stick with Fortran array offset for consistency) */
                //NOTED ISSUE
-            mat[0].lenx = 1;
+            mat[0].lenx[0] = 1;
             for (K = 1; K <= LUSOL.m; K++)
             {
                 //NOTED ISSUE

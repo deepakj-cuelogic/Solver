@@ -61,7 +61,7 @@ namespace ZS.Math.Optimization
             string tmp = new string(new char[lp_lib.BUFSIZ]);
             string Last_col_name = new string(new char[lp_lib.BUFSIZ]);
             //string probname = new string(new char[lp_lib.BUFSIZ]);
-            char probname;
+            string probname;
             string OBJNAME = new string(new char[lp_lib.BUFSIZ]);
             char ptr;   //previously string ptr; changed on 12/11/18
             int items;
@@ -170,9 +170,9 @@ namespace ZS.Math.Optimization
                         if (string.Compare(tmp, "NAME") == 0)
                         {
                             section = lp_lib.MPSNAME;
-                            probname = (char)0;
+                            probname = "0";
                             //sscanf(line, "NAME %s", probname);
-                            if (!objLpCls.set_lp_name(lp, probname))
+                            if (!objLpCls.set_lp_name(lp, ref probname))
                             {
                                 break;
                             }
@@ -1967,7 +1967,7 @@ namespace ZS.Math.Optimization
 
             //ORIGINAL CODE: fprintf(output, , get_lp_name(lp), lp.rows, lp.columns, (double)get_total_iter(lp));
             writer.Flush();
-            writer.Write("NAME          {0} Rows {1} Cols {2} Iters %.0f\n", objLpCls.get_lp_name(lp), lp.rows, lp.columns, (double)objLpCls.get_total_iter(lp));
+            writer.Write("NAME          {0} Rows {1} Cols {2} Iters %.0f\n", objLpCls.get_lp_name(lp), lp.rows, lp.columns, (double)LpCls.get_total_iter(lp));
 
             ib = lp.rows;
             in1 = 0;
