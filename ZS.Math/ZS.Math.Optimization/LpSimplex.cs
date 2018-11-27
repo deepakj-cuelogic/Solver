@@ -722,13 +722,13 @@ namespace ZS.Math.Optimization
             int lastnr = 0;
             int candidatecount = 0;
             int minitcount = 0;
-            int ok = 1;
+            bool ok = 1;
             double theta = 0.0;
             double epsvalue = new double();
             double xviolated = 0.0;
             double cviolated = 0.0;
             double? prow = null;
-            double? pcol = null;
+            double?[] pcol = null;
             double drow = lp.drow;
             string msg;
 
@@ -787,7 +787,7 @@ namespace ZS.Math.Optimization
 
                     //NOT REQUIRED
                     //ok = allocREAL(lp, (lp.drow), lp.sum + 1, AUTOMATIC) && allocINT(lp, (lp.nzdrow), lp.sum + 1, AUTOMATIC);
-                    if (ok !=0)
+                    if (!ok)
                     {
                         goto Finish;
                     }
@@ -805,36 +805,35 @@ namespace ZS.Math.Optimization
                 }
 
                 LpPricePSE.simplexPricer(lp, (bool)!primal);
-                invert(lp, INITSOL_USEZERO, 1);
+                lp_matrix.invert(lp, lp_lib.INITSOL_USEZERO, true);
             }
             else
             {
-                lp.simplex_mode = SIMPLEX_Phase2_PRIMAL;
-                restartPricer(lp, (MYBOOL)!primal);
+                lp.simplex_mode = lp_lib.SIMPLEX_Phase2_PRIMAL;
+                LpPricePSE.restartPricer(lp, (bool)!primal);
             }
             /* Create work arrays and optionally the multiple pricing structure */
-            ok = allocREAL(lp, (lp.bsolveVal), lp.rows + 1, 0) && allocREAL(lp, prow, lp.sum + 1, 1) && allocREAL(lp, pcol, lp.rows + 1, 1);
-            if (is_piv_mode(lp, PRICE_MULTIPLE) && (lp.multiblockdiv > 1))
+            //NOT REQUIRED
+            //ok = allocREAL(lp, (lp.bsolveVal), lp.rows + 1, 0) && allocREAL(lp, prow, lp.sum + 1, 1) && allocREAL(lp, pcol, lp.rows + 1, 1);
+            if (objLpCls.is_piv_mode(lp, lp_lib.PRICE_MULTIPLE) && (lp.multiblockdiv > 1))
             {
-                lp.multivars = multi_create(lp, 0);
+                lp.multivars = LpPrice.multi_create(lp, false);
                 ok &= (lp.multivars != null) && multi_resize(lp.multivars, lp.sum / lp.multiblockdiv, 2, 0, 1);
             }
             if (!ok)
             {
-                //C++ TO JAVA CONVERTER TODO TASK: There are no gotos or labels in Java:
                 goto Finish;
             }
 
             /* Initialize regular primal simplex algorithm variables */
-            lp.spx_status = RUNNING;
-            minit = ITERATE_MAJORMAJOR;
+            lp.spx_status = lp_lib.RUNNING;
+            minit = lp_lib.ITERATE_MAJORMAJOR;
             epsvalue = lp.epspivot;
-            pendingunbounded = 0;
-
-            ok = stallMonitor_create(lp, 0, "primloop");
+            pendingunbounded = false;
+            msg = "primloop";
+            ok = stallMonitor_create(lp, false, ref msg);
             if (!ok)
             {
-                //C++ TO JAVA CONVERTER TODO TASK: There are no gotos or labels in Java:
                 goto Finish;
             }
 
@@ -842,24 +841,22 @@ namespace ZS.Math.Optimization
 
             /* Iterate while we are successful; exit when the model is infeasible/unbounded,
                or we must terminate due to numeric instability or user-determined reasons */
-            while ((lp.spx_status == RUNNING) && !userabort(lp, -1))
+            while ((lp.spx_status == lp_lib.RUNNING) && !userabort(lp, -1))
             {
 
-                primalphase1 = (MYBOOL)(lp.P1extraDim > 0);
-                clear_action(lp.spx_action, ACTION_REINVERT | ACTION_ITERATE);
+                primalphase1 = (bool)(lp.P1extraDim > 0);
+                LpCls.clear_action(ref lp.spx_action, lp_lib.ACTION_REINVERT | lp_lib.ACTION_ITERATE);
 
                 /* Check if we have stalling (from numerics or degenerate cycling) */
                 pricerCanChange = !primalphase1;
-                stallaccept = stallMonitor_check(lp, rownr, colnr, lastnr, minit, pricerCanChange, forceoutEQ);
+                stallaccept = stallMonitor_check(lp, rownr, colnr, lastnr, minit, pricerCanChange, ref forceoutEQ);
                 if (!stallaccept)
                 {
                     break;
                 }
 
             /* Find best column to enter the basis */
-            //C++ TO JAVA CONVERTER TODO TASK: There are no gotos or labels in Java:
             RetryCol:
-                //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
                 ///#if false
                 //    if(verify_solution(lp, FALSE, "spx_loop") > 0)
                 //      i = 1; // This is just a debug trap 
@@ -870,40 +867,40 @@ namespace ZS.Math.Optimization
                     do
                     {
                         i++;
-                        colnr = colprim(lp, drow, nzdrow, (MYBOOL)(minit == ITERATE_MINORRETRY), i, candidatecount, 1, xviolated);
-                    } while ((colnr == 0) && (i < partial_countBlocks(lp, (MYBOOL)!primal)) && partial_blockStep(lp, (MYBOOL)!primal));
+                        colnr = colprim(lp, drow, nzdrow, (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), i, candidatecount, 1, xviolated);
+                    } while ((colnr == 0) && (i < partial_countBlocks(lp, (bool)!primal)) && partial_blockStep(lp, (bool)!primal));
 
                     /* Handle direct outcomes */
                     if (colnr == 0)
                     {
-                        lp.spx_status = OPTIMAL;
+                        lp.spx_status = lp_lib.OPTIMAL;
                     }
                     if (lp.rejectpivot[0] > 0)
                     {
-                        minit = ITERATE_MAJORMAJOR;
+                        minit = lp_lib.ITERATE_MAJORMAJOR;
                     }
 
                     /* See if accuracy check during compute_reducedcosts flagged refactorization */
-                    if (is_action(lp.spx_action, ACTION_REINVERT))
+                    if (objLpCls.is_action(lp.spx_action, lp_lib.ACTION_REINVERT))
                     {
-                        bfpfinal = 1;
+                        bfpfinal = true;
                     }
 
                 }
                 /* Make sure that we do not erroneously conclude that an unbounded model is optimal */
-                //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
                 ///#if primal_UseRejectionList
                 if ((colnr == 0) && (lp.rejectpivot[0] > 0))
                 {
-                    lp.spx_status = UNBOUNDED;
+                    lp.spx_status = lp_lib.UNBOUNDED;
                     if ((lp.spx_trace && (lp.bb_totalnodes == 0)) || (lp.bb_trace && (lp.bb_totalnodes > 0)))
                     {
-                        report(lp, DETAILED, "The model is primal unbounded.\n");
+                        msg = "The model is primal unbounded.\n";
+                        lp.report(lp, lp_lib.DETAILED, ref msg);
                     }
                     colnr = lp.rejectpivot[1];
                     rownr = 0;
                     lp.rejectpivot[0] = 0;
-                    ok = 0;
+                    ok = false;
                     break;
                 }
                 ///#endif
@@ -911,44 +908,45 @@ namespace ZS.Math.Optimization
                 /* Check if we found an entering variable (indicating that we are still dual infeasible) */
                 if (colnr > 0)
                 {
-                    changedphase = 0;
-                    fsolve(lp, colnr, pcol, null, lp.epsmachine, 1.0, 1); // Solve entering column for Pi
+                    changedphase = false;
+                    lp_matrix.fsolve(lp, colnr, pcol, null, lp.epsmachine, 1.0, true); // Solve entering column for Pi
 
                     /* Do special anti-degeneracy column selection, if specified */
-                    if (is_anti_degen(lp, ANTIDEGEN_COLUMNCHECK) && !check_degeneracy(lp, pcol, null))
+                    if (objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_COLUMNCHECK) && !check_degeneracy(lp, pcol, null))
                     {
-                        if (lp.rejectpivot[0] < DEF_MAXPIVOTRETRY / 3)
+                        if (lp.rejectpivot[0] < lp_lib.DEF_MAXPIVOTRETRY / 3)
                         {
                             i = ++lp.rejectpivot[0];
                             lp.rejectpivot[i] = colnr;
-                            report(lp, DETAILED, "Entering column %d found to be non-improving due to degeneracy.\n", colnr);
-                            minit = ITERATE_MINORRETRY;
-                            //C++ TO JAVA CONVERTER TODO TASK: There are no gotos or labels in Java:
+                            msg = "Entering column %d found to be non-improving due to degeneracy.\n";
+                            lp.report(lp, lp_lib.DETAILED, ref msg, colnr);
+                            minit = Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY);
+
                             goto RetryCol;
                         }
                         else
                         {
                             lp.rejectpivot[0] = 0;
-                            report(lp, DETAILED, "Gave up trying to find a strictly improving entering column.\n");
+                            msg = "Gave up trying to find a strictly improving entering column.\n";
+                            lp.report(lp, lp_lib.DETAILED, ref msg);
                         }
                     }
 
                     /* Find the leaving variable that gives the most stringent bound on the entering variable */
-                    theta = drow[colnr];
+                    theta = drow;
                     rownr = rowprim(lp, colnr, theta, pcol, workINT, forceoutEQ, cviolated);
 
-                    //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
                     ///#if AcceptMarginalAccuracy
                     /* Check for marginal accuracy */
                     if ((rownr > 0) && (xviolated + cviolated < lp.epspivot))
                     {
                         if (lp.bb_trace || (lp.bb_totalnodes == 0))
                         {
-                            report(lp, DETAILED, "primloop: Assuming convergence with reduced accuracy %g.\n", MAX(xviolated, cviolated));
+                            msg = "primloop: Assuming convergence with reduced accuracy %g.\n";
+                            lp.report(lp, lp_lib.DETAILED,ref msg , MAX(xviolated, cviolated));
                         }
                         rownr = 0;
                         colnr = 0;
-                        //C++ TO JAVA CONVERTER TODO TASK: There are no gotos or labels in Java:
                         goto Optimality;
                     }
                     else
@@ -964,14 +962,14 @@ namespace ZS.Math.Optimization
 
                     if (rownr > 0)
                     {
-                        pendingunbounded = 0;
+                        pendingunbounded = false;
                         lp.rejectpivot[0] = 0;
-                        set_action(lp.spx_action, ACTION_ITERATE);
+                        objLpCls.set_action(ref lp.spx_action, lp_lib.ACTION_ITERATE);
                         if (!lp.obj_in_basis) // We must manually copy the reduced cost for RHS update
                         {
-                            pcol[0] = my_chsign(!lp.is_lower[colnr], drow[colnr]);
+                            pcol[0] = lp_types.my_chsign(!lp.is_lower[colnr], drow);
                         }
-                        lp.bfp_prepareupdate(lp, rownr, colnr, pcol);
+                        lp.bfp_prepareupdate(lp, rownr, colnr, ref pcol);
                     }
                     /* We may be unbounded... */
                     else
@@ -979,14 +977,14 @@ namespace ZS.Math.Optimization
                         /* First make sure that we are not suffering from precision loss */
                         //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
                         ///#if primal_UseRejectionList
-                        if (lp.rejectpivot[0] < DEF_MAXPIVOTRETRY)
+                        if (lp.rejectpivot[0] < lp_lib.DEF_MAXPIVOTRETRY)
                         {
-                            lp.spx_status = RUNNING;
+                            lp.spx_status = lp_lib.RUNNING;
                             lp.rejectpivot[0]++;
                             lp.rejectpivot[lp.rejectpivot[0]] = colnr;
-                            report(lp, DETAILED, "...trying to recover via another pivot column.\n");
-                            minit = ITERATE_MINORRETRY;
-                            //C++ TO JAVA CONVERTER TODO TASK: There are no gotos or labels in Java:
+                            msg = "...trying to recover via another pivot column.\n";
+                            lp.report(lp, lp_lib.DETAILED, ref msg);
+                            minit = Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY);
                             goto RetryCol;
                         }
                         else
@@ -995,16 +993,17 @@ namespace ZS.Math.Optimization
                             /* Check that we are not having numerical problems */
                             if (!refactRecent(lp) && !pendingunbounded)
                             {
-                                bfpfinal = 1;
-                                pendingunbounded = 1;
-                                set_action(lp.spx_action, ACTION_REINVERT);
+                                bfpfinal = true;
+                                pendingunbounded = true;
+                                objLpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
                             }
 
                             /* Conclude that the model is unbounded */
                             else
                             {
-                                lp.spx_status = UNBOUNDED;
-                                report(lp, DETAILED, "The model is primal unbounded.\n");
+                                lp.spx_status = lp_lib.UNBOUNDED;
+                                msg = "The model is primal unbounded.\n";
+                                lp.report(lp, lp_lib.DETAILED, ref msg);
                                 break;
                             }
                         }
@@ -1014,27 +1013,26 @@ namespace ZS.Math.Optimization
                 /* We handle optimality and phase 1 infeasibility ... */
                 else
                 {
-
-                //C++ TO JAVA CONVERTER TODO TASK: There are no gotos or labels in Java:
-                Optimality:
+                    Optimality:
                     /* Handle possible transition from phase 1 to phase 2 */
                     if (!primalfeasible || isP1extra(lp))
                     {
 
                         if (feasiblePhase1(lp, epsvalue))
                         {
-                            lp.spx_status = RUNNING;
+                            lp.spx_status = lp_lib.RUNNING;
                             if (lp.bb_totalnodes == 0)
                             {
-                                report(lp, NORMAL, "Found feasibility by primal simplex after  %10.0f iter.\n", (double)get_total_iter(lp));
-                                if ((lp.usermessage != null) && (lp.msgmask & MSG_LPFEASIBLE))
+                                msg = "Found feasibility by primal simplex after  %10.0f iter.\n";
+                                lp.report(lp, lp_lib.NORMAL, ref msg, (double)LpCls.get_total_iter(lp));
+                                if ((lp.usermessage != null) && (lp.msgmask!=0 & lp_lib.MSG_LPFEASIBLE!=0))
                                 {
-                                    lp.usermessage(lp, lp.msghandle, MSG_LPFEASIBLE);
+                                    lp.usermessage(lp, lp.msghandle, lp_lib.MSG_LPFEASIBLE);
                                 }
                             }
-                            changedphase = 0;
-                            primalfeasible = 1;
-                            lp.simplex_mode = SIMPLEX_Phase2_PRIMAL;
+                            changedphase = false;
+                            primalfeasible = true;
+                            lp.simplex_mode = lp_lib.SIMPLEX_Phase2_PRIMAL;
                             LpCls.set_OF_p1extra(lp, 0.0);
 
                             /* We can do two things now;
@@ -1059,7 +1057,8 @@ namespace ZS.Math.Optimization
                                         ///#if Paranoia
                                         if (i <= 0)
                                         {
-                                            report(lp, SEVERE, "primloop: Could not find redundant artificial.\n");
+                                            msg = "primloop: Could not find redundant artificial.\n";
+                                            lp.report(lp, lp_lib.SEVERE, ref msg);
                                             break;
                                         }
                                         ///#endif
@@ -1075,9 +1074,9 @@ namespace ZS.Math.Optimization
                                         }
                                         else
                                         {
-                                            set_basisvar(lp, i, k);
+                                            objLpCls.set_basisvar(lp, i, k);
                                         }
-                                        del_column(lp, j);
+                                        objLpCls.del_column(lp, j);
                                         lp.P1extraDim--;
                                     }
                                     lp.basis_valid = 1;
@@ -1085,7 +1084,7 @@ namespace ZS.Math.Optimization
                                 /* Otherwise we drive out the artificials by elimination pivoting */
                                 else
                                 {
-                                    eliminate_artificials(lp, prow);
+                                    eliminate_artificials(lp, ref prow);
                                 }
 
                                 ///#else
@@ -1261,6 +1260,7 @@ namespace ZS.Math.Optimization
 
 
         }
+
         public static int dualloop(lprec lp, byte dualfeasible, int[] dualinfeasibles, double dualoffset)
         {
             throw new NotImplementedException();

@@ -39,7 +39,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public static bool restartPricer(lprec lp, int isdual)
+        public static bool restartPricer(lprec lp, bool isdual)
         {
             double[] sEdge;
             double seNorm;
