@@ -401,9 +401,9 @@ namespace ZS.Math.Optimization
         public double full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
         public double[] edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
 
-        public double drow; // sum+1: Reduced costs of the last simplex
+        public double[] drow; // sum+1: Reduced costs of the last simplex
         //ORIGINAL LINE: int *nzdrow;
-        public int nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
+        public int[] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
         public double? duals; // rows_alloc+1 : The dual variables of the last LP
         public double full_duals; // sum_alloc+1: Final duals array expanded for deleted variables
         public double? dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
@@ -447,7 +447,7 @@ namespace ZS.Math.Optimization
         public byte bb_floorfirst; /* Set BRANCH_FLOOR for B&B to set variables to floor bound first;
                                    conversely with BRANCH_CEILING, the ceiling value is set first */
         public byte bb_breakfirst; // TRUE to stop at first feasible solution
-        public byte _piv_left_; // Internal variable indicating active pricing loop order
+        public bool _piv_left_; // Internal variable indicating active pricing loop order
         public byte BOOLfuture1;
 
         public double scalelimit; // Relative convergence criterion for iterated scaling
@@ -625,7 +625,7 @@ namespace ZS.Math.Optimization
 
         internal double epspivot;           /* Pivot reject tolerance */
         internal double epsperturb;         /* Perturbation scalar */
-        double epssolution;        /* The solution tolerance for final validation */
+        internal double epssolution;        /* The solution tolerance for final validation */
 
         /* Branch & Bound working parameters */
         int bb_status;          /* Indicator that the last solvelp() gave an improved B&B solution */
@@ -1933,8 +1933,10 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public string get_statustext(lprec lp, int statuscode)
         { throw new NotImplementedException(); }
-        public byte is_obj_in_basis(lprec lp)
-        { throw new NotImplementedException(); }
+        public bool is_obj_in_basis(lprec lp)
+        {
+            return (lp.obj_in_basis);
+        }
         public void set_obj_in_basis(lprec lp, byte obj_in_basis)
         { throw new NotImplementedException(); }
         /* Create and initialise a lprec structure defaults */

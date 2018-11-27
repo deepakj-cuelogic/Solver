@@ -750,7 +750,10 @@ namespace ZS.Math.Optimization
         {
             return (mat.col_end[mat.columns]);
         }
-        static int mat_collength(MATrec mat, int colnr) { throw new NotImplementedException(); }
+        internal static int mat_collength(MATrec mat, int colnr)
+        {
+            return (mat.col_end[colnr] - mat.col_end[colnr - 1]);
+        }
         static int mat_rowlength(MATrec mat, int rownr) { throw new NotImplementedException(); }
         static internal void mat_multrow(MATrec mat, int row_nr, double mult)
         {

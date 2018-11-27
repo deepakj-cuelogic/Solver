@@ -36,6 +36,9 @@ namespace ZS.Math.Optimization
         internal const string LIB_STR_NOFUNCTION = "Missing function header";
         internal const string LIB_STR_VERINVALID = "Incompatible version";
         internal const int LIB_STR_MAXLEN = 23;
+        internal const int COMP_PREFERNONE = 0;
+        internal const int COMP_PREFERCANDIDATE = 0;
+        internal const int COMP_PREFERINCUMBENT= -1;
 
         /* Byte-sized Booleans and extended options */
         internal const byte FALSE = 0;
@@ -107,38 +110,38 @@ namespace ZS.Math.Optimization
 
     public class pricerec
     {
-        double theta;
-        double pivot;
-        double epspivot;
-        int varno;
-        lprec[] lp;
-        byte isdual;
+        internal double theta;
+        internal double pivot;
+        internal double epspivot;
+        internal int varno;
+        internal lprec lp;
+        internal bool isdual;
     }
 
     public class multirec
     {
         internal lprec lp;
-        int size;                   /* The maximum number of multiply priced rows/columns */
-        int used;                   /* The current / active number of multiply priced rows/columns */
-        int limit;                  /* The active/used count at which a full update is triggered */
-        pricerec[] items;           /* Array of best multiply priced rows/columns */
-        int[] freeList;             /* The indeces of available positions in "items" */
-        QSORTrec[] sortedList;      /* List of pointers to "pricerec" items in sorted order */
+        internal int size;                   /* The maximum number of multiply priced rows/columns */
+        internal int used;                   /* The current / active number of multiply priced rows/columns */
+        internal int limit;                  /* The active/used count at which a full update is triggered */
+        internal pricerec[] items;           /* Array of best multiply priced rows/columns */
+        internal int[] freeList;             /* The indeces of available positions in "items" */
+        internal QSORTrec[] sortedList;      /* List of pointers to "pricerec" items in sorted order */
         double[] stepList;          /* Working array (values in sortedList order) */
         double[] valueList;         /* Working array (values in sortedList order) */
-        int[] indexSet;             /* The final exported index list of pivot variables */
+        internal int?[] indexSet;             /* The final exported index list of pivot variables */
         internal int active;                 /* Index of currently active multiply priced row/column */
-        int retries;
+        internal int retries;
         double step_base;
-        double step_last;
+        internal double step_last;
         double obj_base;
         double obj_last;
         internal double epszero;
         double maxpivot;
         double maxbound;
-        byte sorted;
+        internal bool sorted;
         internal bool truncinf;
         byte objcheck;
-        byte dirty;
+        internal bool dirty;
     }
 }

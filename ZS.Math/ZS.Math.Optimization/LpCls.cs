@@ -1942,6 +1942,19 @@ namespace ZS.Math.Optimization
         {
             return ((bool)((actionvar & testmask) != 0));
         }
+
+        internal bool ISMASKSET(int variable, int mask)
+        {
+            return (bool)(((variable) & (mask)) != 0);
+        }
+        internal void SETMASK(int variable, int mask)
+        {
+            variable |= mask;
+        }
+        internal void CLEARMASK(int variable, int mask)
+        {
+            variable &= ~(mask);
+        }
         internal new bool is_anti_degen(lprec lp, int testmask)
         {
             return ((bool)((lp.anti_degen == testmask) || ((lp.anti_degen & testmask) != 0)));
@@ -3387,6 +3400,133 @@ internal static class StringFunctions
         internal new bool is_piv_rule(lprec lp, int rule)
         {
             return ((bool)(get_piv_rule(lp) == rule));
+        }
+
+        internal new static bool check_degeneracy(lprec lp, ref double?[] pcol, ref int degencount)
+        {
+            /* Check if the entering column Pi=Inv(B)*a is likely to produce improvement;
+           (cfr. Istvan Maros: CTOTSM p. 233) */
+
+            int i;
+            int ndegen;
+            
+            double rhs = new double();
+            double? sdegen = new double();
+            double epsmargin = lprec.epsprimal;
+
+            sdegen = 0;
+            ndegen = 0;
+            rhs = lp.rhs;
+            for (i = 1; i <= lp.rows; i++)
+            {
+                rhs++;
+                pcol[i]++;
+                if (System.Math.Abs(rhs) < epsmargin)
+                {
+                    sdegen += pcol[i];
+                    ndegen++;
+                }
+                else if (System.Math.Abs((rhs) - lp.upbo[lp.var_basic[i]]) < epsmargin)
+                {
+                    sdegen -= pcol[i];
+                    ndegen++;
+                }
+            }
+            if (degencount != null)
+            {
+                degencount = ndegen;
+            }
+            /*  sdegen += epsmargin*ndegen; */
+            return ((bool)(sdegen <= 0));
+        }
+
+        internal static int compute_theta(lprec lp, int rownr, ref double theta, bool isupbound, double HarrisScalar, bool primal)
+        {
+            /* The purpose of this routine is to compute the non-basic bound state / value of
+           the leaving variable. Note that the incoming theta is "d" in Chvatal-terminology */
+
+            int colnr = lp.var_basic[rownr];
+            
+            //ORIGINAL LINE: register double x = lp->rhs[rownr];
+            double x = lp.rhs[rownr];
+            double lb = 0; // Primal feasibility tolerance
+            double ub = lp.upbo[colnr];
+            double eps = lprec.epsprimal;
+
+            /* Compute theta for the primal simplex */
+            HarrisScalar *= eps;
+            if (primal != null)
+            {
+
+                if (theta > 0)
+                {
+                    x -= lb - HarrisScalar; // A positive number
+                }
+                else if (ub < lp.infinite)
+                {
+                    x -= ub + HarrisScalar; // A negative number
+                }
+                else
+                {
+                    theta = -lp.infinite;
+                    return (colnr);
+                }
+            }
+            /* Compute theta for the dual simplex */
+            else
+            {
+
+                if (isupbound != false)
+                {
+                    theta = -(theta);
+                }
+
+                /* Current value is below or equal to its lower bound */
+                if (x < lb + eps)
+                {
+                    x -= lb - HarrisScalar;
+                }
+
+                /* Current value is above or equal to its upper bound */
+                else if (x > ub - eps)
+                {
+                    if (ub >= lp.infinite)
+                    {
+                        theta = lp.infinite * lp_types.my_sign(theta);
+                        return (colnr);
+                    }
+                    else
+                    {
+                        x -= ub + HarrisScalar;
+                    }
+                }
+            }
+            lp_types.my_roundzero(x, lp.epsmachine);
+            theta = x / theta;
+
+            ///#if EnforcePositiveTheta
+            /* Check if we have negative theta due to rounding or an internal error */
+            if (theta < 0)
+            {
+                if (primal != null && (ub == lb))
+                {
+                    lp.rhs[rownr] = lb;
+                }
+                else
+                {
+                    ///#if Paranoia
+                    if (theta < -eps)
+                    {
+                        string msg = "compute_theta: Negative theta (%g) not allowed in base-0 version of lp_solve\n";
+                        lp.report(lp, DETAILED, ref msg, theta);
+                    }
+                }
+                ///#endif
+                theta = 0;
+            }
+            ///#endif
+
+            return (colnr);
         }
 
     }
