@@ -2388,7 +2388,7 @@ namespace ZS.Math.Optimization
 
         /* Retrieve a column vector from the data matrix [1..rows, rows+1..rows+columns];
            needs __WINAPI call model since it may be called from BFPs */
-        internal int obtain_column(lprec lp, int varin, ref double[] pcol, ref int[] nzlist, ref int maxabs)
+        internal int obtain_column(lprec lp, int varin, ref double pcol, ref int[] nzlist, ref int maxabs)
         {
             double value = lp_types.my_chsign(lp.is_lower[0], -1);
             if (varin > lp.rows)
@@ -2408,7 +2408,7 @@ namespace ZS.Math.Optimization
             return (varin);
         }
 
-        internal static int expand_column(lprec lp, int col_nr, ref double[] column, ref int[] nzlist, double mult, ref int maxabs)
+        internal static int expand_column(lprec lp, int col_nr, ref double column, ref int[] nzlist, double mult, ref int maxabs)
         {
             int i;
             int ie;
@@ -2431,8 +2431,8 @@ namespace ZS.Math.Optimization
                 //NOT REQUIRED
                 //MEMCLEAR(column, lp.rows + 1);
                 //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
-                i = mat.col_end[col_nr - 1];
-                ie = mat.col_end[col_nr];
+                i = Convert.ToInt32(mat.col_end[col_nr - 1]);
+                ie = Convert.ToInt32(mat.col_end[col_nr]);
                 matRownr = lp_matrix.COL_MAT_ROWNR(i);
                 matValue = lp_matrix.COL_MAT_VALUE(i);
                 nzcount = i;
@@ -2449,15 +2449,15 @@ namespace ZS.Math.Optimization
                             maxidx = j;
                         }
                     }
-                    column[j] = value;
+                    column = value;
                 }
                 nzcount = i - nzcount;
 
                 /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
                 if (lp.obj_in_basis)
                 {
-                    column[0] = lp.get_OF_active(lp, lp.rows + col_nr, mult);
-                    if (column[0] != 0)
+                    column = lp.get_OF_active(lp, lp.rows + col_nr, mult);
+                    if (column != 0)
                     {
                         nzcount++;
                     }
@@ -3511,7 +3511,7 @@ internal static class StringFunctions
             return ((bool)(get_piv_rule(lp) == rule));
         }
 
-        internal new static bool check_degeneracy(lprec lp, ref double?[] pcol, ref int degencount)
+        internal static bool check_degeneracy(lprec lp, ref double?[] pcol, ref int degencount)
         {
             /* Check if the entering column Pi=Inv(B)*a is likely to produce improvement;
            (cfr. Istvan Maros: CTOTSM p. 233) */
@@ -4304,5 +4304,546 @@ internal static class StringFunctions
         {
             return (lp.obj_in_basis);
         }
+
+        //Changed By: CS Date:28/11/2018
+        internal new static bool isP1extra(lprec lp)
+        {
+            return ((bool)((lp.P1extraDim > 0) || (lp.P1extraVal != 0)));
+        }
+
+        //Changed By: CS Date:28/11/2018
+        internal new static bool feasiblePhase1(lprec lp, double epsvalue)
+        {
+            double gap;
+            bool test;
+
+            gap = System.Math.Abs(lp.rhs[0] - lp.orig_rhs[0]);
+            test = (bool)(gap < epsvalue);
+            return (test);
+        }
+
+        internal new static int MIP_count(lprec lp)
+        {
+            return (lp.int_vars + lp.sc_vars + SOS_count(lp));
+        }
+
+        internal new bool del_constraint(lprec lp, int rownr)
+        {
+            bool preparecompact = (bool)(rownr < 0);
+            string msg = "";
+
+            if (preparecompact)
+            {
+                rownr = -rownr;
+            }
+            if ((rownr < 1) || (rownr > lp.rows))
+            {
+                msg = "del_constraint: Attempt to delete non-existing constraint %d\n";
+                lp.report(lp, IMPORTANT, ref msg, rownr);
+                return (false);
+            }
+            /*
+            if(lp->matA->is_roworder) {
+              report(lp, IMPORTANT, "del_constraint: Cannot delete constraint while in row entry mode.\n");
+              return(FALSE);
+            }
+            */
+
+            if (is_constr_type(lp, rownr, EQ) && (lp.equalities > 0))
+            {
+                lp.equalities--;
+            }
+
+            varmap_delete(lp, Convert.ToInt32(lp_types.my_chsign(preparecompact, rownr)), -1, null);
+            shift_rowdata(lp, Convert.ToInt32(lp_types.my_chsign(preparecompact, rownr)), -1, null);
+
+            /*
+               peno 04.10.07
+               Fixes a problem with del_constraint.
+               Constraints names were not shifted and reported variable result was incorrect.
+               See UnitTest1, UnitTest2
+
+               min: -2 x3;
+
+               c1: +x2 -x1 <= 10;
+               c: 0 x3 <= 0;
+               c2: +x3 +x2 +x1 <= 20;
+
+               2 <= x3 <= 3;
+               x1 <= 30;
+
+               // del_constraint(lp, 2);
+
+               // See write_LP and print_solution result
+
+               // To fix, commented if(!lp->varmap_locked)
+
+            */
+            if (!lp.varmap_locked)
+            {
+                lp_presolve.presolve_setOrig(lp, lp.rows, lp.columns);
+                if (lp.names_used)
+                {
+                    del_varnameex(lp, lp.row_name, lp.rows, lp.rowname_hashtab, rownr, null);
+                }
+            }
+
+        #if Paranoia
+          if (is_BasisReady(lp) && !verify_basis(lp))
+          {
+	        report(lp, SEVERE, "del_constraint: Invalid basis detected at row %d\n", rownr);
+          }
+        #endif
+
+            return (true);
+        }
+
+        //Changed By: CS Date:28/11/2018
+        internal static bool performiteration(lprec lp, int rownr, int varin, double theta, bool primal, bool allowminit, ref double prow, ref int nzprow, ref double pcol, ref int nzpcol, ref int boundswaps)
+        {
+            int varout;
+            double pivot;
+            double epsmargin;
+            double leavingValue;
+            double leavingUB;
+            double enteringUB;
+            bool leavingToUB = false;
+            bool enteringFromUB = new bool();
+            bool enteringIsFixed = new bool();
+            bool leavingIsFixed = new bool();
+            
+            //ORIGINAL LINE: bool *islower = &(lp->is_lower[varin]);
+            bool islower = (lp.is_lower[varin]);
+            bool minitNow = false;
+            bool minitStatus = ITERATE_MAJORMAJOR;
+            double deltatheta = theta;
+            LpCls objLpCls = new LpCls();
+            string msg;
+
+            if (objLpCls.userabort(lp, MSG_ITERATION))
+            {
+                return (minitNow);
+            }
+
+        #if Paranoia
+                  if (rownr > lp.rows)
+                  {
+	                if (lp.spx_trace)
+	                {
+	                  report(lp, IMPORTANT, "performiteration: Numeric instability encountered!\n");
+	                }
+	                lp.spx_status = NUMFAILURE;
+	                return (0);
+                  }
+                #endif
+                            varout = lp.var_basic[rownr];
+#if Paranoia
+                  if (!lp.is_lower[varout])
+                  {
+	                report(lp, SEVERE, "performiteration: Leaving variable %d was at its upper bound at iter %.0f\n", varout, (double) get_total_iter(lp));
+                  }
+#endif
+            /* Theta is the largest change possible (strictest constraint) for the entering
+     variable (Theta is Chvatal's "t", ref. Linear Programming, pages 124 and 156) */
+            lp.current_iter++;
+
+            /* Test if it is possible to do a cheap "minor iteration"; i.e. set entering
+               variable to its opposite bound, without entering the basis - which is
+               obviously not possible for fixed variables! */
+            epsmargin = lprec.epsprimal;
+            enteringFromUB = !(islower);
+            enteringUB = lp.upbo[varin];
+            leavingUB = lp.upbo[varout];
+            enteringIsFixed = (bool)(System.Math.Abs(enteringUB) < epsmargin);
+            leavingIsFixed = (bool)(System.Math.Abs(leavingUB) < epsmargin);
+#if _PRICE_NOBOUNDFLIP
+  allowminit &= !ISMASKSET(lp.piv_strategy, PRICE_NOBOUNDFLIP);
+#endif
+#if Paranoia
+  if (enteringUB < 0)
+  {
+	report(lp, SEVERE, "performiteration: Negative range for entering variable %d at iter %.0f\n", varin, (double) get_total_iter(lp));
+  }
+  if (leavingUB < 0)
+  {
+	report(lp, SEVERE, "performiteration: Negative range for leaving variable %d at iter %.0f\n", varout, (double) get_total_iter(lp));
+  }
+#endif
+
+            /* Handle batch bound swaps with the dual long-step algorithm;
+               Loop over specified bound swaps; update RHS and Theta for bound swaps */
+            if ((boundswaps != null) && (boundswaps > 0))
+            {
+
+                int i;
+                int boundvar;
+                double[] hold = null;
+
+                /* Allocate and initialize accumulation array */
+                //NOT REQUIRED
+                //allocREAL(lp, hold, lp.rows + 1, 1);
+
+                /* Accumulate effective bound swaps and update flag */
+                for (i = 1; i <= boundswaps; i++)
+                {
+                    boundvar = boundswaps;
+                    deltatheta = lp_types.my_chsign(!lp.is_lower[boundvar], lp.upbo[boundvar]);
+                    lp_matrix.mat_multadd(lp.matA, hold, boundvar, deltatheta);
+                    lp.is_lower[boundvar] = !lp.is_lower[boundvar];
+                }
+                lp.current_bswap += boundswaps;
+                lp.current_iter += boundswaps;
+
+                /* Solve for bound flip update vector (note that this does not
+                   overwrite the stored update vector for the entering variable) */
+                lp_matrix.ftran(lp, hold, 0, lp.epsmachine);
+                if (!lp.obj_in_basis)
+                {
+                    hold[0] = 0; // The correct reduced cost goes here (adjusted for bound state) ******
+                }
+
+                /* Update the RHS / basic variable values and set revised thetas */
+                //NOTED ISSUE
+                pivot = lp.bfp_pivotRHS(lp, 1, ref hold);
+                deltatheta = LpPrice.multi_enteringtheta(lp.longsteps);
+                theta = deltatheta;
+
+                //NOT REQUIRED
+                //FREE(hold);
+            }
+            /* Otherwise to traditional check for single bound swap */
+            else if (allowminit && !enteringIsFixed)
+            {
+
+                /*    pivot = epsmargin; */
+                pivot = lprec.epsdual;
+                /* #define v51mode */
+                /* Enable this for v5.1 operation mode */
+#if v51mode
+	if (((lp.simplex_mode & SIMPLEX_Phase1_DUAL) == 0) || !is_constr_type(lp, rownr, EQ)) // *** DEBUG CODE KE
+	{
+#endif
+                if (enteringUB - theta < -pivot)
+                {
+
+#if !v51mode
+                    if (System.Math.Abs(enteringUB - theta) < pivot)
+                    {
+                        minitStatus = Convert.ToBoolean(lp_lib.ITERATE_MINORMAJOR);
+                    }
+                    else
+                    {
+#endif
+                        minitStatus = Convert.ToBoolean(lp_lib. ITERATE_MINORRETRY);
+                    }
+                    minitNow = (bool)(minitStatus != ITERATE_MAJORMAJOR);
+                }
+            }
+
+              /* Process for traditional style single minor iteration */
+              if (minitNow)
+              {
+
+               /* Set the new values (note that theta is set to always be positive) */
+	            theta = Convert.ToDouble(commonlib.MIN(System.Math.Abs(theta), enteringUB));
+
+                /* Update the RHS / variable values and do bound-swap */
+                double Parameter = 0;
+	            pivot = lp.bfp_pivotRHS(lp, theta, ref Parameter);
+	            islower = !(islower);
+
+	            lp.current_bswap++;
+
+              }
+
+              /* Process for major iteration */
+              else
+              {
+
+                /* Update the active pricer for the current pivot */
+                LpPricePSE.updatePricer(lp, rownr, varin, lp.bfp_pivotvector(lp), ref prow, ref nzprow);
+
+                /* Update the current basic variable values */
+                double Para = 0;
+	            pivot = lp.bfp_pivotRHS(lp, theta, ref Para);
+
+	            /* See if the leaving variable goes directly to its upper bound. */
+	            leavingValue = lp.rhs[rownr];
+	            leavingToUB = (bool)(leavingValue > 0.5 * leavingUB);
+	            lp.is_lower[varout] = leavingIsFixed || !leavingToUB;
+
+	            /* Set the value of the entering varible (theta always set to be positive) */
+	            if (enteringFromUB)
+	            {
+	              lp.rhs[rownr] = enteringUB - deltatheta;
+
+                  islower = true;
+            }
+	            else
+	            {
+	              lp.rhs[rownr] = deltatheta;
+	            }
+
+                lp_types.my_roundzero(lp.rhs[rownr], epsmargin);
+
+            /* Update basis indeces */
+            varout = objLpCls.set_basisvar(lp, rownr, varin);
+
+            /* Finalize the update in preparation for next major iteration */
+            lp.bfp_finishupdate(lp, Convert.ToByte(enteringFromUB));
+
+              }
+            /* Show pivot tracking information, if specified */
+              if ((lp.verbose > NORMAL) && (MIP_count(lp) == 0) && ((lp.current_iter % commonlib.MAX(2, lp.rows / 10)) == 0))
+              {
+                msg = "Objective value "+ lp_types.RESULTVALUEMASK +" at iter %10.0f.\n";
+                lp.report(lp, NORMAL, ref msg, lp.rhs[0], (double) get_total_iter(lp));
+              }
+
+            #if false
+            //  if(verify_solution(lp, FALSE, my_if(minitNow, "MINOR", "MAJOR")) >= 0) {
+            //    if(minitNow)
+            //      pivot = get_obj_active(lp, varin);
+            //    else
+            //      pivot = get_obj_active(lp, varout);
+            //  }
+            #endif
+            #if false
+            //  if((lp->longsteps != NULL) && (boundswaps[0] > 0) && lp->longsteps->objcheck &&
+            //    ((pivot = fabs(my_reldiff(lp->rhs[0], lp->longsteps->obj_last))) > lp->epssolution)) {
+            //    report(lp, IMPORTANT, "performiteration: Objective value gap %8.6f found at iter %6.0f (%d bound flips, %d)\n",
+            //                          pivot, (double) get_total_iter(lp), boundswaps[0], enteringFromUB);
+            //  }
+            #endif
+
+              if (lp.spx_trace)
+              {
+	            if (minitNow)
+	            {
+                    msg = "I:%5.0f - minor - %5d ignored,          %5d flips  from %s with THETA=%g and OBJ=%g\n";
+                  lp.report(lp, NORMAL, ref msg, (double) get_total_iter(lp), varout, varin, (enteringFromUB? "UPPER" : "LOWER"), theta, lp.rhs[0]);
+	            }
+	            else
+	            {
+                    msg = "I:%5.0f - MAJOR - %5d leaves to %s,  %5d enters from %s with THETA=%g and OBJ=%g\n";
+                  lp.report(lp, NORMAL, ref msg, (double) get_total_iter(lp), varout, (leavingToUB? "UPPER" : "LOWER"), varin, (enteringFromUB? "UPPER" : "LOWER"), theta, lp.rhs[0]);
+	            }
+	            if (minitNow)
+	            {
+	              if (!lp.is_lower[varin])
+	              {
+                        msg = "performiteration: Variable %d changed to its lower bound at iter %.0f (from %g)\n";
+                    lp.report(lp, DETAILED, ref msg, varin, (double) get_total_iter(lp), enteringUB);
+	              }
+	              else
+	              {
+                        msg = "performiteration: Variable %d changed to its upper bound at iter %.0f (to %g)\n";
+                    lp.report(lp, DETAILED, ref msg, varin, (double) get_total_iter(lp), enteringUB);
+	              }
+	            }
+	            else
+	            {
+                    msg = "performiteration: Variable %d entered basis at iter %.0f at " + lp_types.RESULTVALUEMASK+ "\n";
+                  lp.report(lp, NORMAL, ref msg, varin, (double) get_total_iter(lp), lp.rhs[rownr]);
+	            }
+	            if (!primal)
+	            {
+	              pivot = compute_feasibilitygap(lp, (bool)!primal, 1);
+                  msg = "performiteration: Feasibility gap at iter %.0f is " + lp_types.RESULTVALUEMASK+ "\n";
+                  lp.report(lp, NORMAL, ref msg, (double) get_total_iter(lp), pivot);
+	            }
+	            else
+	            {
+                  msg = "performiteration: Current objective function value at iter %.0f is " + lp_types.RESULTVALUEMASK+ "\n";
+                  lp.report(lp, NORMAL, ref msg, (double) get_total_iter(lp), lp.rhs[0]);
+	            }
+              }
+
+              return (minitStatus);
+
+        }
+
+        //Changed By: CS Date:28/11/2018
+        internal static double compute_feasibilitygap(lprec lp, bool isdual, bool dosum)
+        {
+            double f = 0;
+
+            /* This computes the primal feasibility gap (for use with the dual simplex phase 1) */
+            if (isdual)
+            {
+                int i;
+                double g = new double();
+
+                for (i = 1; i <= lp.rows; i++)
+                {
+                    if (lp.rhs[i] < 0)
+                    {
+                        g = lp.rhs[i];
+                    }
+                    else if (lp.rhs[i] > lp.upbo[lp.var_basic[i]])
+                    {
+                        g = lp.rhs[i] - lp.upbo[lp.var_basic[i]];
+                    }
+                    else
+                    {
+                        g = 0;
+                    }
+                    if (dosum)
+                    {
+                        f += g;
+                    }
+                    else
+                    {
+                        commonlib.SETMAX(Convert.ToInt32(f), Convert.ToInt32(g));
+                    }
+                }
+            }
+            /* This computes the dual feasibility gap (for use with the primal simplex phase 1) */
+            else
+            {
+                f = compute_dualslacks(lp, SCAN_USERVARS + USE_ALLVARS, null, null, dosum);
+            }
+
+            return (f);
+        }
+
+        //Changed By: CS Date:28/11/2018
+        internal new static double compute_dualslacks(lprec lp, int target, double[][] dvalues, int[][] nzdvalues, bool dosum)
+        {
+            /* Note that this function is similar to the compute_reducedcosts function in lp_price.c */
+
+            int i;
+            int varnr;
+            //ORIGINAL LINE: int *coltarget;
+            int coltarget;
+            int[][] nzduals;
+           
+            //ORIGINAL LINE: int *nzvtemp = null;
+            int[][] nzvtemp = null;
+            double d;
+            double g = 0;
+            double[][] duals;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: double *vtemp = null;
+            double[][] vtemp = null;
+            bool localREAL = (bool)(dvalues == null);
+            bool localINT = (bool)(nzdvalues == null);
+            LpCls objLpCls = new LpCls();
+
+            if (objLpCls.is_action(lp.spx_action, ACTION_REBASE) || objLpCls.is_action(lp.spx_action, ACTION_REINVERT) || !lp.basis_valid)
+            {
+                return (g);
+            }
+
+            /* Initialize */
+            if (!localREAL)
+            {
+                duals = dvalues;
+                nzduals = nzdvalues;
+            }
+            else
+            {
+                duals = vtemp;
+                nzduals = nzvtemp;
+            }
+            if (localINT || (nzduals[0] == null))
+            {
+                //NOT REQUIRED
+                //allocINT(lp, nzduals, lp.columns + 1, AUTOMATIC);
+            }
+            if (localREAL || (duals[0] == null))
+            {
+                //NOT REQUIRED
+                //allocREAL(lp, duals, lp.sum + 1, AUTOMATIC);
+            }
+            if (target == 0)
+            {
+                target = SCAN_ALLVARS + USE_NONBASICVARS;
+            }
+
+            /* Define variable target list and compute the reduced costs */
+            //NOTED ISSUE
+            coltarget = (int)lp_utils.mempool_obtainVector(lp.workarrays, lp.columns + 1, sizeof(int));
+            if (!lp_matrix.get_colIndexA(lp, target, coltarget, false))
+            {
+                lp_utils.mempool_releaseVector(lp.workarrays, (string)coltarget, 0);
+                return (0);
+            }
+            int? Parameter = null; 
+            lp_matrix.bsolve(lp, 0, ref duals[0], ref Parameter, lp.epsmachine * DOUBLEROUND, 1.0);
+            lp_matrix.prod_xA(lp, coltarget, duals[0], null, lp.epsmachine, 1.0, duals[0], nzduals[0], lp_matrix.MAT_ROUNDDEFAULT | lp_matrix.MAT_ROUNDRC);
+            lp_utils.mempool_releaseVector(lp.workarrays, (string)coltarget, 0);
+
+            /* Compute sum or maximum infeasibility as specified */
+            for (i = 1; i <= Convert.ToInt32(nzduals[0]); i++)
+            {
+                varnr = Convert.ToInt32(nzduals[i]);
+                d = lp_types.my_chsign(!lp.is_lower[varnr], Convert.ToDouble(duals[varnr]));
+                if (d < 0)
+                {
+                    if (dosum)
+                    {
+                        g += -d; // Compute sum as a positive number
+                    }
+                    else
+                    {
+                        commonlib.SETMIN(Convert.ToInt32(g), Convert.ToInt32(d)); // Compute gap as a negative number
+                    }
+                }
+            }
+
+            /* Clean up */
+            if (localREAL)
+            {
+                //NOT REQUIRED
+               // FREEduals;
+            }
+            if (localINT)
+            {
+                //NOT REQUIRED
+                //FREEnzduals;
+            }
+
+            return (g);
+        }
+
+        //Changed By: CS Date:28/11/2018
+        internal new static bool restore_basis(lprec lp)
+        /* Restore values from the previously pushed / saved basis without popping it */
+        {
+            bool ok;
+            int i;
+            LpCls objLpCls = new LpCls();
+
+            ok = (bool)(lp.bb_basis != null);
+            if (ok)
+            {
+                //NOT REQUIRED
+                //MEMCOPY(lp.var_basic, lp.bb_basis.var_basic, lp.rows + 1);
+                //NOT REQUIRED
+                /*
+                #if BasisStorageModel == 0
+                                MEMCOPY(lp.is_basic, lp.bb_basis.is_basic, lp.sum + 1);
+                #else
+                    MEMCLEAR(lp.is_basic, lp.sum + 1);
+                    for (i = 1; i <= lp.rows; i++)
+                    {
+                      lp.is_basic[lp.var_basic[i]] = 1;
+                    }
+                #endif */
+                //NOT REQUIRED
+                /*#if LowerStorageModel == 0;
+                                MEMCOPY(lp.is_lower, lp.bb_basis.is_lower, lp.sum + 1);
+                #else
+                    for (i = 1; i <= lp.sum; i++)
+                    {
+                      lp.is_lower[i] = is_biton(lp.bb_basis.is_lower, i);
+                    }
+                #endif*/
+                objLpCls.set_action(ref lp.spx_action, ACTION_REBASE | ACTION_REINVERT);
+            }
+            return (ok);
+        }
+
     }
 }

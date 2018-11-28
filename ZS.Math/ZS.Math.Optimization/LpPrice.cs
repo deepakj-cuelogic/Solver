@@ -301,7 +301,7 @@ namespace ZS.Math.Optimization
         }
 
         /* Find the primal simplex entering non-basic column variable */
-        internal static int colprim(lprec lp, ref double[] drow, ref int[] nzdrow, bool skipupdate, int partialloop, ref int candidatecount, bool updateinfeas, ref double xviol)
+        internal static int colprim(lprec lp, ref double drow, ref int[] nzdrow, bool skipupdate, int partialloop, ref int candidatecount, bool updateinfeas, ref double xviol)
         {
             int i;
             int ix;
@@ -1026,7 +1026,7 @@ namespace ZS.Math.Optimization
         }
 
         /* Find the primal simplex leaving basic column variable */
-        internal static int rowprim(lprec lp, int colnr, ref double theta, ref double pcol, ref int[] nzpcol, bool forceoutEQ, ref double xviol)
+        internal static int rowprim(lprec lp, int colnr, ref double theta, ref double pcol, ref int? nzpcol, bool forceoutEQ, ref double xviol)
         {
             int i;
             int ii;
@@ -1589,6 +1589,213 @@ namespace ZS.Math.Optimization
             return (result);
         }
 
+        //Changed By: CS Date:28/11/2018
+        /* Find the dual simplex leaving basic variable */
+        internal static int rowdual(lprec lp, double[] rhvec, bool forceoutEQ, bool updateinfeas, ref double xviol)
+        {
+                int k;
+                int i;
+                int iy;
+                int iz = 0;
+                int ii;
+                int ninfeas;
+                //ORIGINAL LINE: register REAL rh;
+                double rh = new double();
+                double up;
+                double lo = 0;
+                double epsvalue;
+                double sinfeas;
+                double xinfeas;
+                pricerec current = new pricerec();
+                pricerec candidate = new pricerec();
+                bool collectMP = false;
+                LpCls objLpCls = new LpCls();
+                string msg;
+
+                /* Initialize */
+                if (rhvec == null)
+                {
+                    rhvec = lp.rhs;
+                }
+                epsvalue = lprec.epsdual;
+                current.pivot = -epsvalue; // Initialize leaving variable threshold; "less than 0"
+                current.theta = 0;
+                current.varno = 0;
+                current.isdual = true;
+                current.lp = lp;
+                candidate.isdual = true;
+                candidate.lp = lp;
+
+                /* Loop over active partial row set */
+                if (objLpCls.is_action(lp.piv_strategy, lp_lib.PRICE_FORCEFULL))
+                {
+                    k = 1;
+                    iy = lp.rows;
+                }
+                else
+                {
+                    k = partial_blockStart(lp, true);
+                    iy = partial_blockEnd(lp, true);
+                }
+                ninfeas = 0;
+                xinfeas = 0;
+                sinfeas = 0;
+                makePriceLoop(lp, ref k, ref iy, ref iz);
+                iy *= iz;
+                for (; k * iz <= iy; k += iz)
+                {
+
+                    /* Map loop variable to target */
+                    i = k;
+
+                    /* Check if the pivot candidate is on the block-list */
+                    if (lp.rejectpivot[0] > 0)
+                    {
+                        int kk;
+                        for (kk = 1; (kk <= lp.rejectpivot[0]) && (i != lp.rejectpivot[kk]); kk++)
+                        {
+                            ;
+                        }
+                        if (kk <= lp.rejectpivot[0])
+                        {
+                            continue;
+                        }
+                    }
+
+                    /* Set local variables - express violation as a negative number */
+                    ii = lp.var_basic[i];
+                    up = lp.upbo[ii];
+                    lo = 0;
+                    rh = rhvec[i];
+                    if (rh > up)
+                    {
+                        rh = up - rh;
+                    }
+                    else
+                    {
+                        rh -= lo;
+                    }
+                    up -= lo;
+
+                    /* Analyze relevant constraints ...
+                       KE version skips uninteresting alternatives and gives a noticeable speedup */
+                    /*    if((rh < -epsvalue*sqrt(lp->matA->rowmax[i])) || */
+                    if ((rh < -epsvalue) || ((forceoutEQ == true) && (up < epsvalue)))
+                    { // It causes instability to remove the "TRUE" test
+
+                        /* Accumulate stats */
+                        ninfeas++;
+                        commonlib.SETMIN(Convert.ToInt32(xinfeas), Convert.ToInt32(rh));
+                        sinfeas += rh;
+
+                        /* Give a slight preference to fixed variables (mainly equality slacks) */
+                        if (up < epsvalue)
+                        {
+                            /* Break out immediately if we are directed to force slacks out of the basis */
+                            if (forceoutEQ == true)
+                            {
+                                current.varno = i;
+                                current.pivot = -1;
+                                break;
+                            }
+                            /* Give an extra early boost to equality slack elimination, if specified */
+                            if (forceoutEQ == Convert.ToBoolean(DefineConstants.AUTOMATIC))
+                            {
+                                rh *= 10.0;
+                            }
+                            else // .. or just the normal. marginal boost
+                            {
+                                rh *= 1.0 + lp.epspivot;
+                            }
+                        }
+
+                        /* Select leaving variable according to strategy (the most negative/largest violation) */
+                        candidate.pivot = normalizeEdge(lp, i, rh, true);
+                        candidate.varno = i;
+                        int Parameter = 0;
+                        if (findImprovementVar(current, candidate, collectMP, ref Parameter))
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                /* Verify infeasibility */
+                if (updateinfeas)
+                {
+                    lp.suminfeas = System.Math.Abs(sinfeas);
+                }
+                if ((ninfeas > 1) && !verify_stability(lp, false, xinfeas, sinfeas, ninfeas))
+                {
+                msg = "rowdual: Check for reduced accuracy and tolerance settings.\n";
+                    lp.report(lp, lp_lib.IMPORTANT, ref msg);
+                    current.varno = 0;
+                }
+
+                /* Produce statistics */
+                if (lp.spx_trace)
+                {
+                    msg = "rowdual: Infeasibility sum " + lp_types.RESULTVALUEMASK + " in %7d constraints.\n";
+                    lp.report(lp, lp_lib.NORMAL, ref msg, sinfeas, ninfeas);
+                    if (current.varno > 0)
+                    {
+                    msg = "rowdual: rhs[%d] = " + lp_types.RESULTVALUEMASK+ "\n";
+                        lp.report(lp, lp_lib.DETAILED, ref msg, current.varno, lp.rhs[current.varno]);
+                    }
+                    else
+                    {
+                    msg = "rowdual: Optimality - No primal infeasibilities found\n";
+                        lp.report(lp, lp_lib.FULL, ref msg);
+                    }
+                }
+                if (xviol != null)
+                {
+                    xviol = System.Math.Abs(xinfeas);
+                }
+
+                return (current.varno);
+            } // rowdual
+
+        //Changed By: CS Date:28/11/2018
+        internal static double multi_enteringtheta(multirec multi)
+        {
+            return (multi.step_base);
+        }
+
+        //Changed By: CS Date:28/11/2018
+        /* Computation of reduced costs */
+        internal static void update_reducedcosts(lprec lp, bool isdual, int leave_nr, int enter_nr, double[] prow, double[] drow)
+        {
+            /* "Fast" update of the dual reduced cost vector; note that it must be called
+               after the pivot operation and only applies to a major "true" iteration */
+            int i;
+            double hold = new double();
+
+            if (isdual)
+            {
+                hold = -drow[enter_nr] / prow[enter_nr];
+                for (i = 1; i <= lp.sum; i++)
+                {
+                    if (!lp.is_basic[i])
+                    {
+                        if (i == leave_nr)
+                        {
+                            drow[i] = hold;
+                        }
+                        else
+                        {
+                            drow[i] += hold * prow[i];
+                            lp_types.my_roundzero(drow[i], lp.epsmachine);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                string msg = "update_reducedcosts: Cannot update primal reduced costs!\n";
+                lp.report(lp, lp_lib.SEVERE, ref msg);
+            }
+        }
 
     }
 }

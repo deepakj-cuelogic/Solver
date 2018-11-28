@@ -877,7 +877,52 @@ namespace ZS.Math.Optimization
             }
 
         }
-        static void mat_multadd(MATrec mat, double[] lhsvector, int varnr, double mult) { throw new NotImplementedException(); }
+        //Changed By: CS Date:28/11/2018
+        internal static void mat_multadd(MATrec mat, double[] lhsvector, int varnr, double mult)
+        {
+            int colnr;
+            //ORIGINAL LINE: register int ib, ie, *matRownr;
+            int ib;
+            int ie;
+            //ORIGINAL LINE: int *matRownr;
+            int matRownr;
+            //ORIGINAL LINE: register double *matValue;
+            double matValue;
+
+            LpCls objLpCls = new LpCls();
+
+            /* Handle case of a slack variable */
+            if (varnr <= mat.lp.rows)
+            {
+                lhsvector[varnr] += mult;
+                return;
+            }
+
+            /* Do operation on the objective */
+            if (mat.lp.matA == mat)
+            {
+                lhsvector[0] += LpCls.get_OF_active(mat.lp, varnr, mult);
+            }
+
+            /* Scan the constraint matrix target columns */
+            colnr = varnr - mat.lp.rows;
+            ib = Convert.ToInt32(mat.col_end[colnr - 1]);
+            ie = Convert.ToInt32(mat.col_end[colnr]);
+            if (ib < ie)
+            {
+
+                /* Initialize pointers */
+                matRownr = COL_MAT_ROWNR(ib);
+                matValue = COL_MAT_VALUE(ib);
+
+                /* Then loop over all regular rows */
+                for (; ib < ie; ib++, matValue += matValueStep, matRownr += matRowColStep)
+                {
+                    lhsvector[matRownr] += mult * matValue;
+                }
+            }
+
+        }
         static byte mat_setrow(MATrec mat, int rowno, int count, double[] row, int colno, byte doscale, byte checkrowmode) { throw new NotImplementedException(); }
         static byte mat_setcol(MATrec mat, int colno, int count, double[] column, int rowno, byte doscale, byte checkrowmode) { throw new NotImplementedException(); }
         static byte mat_mergemat(MATrec target, MATrec source, byte usecolmap) { throw new NotImplementedException(); }
@@ -989,8 +1034,9 @@ namespace ZS.Math.Optimization
         static byte vec_compress(double[] densevector, int startpos, int endpos, double epsilon, double[] nzvector, int[] nzindex) { throw new NotImplementedException(); }
         static byte vec_expand(double[] nzvector, int nzindex, double[] densevector, int startpos, int endpos) { throw new NotImplementedException(); }
 
+        //Changed By: CS Date:28/11/2018
         /* Sparse matrix products */
-        static bool get_colIndexA(lprec lp, int varset, int colindex, bool append)
+        internal static bool get_colIndexA(lprec lp, int varset, int colindex, bool append)
         {
             int i;
             int varnr;
@@ -1392,7 +1438,17 @@ namespace ZS.Math.Optimization
 
         /* Equation solution */
         static byte fimprove(lprec lp, double[] pcol, int nzidx, double roundzero) { throw new NotImplementedException(); }
-        static void ftran(lprec lp, double[] rhsvector, int nzidx, double roundzero) { throw new NotImplementedException(); }
+        
+        //Changed By: CS Date:28/11/2018
+        internal static void ftran(lprec lp, double[] rhsvector, int nzidx, double roundzero)
+        {
+        #if false
+        //  if(is_action(lp->improve, IMPROVE_SOLUTION) && lp->bfp_pivotcount(lp))
+        //    fimprove(lp, rhsvector, nzidx, roundzero);
+        //  else
+        #endif
+            lp.bfp_ftran_normal(lp, ref rhsvector[0], nzidx);
+        }
         static byte bimprove(lprec lp, double[] rhsvector, int nzidx, double roundzero) { throw new NotImplementedException(); }
         static void btran(lprec lp, double rhsvector, int nzidx, double roundzero)
         {
@@ -1400,7 +1456,7 @@ namespace ZS.Math.Optimization
         }
 
         /* Combined equation solution and matrix product for simplex operations */
-        internal static bool fsolve(lprec lp, int varin, double?[] pcol, int[] nzidx, double roundzero, double ofscalar, bool prepareupdate)
+        internal static bool fsolve(lprec lp, int varin, ref double pcol, int[] nzidx, double roundzero, double ofscalar, bool prepareupdate)
         {
             bool ok = true;
             LpCls objLpCls = new LpCls();
@@ -1412,10 +1468,10 @@ namespace ZS.Math.Optimization
             }
 
             /* Solve, adjusted for objective function scalar */
-            pcol[0] *= ofscalar;
+            pcol = ofscalar;
             if (prepareupdate)
             {
-                lp.bfp_ftran_prepare(lp, ref pcol[0], Convert.ToInt32(nzidx));
+                lp.bfp_ftran_prepare(lp, ref pcol, Convert.ToInt32(nzidx));
             }
             else
             {
@@ -1521,7 +1577,8 @@ namespace ZS.Math.Optimization
             return (mat.mat_alloc - mat.col_end[mat.columns]);
         }
 
-        internal static bool bsolve(lprec lp, int row_nr, ref double rhsvector, ref int? nzidx, double roundzero, double ofscalar)
+        //Changed By: CS Date:28/11/2018
+        internal static bool bsolve(lprec lp, int row_nr, ref double[] rhsvector, ref int? nzidx, double roundzero, double ofscalar)
         {
             bool ok = true;
 
@@ -1533,7 +1590,7 @@ namespace ZS.Math.Optimization
             }
 
             /* Solve, adjusted for objective function scalar */
-            rhsvector = ofscalar;
+            rhsvector[0] = ofscalar;
             btran(lp, rhsvector, (nzidx != null) ? Convert.ToInt32(nzidx) : 0, roundzero);
 
             return (ok);
