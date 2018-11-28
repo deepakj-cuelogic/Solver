@@ -1,4 +1,5 @@
-﻿using System;
+﻿#define PricerDefaultOpt
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,7 @@ namespace ZS.Math.Optimization
     class LpCls : lprec
 
     {
+        public const int PricerDefaultOpt = 1;
         /* Return lp_solve version information */
         public new void lp_solve_version(ref int? majorversion, ref int? minorversion, ref int? release, ref int? build)
         {
@@ -358,9 +360,32 @@ namespace ZS.Math.Optimization
 
         }
 
-        private static void set_infiniteex(lprec lp, double infinite, byte init)
+        private static void set_infiniteex(lprec lp, double infinite, byte? init)
         {
-            throw new NotImplementedException();
+            int i;
+
+            infinite = System.Math.Abs(infinite);
+            if ((init) != null || is_infinite(lp, lp.bb_heuristicOF))
+            {
+                lp.bb_heuristicOF = lp_types.my_chsign(is_maxim(lp), infinite);
+            }
+            if ((init) != null || is_infinite(lp, lp.bb_breakOF))
+            {
+                lp.bb_breakOF = lp_types.my_chsign(is_maxim(lp), -infinite);
+            }
+            for (i = 0; i <= lp.sum; i++)
+            {
+                if ((init == null) && is_infinite(lp, lp.orig_lowbo[i]))
+                {
+                    lp.orig_lowbo[i] = -infinite;
+                }
+                if ((init) != null || is_infinite(lp, lp.orig_upbo[i]))
+                {
+                    lp.orig_upbo[i] = infinite;
+                }
+            }
+            lp.infinite = infinite;
+
         }
 
         public new bool set_lp_name(lprec lp, ref string name)
@@ -372,9 +397,88 @@ namespace ZS.Math.Optimization
             return true;
         }
 
+        /* Write and read lp_solve parameters (placeholders) - see lp_params.c */
         private new void reset_params(lprec lp)
         {
-            throw new NotImplementedException();
+            int mode;
+
+            lp.epsmachine = DEF_EPSMACHINE;
+            lp.epsperturb = DEF_PERTURB;
+            lp.lag_accept = DEF_LAGACCEPT;
+            set_epslevel(lp, EPS_DEFAULT);
+
+            lp.tighten_on_set = false;
+            lp.negrange = DEF_NEGRANGE;
+
+#if false
+//  lp->do_presolve       = PRESOLVE_ROWS | PRESOLVE_COLS | PRESOLVE_MERGEROWS |
+//                          PRESOLVE_REDUCEGCD |
+//                          PRESOLVE_ROWDOMINATE;
+#else
+            lp.do_presolve = PRESOLVE_NONE;
+#endif
+            lp.presolveloops = (int)DEF_MAXPRESOLVELOOPS;
+
+            lp.scalelimit = DEF_SCALINGLIMIT;
+            //C++ TO C# CONVERTER TODO TASK: Statements that are interrupted by preprocessor statements are not converted by C++ to C# Converter:
+            lp.scalemode = SCALE_INTEGERS |
+#if false
+//                          SCALE_POWER2 |
+//                          SCALE_LOGARITHMIC | SCALE_MEAN;
+#else
+                          SCALE_LINEAR | SCALE_GEOMETRIC | SCALE_EQUILIBRATE;
+#endif
+
+            lp.crashmode = CRASH_NONE;
+
+            lp.max_pivots = 0;
+            lp.simplex_strategy = SIMPLEX_DUAL_PRIMAL;
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if PricerDefaultOpt == true
+            mode = PRICER_DEVEX;
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#elif PricerDefaultOpt == false
+  mode = PRICER_STEEPESTEDGE;
+  mode |= PRICE_TRUENORMINIT;
+#else
+                mode = PRICER_STEEPESTEDGE | PRICE_PRIMALFALLBACK;
+#endif
+            mode |= PRICE_ADAPTIVE;
+#if EnableRandomizedPricing
+  mode |= PRICE_RANDOMIZE;
+#endif
+            set_pivoting(lp, mode);
+
+            lp.improve = IMPROVE_DEFAULT;
+            lp.anti_degen = ANTIDEGEN_DEFAULT;
+
+            lp.bb_floorfirst = BRANCH_AUTOMATIC;
+            //C++ TO C# CONVERTER TODO TASK: Statements that are interrupted by preprocessor statements are not converted by C++ to C# Converter:
+            lp.bb_rule = NODE_DYNAMICMODE | NODE_GREEDYMODE | NODE_GAPSELECT |
+#if true
+                      //C++ TO C# CONVERTER TODO TASK: Statements that are interrupted by preprocessor statements are not converted by C++ to C# Converter:
+                      NODE_PSEUDOCOSTSELECT |
+#else
+                                        //C++ TO C# CONVERTER TODO TASK: Statements that are interrupted by preprocessor statements are not converted by C++ to C# Converter:
+                                        NODE_PSEUDOFEASSELECT |
+#endif
+                          NODE_RCOSTFIXING;
+            lp.bb_limitlevel = DEF_BB_LIMITLEVEL;
+            lp.bb_PseudoUpdates = (int)DEF_PSEUDOCOSTUPDATES;
+
+            lp.bb_heuristicOF = lp_types.my_chsign(is_maxim(lp), commonlib.MAX(DEF_INFINITE, lp.infinite));
+            lp.bb_breakOF = -lp.bb_heuristicOF;
+
+            lp.sectimeout = 0;
+            lp.solutionlimit = 1;
+
+            set_outputstream(lp, null); // Set to default output stream
+            lp.verbose = NORMAL;
+            lp.print_sol = false; // Can be FALSE, TRUE, AUTOMATIC (only non-zeros printed)
+            lp.spx_trace = false;
+            lp.lag_trace = false;
+            lp.bb_trace = false;
+
         }
 
         private new bool set_callbacks(lprec lp)
@@ -672,6 +776,7 @@ namespace ZS.Math.Optimization
             }
             else
             {
+
                 //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
 #if LoadLanguageLib == TRUE
 #if WIN32
@@ -1149,7 +1254,7 @@ namespace ZS.Math.Optimization
         }
 
 
-        internal new bool is_int(lprec lp, int colnr)
+        internal new static bool is_int(lprec lp, int colnr)
         {
             if ((colnr > lp.columns) || (colnr < 1))
             {
@@ -1253,7 +1358,7 @@ namespace ZS.Math.Optimization
                 ///<summary> 19/11/18
                 /// PREVIOUS: newht = lp_Hash.copy_hash_table(oldht, list, oldht.size);
                 /// ERROR IN PREVIOUS: cannot convert from 'ZS.Math.Optimization.hashelem[]' to 'ZS.Math.Optimization.hashelem'
-                /// FIX 1: changed from 'list' to 'lis[0]'
+                /// FIX 1: changed from 'list' to 'list[0]'
                 /// </summary>
                 newht = lp_Hash.copy_hash_table(oldht, list[0], oldht.size);
                 // chanegd from 'ht[0]' to 'ht' FIX_6cf0db98-4dd5-40fa-9afe-ddc2e2c94eb2 19/11/18
@@ -1263,7 +1368,7 @@ namespace ZS.Math.Optimization
             return (newitem);
         }
 
-        private void varmap_add(lprec lp, int @base, int delta)
+        private static void varmap_add(lprec lp, int @base, int delta)
         {
             int i;
             int ii;
@@ -1303,7 +1408,7 @@ namespace ZS.Math.Optimization
             return true;
         }
 
-        internal new bool is_infinite(lprec lp, double value)
+        internal static new bool is_infinite(lprec lp, double value)
         {
             /// <summary>
             /// commented on 12/11/18
@@ -1318,7 +1423,7 @@ namespace ZS.Math.Optimization
             //#endif
         }
 
-        internal new int SOS_count(lprec lp)
+        internal static new int SOS_count(lprec lp)
         {
             if (lp.SOS == null)
             {
@@ -1391,7 +1496,7 @@ namespace ZS.Math.Optimization
         /// <summary>
         /// changed return type from byte to bool FIX_77f08594-fb68-4eb9-9ded-bfcd976801ba 19/11/18
         /// </summary>
-        internal new bool is_semicont(lprec lp, int colnr)
+        internal static new bool is_semicont(lprec lp, int colnr)
         {
             if ((colnr > lp.columns) || (colnr < 1))
             {
@@ -1409,7 +1514,7 @@ namespace ZS.Math.Optimization
 
         }
 
-        internal new bool is_maxim(lprec lp)
+        internal static new bool is_maxim(lprec lp)
         {
             return ((bool)((lp.row_type != null) && ((lp.row_type[0] & ROWTYPE_CHSIGN) == ROWTYPE_GE)));
         }
@@ -1572,7 +1677,7 @@ namespace ZS.Math.Optimization
             return true;
         }
 
-        private int get_Lrows(lprec lp)
+        private new static int get_Lrows(lprec lp)
         {
             if (lp.matL == null)
             {
@@ -1671,12 +1776,12 @@ namespace ZS.Math.Optimization
             return true;
         }
 
-        internal bool str_add_constraint(lprec lp, ref string row_string, int constr_type, double rh)
+        internal new bool str_add_constraint(lprec lp, ref string row_string, int constr_type, double rh)
         {
             int i;
             string p;
             string newp = "";
-            double[] aRow = null;
+            double?[] aRow = null;
             bool status = false;
             lp_report objlp_report = new lp_report();
             LpCls objLpCls = new LpCls();
@@ -1703,7 +1808,7 @@ namespace ZS.Math.Optimization
             }
             if (lp.spx_status != lp_lib.DATAIGNORED)
             {
-                status = objLpCls.add_constraint(lp, ref aRow[0], constr_type, rh);
+                status = objLpCls.add_constraint(lp, ref aRow, constr_type, rh);
             }
             //NOT REQUIRED IN C#
             //FREE(aRow);
@@ -1770,7 +1875,8 @@ namespace ZS.Math.Optimization
                     n++;
                 }
             }
-
+            //Cannot implicitly convert type 'int[]' to 'int'
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
             i = lp.matA.col_end[colnr - 1];
             ie = lp.matA.col_end[colnr];
             if (nzrow == null)
@@ -1908,6 +2014,7 @@ namespace ZS.Math.Optimization
                         countnz++;
                     }
                 }
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
                 i = mat.row_end[rownr - 1];
                 ie = mat.row_end[rownr];
                 if (!lp.matA.is_roworder)
@@ -1941,6 +2048,19 @@ namespace ZS.Math.Optimization
         internal new bool is_action(int actionvar, int testmask)
         {
             return ((bool)((actionvar & testmask) != 0));
+        }
+
+        internal bool ISMASKSET(int variable, int mask)
+        {
+            return (bool)(((variable) & (mask)) != 0);
+        }
+        internal void SETMASK(int variable, int mask)
+        {
+            variable |= mask;
+        }
+        internal void CLEARMASK(int variable, int mask)
+        {
+            variable &= ~(mask);
         }
         internal new bool is_anti_degen(lprec lp, int testmask)
         {
@@ -2310,6 +2430,7 @@ namespace ZS.Math.Optimization
             {
                 //NOT REQUIRED
                 //MEMCLEAR(column, lp.rows + 1);
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
                 i = mat.col_end[col_nr - 1];
                 ie = mat.col_end[col_nr];
                 matRownr = lp_matrix.COL_MAT_ROWNR(i);
@@ -2359,6 +2480,7 @@ namespace ZS.Math.Optimization
                 }
 
                 /* Loop over the non-zero column entries */
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
                 i = mat.col_end[col_nr - 1];
                 ie = mat.col_end[col_nr];
                 matRownr = lp_matrix.COL_MAT_ROWNR(i);
@@ -2831,6 +2953,7 @@ namespace ZS.Math.Optimization
 
                     /* Get starting and ending indeces in the NZ vector */
                     colnr = i - lp.rows;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
                     k1 = mat.col_end[colnr - 1];
                     k2 = mat.col_end[colnr];
                     matRownr = lp_matrix.COL_MAT_ROWNR(k1);
@@ -3000,7 +3123,7 @@ namespace ZS.Math.Optimization
             return (get_origrow_name(lp, rownr));
         }
 
-        internal string get_col_name(lprec lp, int colnr)
+        internal new string get_col_name(lprec lp, int colnr)
         {
             lp_report objlp_report = new lp_report();
             if ((colnr > lp.columns + 1) || (colnr < 1))
@@ -3033,10 +3156,7 @@ namespace ZS.Math.Optimization
 
             /* Release the BFP and basis if we are active */
             if (lp.invB != null)
-            {
-                //NOTED ISSUE
-                //bfp_free(lp);
-            }
+                bfp_free(lp);
 
             //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
 #if LoadInverseLib == TRUE
@@ -3051,6 +3171,7 @@ namespace ZS.Math.Optimization
 	lp.hBFP = null;
   }
 #endif
+
 
             if (filename == null)
             {
@@ -3345,7 +3466,7 @@ internal static class StringFunctions
 	}
 #endif
 	else
-	  result = LIB_NOTFOUND;
+	  result = lp_types.LIB_NOTFOUND;
 #endif
                 /* Do validation */
                 if ((result != lp_types.LIB_LOADED) || ((lp.bfp_name == null) || (lp.bfp_compatible == null) || (lp.bfp_free == null) || (lp.bfp_resize == null) || (lp.bfp_nonzeros == null) || (lp.bfp_memallocated == null) || (lp.bfp_restart == null) || (lp.bfp_mustrefactorize == null) || (lp.bfp_preparefactorization == null) || (lp.bfp_factorize == null) || (lp.bfp_finishupdate == null) || (lp.bfp_ftran_normal == null) || (lp.bfp_ftran_prepare == null) || (lp.bfp_btran_normal == null) || (lp.bfp_status == null) || (lp.bfp_implicitslack == null) || (lp.bfp_indexbase == null) || (lp.bfp_rowoffset == null) || (lp.bfp_pivotmax == null) || (lp.bfp_init == null) || (lp.bfp_pivotalloc == null) || (lp.bfp_colcount == null) || (lp.bfp_canresetbasis == null) || (lp.bfp_finishfactorization == null) || (lp.bfp_updaterefactstats == null) || (lp.bfp_prepareupdate == null) || (lp.bfp_pivotRHS == null) || (lp.bfp_btran_double == null) || (lp.bfp_efficiency == null) || (lp.bfp_pivotvector == null) || (lp.bfp_pivotcount == null) || (lp.bfp_refactcount == null) || (lp.bfp_isSetI == null) || (lp.bfp_findredundant == null)))
@@ -3384,10 +3505,804 @@ internal static class StringFunctions
             }
             return ((bool)(result == lp_types.LIB_LOADED));
         }
+
         internal new bool is_piv_rule(lprec lp, int rule)
         {
             return ((bool)(get_piv_rule(lp) == rule));
         }
 
+        internal new static bool check_degeneracy(lprec lp, ref double?[] pcol, ref int degencount)
+        {
+            /* Check if the entering column Pi=Inv(B)*a is likely to produce improvement;
+           (cfr. Istvan Maros: CTOTSM p. 233) */
+
+            int i;
+            int ndegen;
+
+            double rhs = new double();
+            double? sdegen = new double();
+            double epsmargin = lprec.epsprimal;
+
+            sdegen = 0;
+            ndegen = 0;
+            rhs = lp.rhs;
+            for (i = 1; i <= lp.rows; i++)
+            {
+                rhs++;
+                pcol[i]++;
+                if (System.Math.Abs(rhs) < epsmargin)
+                {
+                    sdegen += pcol[i];
+                    ndegen++;
+                }
+                else if (System.Math.Abs((rhs) - lp.upbo[lp.var_basic[i]]) < epsmargin)
+                {
+                    sdegen -= pcol[i];
+                    ndegen++;
+                }
+            }
+            if (degencount != null)
+            {
+                degencount = ndegen;
+            }
+            /*  sdegen += epsmargin*ndegen; */
+            return ((bool)(sdegen <= 0));
+        }
+
+        internal static int compute_theta(lprec lp, int rownr, ref double theta, bool isupbound, double HarrisScalar, bool primal)
+        {
+            /* The purpose of this routine is to compute the non-basic bound state / value of
+           the leaving variable. Note that the incoming theta is "d" in Chvatal-terminology */
+
+            int colnr = lp.var_basic[rownr];
+
+            //ORIGINAL LINE: register double x = lp->rhs[rownr];
+            double x = lp.rhs[rownr];
+            double lb = 0; // Primal feasibility tolerance
+            double ub = lp.upbo[colnr];
+            double eps = lprec.epsprimal;
+
+            /* Compute theta for the primal simplex */
+            HarrisScalar *= eps;
+            if (primal != null)
+            {
+
+                if (theta > 0)
+                {
+                    x -= lb - HarrisScalar; // A positive number
+                }
+                else if (ub < lp.infinite)
+                {
+                    x -= ub + HarrisScalar; // A negative number
+                }
+                else
+                {
+                    theta = -lp.infinite;
+                    return (colnr);
+                }
+            }
+            /* Compute theta for the dual simplex */
+            else
+            {
+
+                if (isupbound != false)
+                {
+                    theta = -(theta);
+                }
+
+                /* Current value is below or equal to its lower bound */
+                if (x < lb + eps)
+                {
+                    x -= lb - HarrisScalar;
+                }
+
+                /* Current value is above or equal to its upper bound */
+                else if (x > ub - eps)
+                {
+                    if (ub >= lp.infinite)
+                    {
+                        theta = lp.infinite * lp_types.my_sign(theta);
+                        return (colnr);
+                    }
+                    else
+                    {
+                        x -= ub + HarrisScalar;
+                    }
+                }
+            }
+            lp_types.my_roundzero(x, lp.epsmachine);
+            theta = x / theta;
+
+            ///#if EnforcePositiveTheta
+            /* Check if we have negative theta due to rounding or an internal error */
+            if (theta < 0)
+            {
+                if (primal != null && (ub == lb))
+                {
+                    lp.rhs[rownr] = lb;
+                }
+                else
+                {
+                    ///#if Paranoia
+                    if (theta < -eps)
+                    {
+                        string msg = "compute_theta: Negative theta (%g) not allowed in base-0 version of lp_solve\n";
+                        lp.report(lp, DETAILED, ref msg, theta);
+                    }
+                }
+                ///#endif
+                theta = 0;
+            }
+            ///#endif
+
+            return (colnr);
+        }
+
+        private new static void varmap_clear(lprec lp)
+        {
+            lp_presolve.presolve_setOrig(lp, 0, 0);
+            lp.varmap_locked = false;
+        }
+
+        internal new static bool inc_col_space(lprec lp, int deltacols)
+        {
+            int i;
+            int colsum;
+            int oldcolsalloc;
+
+            i = lp.columns_alloc + deltacols;
+            if (lp.matA.is_roworder)
+            {
+                i -= lp.matA.rows_alloc;
+                commonlib.SETMIN(i, deltacols);
+                if (i > 0)
+                {
+                    lp_matrix.inc_matrow_space(lp.matA, i);
+                }
+                colsum = lp.matA.rows_alloc;
+            }
+            else
+            {
+                i -= lp.matA.columns_alloc;
+                commonlib.SETMIN(i, deltacols);
+                if (i > 0)
+                {
+                    lp_matrix.inc_matcol_space(lp.matA, i);
+                }
+                colsum = lp.matA.columns_alloc;
+            }
+
+            if (lp.columns + deltacols >= lp.columns_alloc)
+            {
+
+                colsum++;
+                oldcolsalloc = lp.columns_alloc;
+                lp.columns_alloc = colsum;
+                deltacols = colsum - oldcolsalloc;
+                colsum++;
+
+                /* Adjust hash name structures */
+                if (lp.names_used && (lp.col_name != null))
+                {
+
+                    /* First check the hash table */
+                    if (lp.colname_hashtab.size < lp.columns_alloc)
+                    {
+                        hashtable ht;
+
+                        ht = lp_Hash.copy_hash_table(lp.colname_hashtab, lp.col_name[0], lp.columns_alloc + 1);
+                        if (ht != null)
+                        {
+                            lp_Hash.free_hash_table(lp.colname_hashtab);
+                            lp.colname_hashtab = ht;
+                        }
+                    }
+
+                    /* Then the string storage (i.e. pointer to the item's hash structure) */
+                    //C++ TO C# CONVERTER TODO TASK: The memory management function 'realloc' has no equivalent in C#:
+                    /* NOT REQUIRED
+                    lp.col_name = (hashelem)realloc(lp.col_name, (colsum) * sizeof(*lp.col_name));
+                    */
+                    for (i = oldcolsalloc + 1; i < colsum; i++)
+                    {
+                        lp.col_name[i] = null;
+                    }
+                }
+                /* NOT REQUIRED
+                if (!allocREAL(lp, lp.orig_obj, colsum, AUTOMATIC) || !allocbool(lp, lp.var_type, colsum, AUTOMATIC) || !allocREAL(lp, lp.sc_lobound, colsum, AUTOMATIC) || ((lp.obj != null) && !allocREAL(lp, lp.obj, colsum, AUTOMATIC)) || ((lp.var_priority != null) && !allocINT(lp, lp.var_priority, colsum - 1, AUTOMATIC)) || ((lp.var_is_free != null) && !allocINT(lp, lp.var_is_free, colsum, AUTOMATIC)) || ((lp.bb_varbranch != null) && !allocbool(lp, lp.bb_varbranch, colsum - 1, AUTOMATIC)))
+                {
+                    return (0);
+                }
+                */
+
+                /* NOT REQUIRED
+                 //Make sure that Lagrangean constraints have the same number of columns 
+                if (get_Lrows(lp) > 0)
+                {
+                    inc_lag_space(lp, 0, 0);
+                }
+                */
+
+                /* Update column pointers */
+                for (i = (int)commonlib.MIN(oldcolsalloc, lp.columns) + 1; i < colsum; i++)
+                {
+                    lp.orig_obj[i] = 0;
+                    if (lp.obj != null)
+                    {
+                        lp.obj[i] = 0;
+                    }
+                    lp.var_type[i] = ISREAL;
+                    lp.sc_lobound[i] = 0;
+                    if (lp.var_priority != null)
+                    {
+                        lp.var_priority[i - 1] = i;
+                    }
+                }
+
+                if (lp.var_is_free != null)
+                {
+                    for (i = oldcolsalloc + 1; i < colsum; i++)
+                    {
+                        lp.var_is_free[i] = 0;
+                    }
+                }
+
+                if (lp.bb_varbranch != null)
+                {
+                    for (i = oldcolsalloc; i < colsum - 1; i++)
+                    {
+                        lp.bb_varbranch[i] = BRANCH_DEFAULT;
+                    }
+                }
+
+                inc_rowcol_space(lp, deltacols, false);
+
+            }
+            return true;
+        }
+
+        private static bool inc_rowcol_space(lprec lp, int delta, bool isrows)
+        {
+            int i;
+            int oldrowcolalloc;
+            int rowcolsum;
+
+            /*NOT REQUIRED
+            // Get rid of dual arrays 
+            if (lp.solvecount > 0)
+            {
+                free_duals(lp);
+            }
+            */
+
+            /* Set constants */
+            oldrowcolalloc = lp.sum_alloc;
+            lp.sum_alloc += delta;
+            rowcolsum = lp.sum_alloc + 1;
+
+            /*NOT REQUIRED
+            // Reallocate lp memory 
+            if (!allocREAL(lp, lp.upbo, rowcolsum, AUTOMATIC) || !allocREAL(lp, lp.orig_upbo, rowcolsum, AUTOMATIC) || !allocREAL(lp, lp.lowbo, rowcolsum, AUTOMATIC) || !allocREAL(lp, lp.orig_lowbo, rowcolsum, AUTOMATIC) || !allocREAL(lp, lp.solution, rowcolsum, AUTOMATIC) || !allocREAL(lp, lp.best_solution, rowcolsum, AUTOMATIC) || !allocbool(lp, lp.is_basic, rowcolsum, AUTOMATIC) || !allocbool(lp, lp.is_lower, rowcolsum, AUTOMATIC) || ((lp.scalars != null) && !allocREAL(lp, lp.scalars, rowcolsum, AUTOMATIC)))
+            {
+                return (0);
+            }
+            */
+
+            /* Fill in default values, where appropriate */
+            for (i = oldrowcolalloc + 1; i < rowcolsum; i++)
+            {
+                lp.upbo[i] = lp.infinite;
+                lp.orig_upbo[i] = lp.upbo[i];
+                lp.lowbo[i] = 0;
+                lp.orig_lowbo[i] = lp.lowbo[i];
+                lp.is_basic[i] = false;
+                lp.is_lower[i] = true;
+            }
+
+            /* Deal with scalars; the vector can be NULL and also contains Lagrangean information */
+            if (lp.scalars != null)
+            {
+                for (i = oldrowcolalloc + 1; i < rowcolsum; i++)
+                {
+                    lp.scalars[i] = 1;
+                }
+                if (oldrowcolalloc == 0)
+                {
+                    lp.scalars[0] = 1;
+                }
+            }
+
+            return (lp_presolve.inc_presolve_space(lp, delta, isrows) && LpPricePSE.resizePricer(lp));
+        }
+
+        internal new static bool inc_row_space(lprec lp, int deltarows)
+        {
+            int i;
+            int rowsum;
+            int oldrowsalloc;
+            bool ok = true;
+
+            /* Adjust lp row structures */
+            i = lp.rows_alloc + deltarows;
+            if (lp.matA.is_roworder)
+            {
+                i -= lp.matA.columns_alloc;
+                commonlib.SETMIN(i, deltarows);
+                if (i > 0)
+                {
+                    lp_matrix.inc_matcol_space(lp.matA, i);
+                }
+                rowsum = lp.matA.columns_alloc;
+            }
+            else
+            {
+#if false
+//    if((lp->rows_alloc > 0) && (lp->rows + deltarows > lp->rows_alloc))
+//      i = deltarows; // peno 25/12/06 
+//    else
+#endif
+                i -= lp.matA.rows_alloc;
+                commonlib.SETMIN(i, deltarows);
+                if (i > 0)
+                {
+                    lp_matrix.inc_matrow_space(lp.matA, i);
+                }
+                rowsum = lp.matA.rows_alloc;
+            }
+            if (lp.rows + deltarows > lp.rows_alloc)
+            {
+
+                rowsum++;
+                oldrowsalloc = lp.rows_alloc;
+                lp.rows_alloc = rowsum;
+                deltarows = rowsum - oldrowsalloc;
+                rowsum++;
+
+                /*NOT REQUIRED
+                if (!allocREAL(lp, lp.orig_rhs, rowsum, lp_types.AUTOMATIC) || !allocLREAL(lp, lp.rhs, rowsum, lp_types.AUTOMATIC) || !allocINT(lp, lp.row_type, rowsum, lp_types.AUTOMATIC) || !allocINT(lp, lp.var_basic, rowsum, lp_types.AUTOMATIC))
+                {
+                    return (0);
+                }
+                */
+
+                if (oldrowsalloc == 0)
+                {
+                    lp.var_basic[0] = lp_types.AUTOMATIC; // Indicates default basis
+                    lp.orig_rhs[0] = 0;
+                    lp.row_type[0] = ROWTYPE_OFMIN;
+                }
+                for (i = oldrowsalloc + 1; i < rowsum; i++)
+                {
+                    lp.orig_rhs[i] = 0;
+                    lp.rhs[i] = 0;
+                    lp.row_type[i] = ROWTYPE_EMPTY;
+                    lp.var_basic[i] = i;
+                }
+
+                /* Adjust hash name structures */
+                if (lp.names_used && (lp.row_name != null))
+                {
+
+                    /* First check the hash table */
+                    if (lp.rowname_hashtab.size < lp.rows_alloc)
+                    {
+                        hashtable ht;
+
+                        ht = lp_Hash.copy_hash_table(lp.rowname_hashtab, lp.row_name[0], lp.rows_alloc + 1);
+                        if (ht == null)
+                        {
+                            lp.spx_status = NOMEMORY;
+                            return false;
+                        }
+                        lp_Hash.free_hash_table(lp.rowname_hashtab);
+                        lp.rowname_hashtab = ht;
+                    }
+
+                    /* Then the string storage (i.e. pointer to the item's hash structure) */
+                    //C++ TO C# CONVERTER TODO TASK: The memory management function 'realloc' has no equivalent in C#:
+                    /* NOT REQUIRED
+                    lp.row_name = (hashelem)realloc(lp.row_name, (rowsum) * sizeof(*lp.row_name));
+                    */
+                    if (lp.row_name == null)
+                    {
+                        lp.spx_status = NOMEMORY;
+                        return false;
+                    }
+                    for (i = oldrowsalloc + 1; i < rowsum; i++)
+                    {
+                        lp.row_name[i] = null;
+                    }
+                }
+
+                ok = inc_rowcol_space(lp, deltarows, true);
+
+            }
+            return (ok);
+        }
+
+        internal new lprec[] read_freemps(FileStream filename, int options)
+        {
+            lprec[] lp = null;
+            int typeMPS;
+            lp_MPS objlp_MPS = new lp_MPS();
+
+            typeMPS = (options & ~0x07) >> 2;
+            typeMPS &= ~MPSFIXED;
+            typeMPS |= MPSFREE;
+            if (objlp_MPS.MPS_readhandle(lp, filename, typeMPS, options & 0x07))
+            {
+                return (lp);
+            }
+            else
+            {
+                return (null);
+            }
+        }
+
+        internal new lprec[] read_mpsex(object userhandle, read_modeldata_func read_modeldata, int options)
+        {
+            lprec[] lp = null;
+            int typeMPS;
+            lp_MPS objlp_MPS = new lp_MPS();
+
+            typeMPS = (options & ~0x07) >> 2;
+            if ((typeMPS & (MPSFIXED | MPSFREE)) == 0)
+            {
+                typeMPS |= MPSFIXED;
+            }
+            if (objlp_MPS.MPS_readex(lp, userhandle, read_modeldata, typeMPS, options & 0x07))
+            {
+                return (lp);
+            }
+            else
+            {
+                return (null);
+            }
+        }
+
+        internal new static bool append_columns(lprec lp, int deltacolumns)
+        {
+            if (!inc_col_space(lp, deltacolumns))
+            {
+                return false;
+            }
+            varmap_add(lp, lp.sum + 1, deltacolumns);
+            shift_coldata(lp, lp.columns + 1, deltacolumns, null);
+            return true;
+        }
+
+        internal new static bool shift_coldata(lprec lp, int @base, int delta, LLrec usedmap)
+        /* Note: Assumes that "lp->columns" has NOT been updated to the new count */
+        {
+            int i;
+            int ii;
+
+            /*NOT REQUIRED
+            if (lp.bb_totalnodes == 0)
+            {
+                free_duals(lp);
+            }
+            */
+
+            /* Shift A matrix data */
+            if (lp.matA.is_roworder)
+            {
+                lp_matrix.mat_shiftrows(lp.matA, ref @base, delta, usedmap);
+            }
+            else
+            {
+                lp_matrix.mat_shiftcols(lp.matA, ref @base, delta, usedmap);
+            }
+
+            /* Shift data right (insert), and set default values in positive delta-gap */
+            if (delta > 0)
+            {
+
+                /* Fix variable priority data */
+                if ((lp.var_priority != null) && (@base <= lp.columns))
+                {
+                    for (i = 0; i < lp.columns; i++)
+                    {
+                        if (lp.var_priority[i] >= @base)
+                        {
+                            lp.var_priority[i] += delta;
+                        }
+                    }
+                }
+                if ((lp.sos_priority != null) && (@base <= lp.columns))
+                {
+                    for (i = 0; i < lp.sos_vars; i++)
+                    {
+                        if (lp.sos_priority[i] >= @base)
+                        {
+                            lp.sos_priority[i] += delta;
+                        }
+                    }
+                }
+
+                /* Fix invalid split variable data */
+                if ((lp.var_is_free != null) && (@base <= lp.columns))
+                {
+                    for (i = 1; i <= lp.columns; i++)
+                    {
+                        if (System.Math.Abs((sbyte)lp.var_is_free[i]) >= @base)
+                        {
+                            lp.var_is_free[i] += (int)lp_types.my_chsign(lp.var_is_free[i] < 0, delta);
+                        }
+                    }
+                }
+
+                /* Shift column data right */
+                for (ii = lp.columns; ii >= @base; ii--)
+                {
+                    i = ii + delta;
+                    lp.var_type[i] = lp.var_type[ii];
+                    lp.sc_lobound[i] = lp.sc_lobound[ii];
+                    lp.orig_obj[i] = lp.orig_obj[ii];
+                    if (lp.obj != null)
+                    {
+                        lp.obj[i] = lp.obj[ii];
+                    }
+                    /*
+                          if(lp->objfromvalue != NULL)
+                            lp->objfromvalue[i] = lp->objfromvalue[ii];
+                          if(lp->objfrom != NULL)
+                            lp->objfrom[i] = lp->objfrom[ii];
+                          if(lp->objtill != NULL)
+                            lp->objtill[i] = lp->objtill[ii];
+                    */
+                    if (lp.var_priority != null)
+                    {
+                        lp.var_priority[ii - 1] = ii;
+                    }
+                    if (lp.bb_varbranch != null)
+                    {
+                        lp.bb_varbranch[ii - 1] = BRANCH_DEFAULT;
+                    }
+                    if (lp.var_is_free != null)
+                    {
+                        lp.var_is_free[ii] = 0;
+                    }
+                    if (lp.best_solution != null)
+                    {
+                        lp.best_solution[lp.rows + ii] = 0;
+                    }
+                    /* Shift data left (delete) */
+                    else if (usedmap != null)
+                    {
+                        /* Assume there is no need to handle split columns, since we are doing
+                           this only from presolve, which comes before splitting of columns. */
+
+                        /* First update counts */
+                        if (lp.int_vars + lp.sc_vars > 0)
+                        {
+                            for (ii = lp_utils.firstInactiveLink(usedmap); ii != 0; ii = lp_utils.nextInactiveLink(usedmap, ii))
+                            {
+                                if (is_int(lp, ii))
+                                {
+                                    lp.int_vars--;
+                                    if (lp_SOS.SOS_is_member(lp.SOS, 0, ii))
+                                    {
+                                        lp.sos_ints--;
+                                    }
+                                }
+                                if (is_semicont(lp, ii))
+                                {
+                                    lp.sc_vars--;
+                                }
+                            }
+                        }
+                        /* Shift array members */
+                        for (i = 1, ii = lp_utils.firstActiveLink(usedmap); ii != 0; i++, ii = lp_utils.nextActiveLink(usedmap, ii))
+                        {
+                            if (i == ii)
+                            {
+                                continue;
+                            }
+                            lp.var_type[i] = lp.var_type[ii];
+                            lp.sc_lobound[i] = lp.sc_lobound[ii];
+                            lp.orig_obj[i] = lp.orig_obj[ii];
+                            if (lp.obj != null)
+                            {
+                                lp.obj[i] = lp.obj[ii];
+                            }
+                            /*
+                                  if(lp->objfromvalue != NULL)
+                                    lp->objfromvalue[i] = lp->objfromvalue[ii];
+                                  if(lp->objfrom != NULL)
+                                    lp->objfrom[i] = lp->objfrom[ii];
+                                  if(lp->objtill != NULL)
+                                    lp->objtill[i] = lp->objtill[ii];
+                            */
+                            if (lp.bb_varbranch != null)
+                            {
+                                lp.bb_varbranch[i - 1] = lp.bb_varbranch[ii - 1];
+                            }
+                            if (lp.var_is_free != null)
+                            {
+                                lp.var_is_free[i] = lp.var_is_free[ii];
+                            }
+                            if (lp.best_solution != null)
+                            {
+                                lp.best_solution[lp.rows + i] = lp.best_solution[lp.rows + ii];
+                            }
+                        }
+                        /* Shift variable priority data */
+                        if ((lp.var_priority != null) || (lp.sos_priority != null))
+                        {
+                            int[] colmap = null;
+                            int k;
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            lp_utils.allocINT(lp, colmap, lp.columns + 1, 1);
+                            for (i = 1, ii = 0; i <= lp.columns; i++)
+                            {
+                                if (lp_utils.isActiveLink(usedmap, i))
+                                {
+                                    ii++;
+                                    colmap[i] = ii;
+                                }
+                            }
+                            if (lp.var_priority != null)
+                            {
+                                for (i = 0, ii = 0; i < lp.columns; i++)
+                                {
+                                    k = colmap[(lp.var_priority[i] != null) ? Convert.ToInt32(lp.var_priority[i]) : 0];
+                                    if (k > 0)
+                                    {
+                                        lp.var_priority[ii] = k;
+                                        ii++;
+                                    }
+                                }
+                            }
+                            if (lp.sos_priority != null)
+                            {
+                                for (i = 0, ii = 0; i < lp.sos_vars; i++)
+                                {
+                                    k = colmap[(lp.sos_priority[i] != null) ? Convert.ToInt32(lp.sos_priority[i]) : 0];
+                                    if (k > 0)
+                                    {
+                                        lp.sos_priority[ii] = k;
+                                        ii++;
+                                    }
+                                }
+                                lp.sos_vars = ii;
+                            }
+                            /*NOT REQUIRED
+                            FREE(colmap);
+                            */
+                        }
+
+                        delta = i - lp.columns - 1;
+                    }
+                    else if (delta < 0)
+                    {
+
+                        /* Fix invalid split variable data */
+                        if (lp.var_is_free != null)
+                        {
+                            for (i = 1; i <= lp.columns; i++)
+                            {
+                                if (System.Math.Abs((sbyte)lp.var_is_free[i]) >= @base)
+                                {
+                                    lp.var_is_free[i] -= (int)lp_types.my_chsign(lp.var_is_free[i] < 0, delta);
+                                }
+                            }
+                        }
+
+                        /* Shift column data (excluding the basis) */
+                        for (i = @base; i < @base - delta; i++)
+                        {
+                            if (is_int(lp, i))
+                            {
+                                lp.int_vars--;
+                                if (lp_SOS.SOS_is_member(lp.SOS, 0, i))
+                                {
+                                    lp.sos_ints--;
+                                }
+                            }
+                            if (is_semicont(lp, i))
+                            {
+                                lp.sc_vars--;
+                            }
+                        }
+                        for (i = @base; i <= lp.columns + delta; i++)
+                        {
+                            ii = i - delta;
+                            lp.var_type[i] = lp.var_type[ii];
+                            lp.sc_lobound[i] = lp.sc_lobound[ii];
+                            lp.orig_obj[i] = lp.orig_obj[ii];
+                            if (lp.obj != null)
+                            {
+                                lp.obj[i] = lp.obj[ii];
+                            }
+                            /*
+                                  if(lp->objfromvalue != NULL)
+                                    lp->objfromvalue[i] = lp->objfromvalue[ii];
+                                  if(lp->objfrom != NULL)
+                                    lp->objfrom[i] = lp->objfrom[ii];
+                                  if(lp->objtill != NULL)
+                                    lp->objtill[i] = lp->objtill[ii];
+                            */
+                            if (lp.var_priority != null)
+                            {
+                                lp.var_priority[i - 1] = lp.var_priority[ii - 1];
+                            }
+                            if (lp.bb_varbranch != null)
+                            {
+                                lp.bb_varbranch[i - 1] = lp.bb_varbranch[ii - 1];
+                            }
+                            if (lp.var_is_free != null)
+                            {
+                                lp.var_is_free[i] = lp.var_is_free[ii];
+                            }
+                            if (lp.best_solution != null)
+                            {
+                                lp.best_solution[lp.rows + i] = lp.best_solution[lp.rows + ii];
+                            }
+                        }
+
+                        /* Fix invalid variable priority data */
+                        if (lp.var_priority != null)
+                        {
+                            for (i = 0, ii = 0; i < lp.columns; i++)
+                            {
+                                if (lp.var_priority[i] > @base - delta)
+                                {
+                                    lp.var_priority[ii++] = lp.var_priority[i] + delta;
+                                }
+                                else if (lp.var_priority[i] < @base)
+                                {
+                                    lp.var_priority[ii++] = lp.var_priority[i];
+                                }
+                            }
+                        }
+                        if (lp.sos_priority != null)
+                        {
+                            for (i = 0, ii = 0; i < lp.sos_vars; i++)
+                            {
+                                if (lp.sos_priority[i] > @base - delta)
+                                {
+                                    lp.sos_priority[ii++] = lp.sos_priority[i] + delta;
+                                }
+                                else if (lp.sos_priority[i] < @base)
+                                {
+                                    lp.sos_priority[ii++] = lp.sos_priority[i];
+                                }
+                            }
+                            lp.sos_vars = ii;
+                        }
+
+                    }
+                    shift_basis(lp, lp.rows + @base, delta, usedmap, 0);
+                    if (SOS_count(lp) > 0)
+                    {
+                        lp_SOS.SOS_shift_col(lp.SOS, 0, @base, delta, usedmap, 0);
+                    }
+                    shift_rowcoldata(lp, lp.rows + @base, delta, usedmap, 0);
+                    inc_columns(lp, delta);
+                }
+            }
+            return true;
+        }
+
+        internal static new bool shift_basis(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool shift_rowcoldata(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void inc_columns(lprec lp, int delta)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal new bool is_obj_in_basis(lprec lp)
+        {
+            return (lp.obj_in_basis);
+        }
     }
 }

@@ -377,7 +377,7 @@ namespace ZS.Math.Optimization
         public byte use_row_names;      // Flag to indicate if names for rows are used
         public byte use_col_names;      // Flag to indicate if names for columns are used
 
-        public byte lag_trace;          // Print information on Lagrange progression
+        public bool lag_trace;          // Print information on Lagrange progression
         public bool spx_trace;          // Print information on simplex progression
         public bool bb_trace;           // TRUE to print extra debug information
         /// <summary>
@@ -396,14 +396,15 @@ namespace ZS.Math.Optimization
                                    Index   0           : Objective function value,
                                    Indeces 1..rows     : Slack variable values,
                                    Indeced rows+1..sum : Variable values */
-        public double best_solution; /* sum_alloc+1 : Solution array of optimal 'Integer' LP,
+        // changed from double to double?[] on 27/11/18
+        public double?[] best_solution; /* sum_alloc+1 : Solution array of optimal 'Integer' LP,
                                    structured as the solution array above */
         public double full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
         public double[] edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
 
-        public double drow; // sum+1: Reduced costs of the last simplex
+        public double[] drow; // sum+1: Reduced costs of the last simplex
         //ORIGINAL LINE: int *nzdrow;
-        public int nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
+        public int[] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
         public double? duals; // rows_alloc+1 : The dual variables of the last LP
         public double full_duals; // sum_alloc+1: Final duals array expanded for deleted variables
         public double? dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
@@ -430,7 +431,7 @@ namespace ZS.Math.Optimization
         public int simplex_strategy; // Set desired combination of primal and dual simplex algorithms
         public int simplex_mode; // Specifies the current simplex mode during solve; see simplex_strategy
         public int verbose; // Set amount of run-time messages and results
-        public int print_sol; // TRUE to print optimal solution; AUTOMATIC skips zeros
+        public bool print_sol; // TRUE to print optimal solution; AUTOMATIC skips zeros
 
         //changed from 'FILE outstream' to 'FileStream outstream' FIX_bcf78206-4a66-43e8-95c0-85b129a41196 19/11/18 
         public FileStream outstream; // Output stream, initialized to STDOUT
@@ -439,7 +440,7 @@ namespace ZS.Math.Optimization
         /// <summary>
         /// changed byte? from byte as set to null
         /// </summary>
-        public byte? bb_varbranch; /* Determines branching strategy at the individual variable level;
+        public byte?[] bb_varbranch; /* Determines branching strategy at the individual variable level;
                                    the setting here overrides the bb_floorfirst setting */
         public int piv_strategy; // Strategy for selecting row and column entering/leaving
         public int _piv_rule_; // Internal working rule-part of piv_strategy above
@@ -447,7 +448,7 @@ namespace ZS.Math.Optimization
         public byte bb_floorfirst; /* Set BRANCH_FLOOR for B&B to set variables to floor bound first;
                                    conversely with BRANCH_CEILING, the ceiling value is set first */
         public byte bb_breakfirst; // TRUE to stop at first feasible solution
-        public byte _piv_left_; // Internal variable indicating active pricing loop order
+        public bool _piv_left_; // Internal variable indicating active pricing loop order
         public byte BOOLfuture1;
 
         public double scalelimit; // Relative convergence criterion for iterated scaling
@@ -491,7 +492,7 @@ namespace ZS.Math.Optimization
                                    /// <summary>
                                    /// changed int? from int as set to null
                                    /// </summary>
-        public int? var_priority; // columns: Priority-mapping of variables
+        public int?[] var_priority; // columns: Priority-mapping of variables
 
         public SOSgroup GUB; // Pointer to record containing GUBs
 
@@ -502,8 +503,9 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: int *sos_priority;
         /// <summary>
         /// changed int? from int as set to null
+        /// changed to int?[] on 27/11/18
         /// </summary>
-        public int? sos_priority; // Priority-sorted list of variables (no duplicates)
+        public int?[] sos_priority; // Priority-sorted list of variables (no duplicates)
 
         /* Optionally specify list of active rows/columns used in multiple pricing */
         public double bsolveVal; // rows+1: bsolved solution vector for reduced costs
@@ -558,7 +560,7 @@ namespace ZS.Math.Optimization
 
         /* Variable state information */
         internal byte basis_valid;        /* TRUE is the basis is still valid */
-        int crashmode;          /* Basis crashing mode (or none) */
+        internal int crashmode;          /* Basis crashing mode (or none) */
         internal int[] var_basic;         /* rows_alloc+1: The list of columns in the basis */
         double[] val_nonbasic;      /* Array to store current values of non-basic variables */
         // ORIGINAL CODE: MYBOOL    *is_basic; char* is string in C#, hence changed to bool[] 22/11/18
@@ -569,7 +571,7 @@ namespace ZS.Math.Optimization
         /* Simplex basis indicators */
         internal int[] rejectpivot;       /* List of unacceptable pivot choices due to division-by-zero */
         BBPSrec bb_PseudoCost;     /* Data structure for costing of node branchings */
-        int bb_PseudoUpdates;   /* Maximum number of updates for pseudo-costs */
+        internal int bb_PseudoUpdates;   /* Maximum number of updates for pseudo-costs */
         internal int bb_strongbranches;  /* The number of strong B&B branches performed */
         int is_strongbranch;    /* Are we currently in a strong branch mode? */
         int bb_improvements;    /* The number of discrete B&B objective improvement steps */
@@ -596,11 +598,11 @@ namespace ZS.Math.Optimization
         int[] lag_con_type;      /* Array of GT, LT or EQ */
         double[] lambda;            /* Lambda values (Lagrangean multipliers) */
         double lag_bound;          /* The Lagrangian lower OF bound */
-        double lag_accept;         /* The Lagrangian convergence criterion */
+        internal double lag_accept;         /* The Lagrangian convergence criterion */
 
         /* Solver thresholds */
         internal double infinite;           /* Limit for object range */
-        double negrange;           /* Limit for negative variable range */
+        internal double negrange;           /* Limit for negative variable range */
         internal double epsmachine;         /* Default machine accuracy */
 
         /// <summary>
@@ -625,7 +627,7 @@ namespace ZS.Math.Optimization
 
         internal double epspivot;           /* Pivot reject tolerance */
         internal double epsperturb;         /* Perturbation scalar */
-        double epssolution;        /* The solution tolerance for final validation */
+        internal double epssolution;        /* The solution tolerance for final validation */
 
         /* Branch & Bound working parameters */
         int bb_status;          /* Indicator that the last solvelp() gave an improved B&B solution */
@@ -1429,7 +1431,8 @@ namespace ZS.Math.Optimization
         public const int SIMPLEX_DEFAULT = (SIMPLEX_DUAL_PRIMAL);
 
         /* Variable codes (internal) */
-        public const int ISREAL = 0;
+        // changed from int to bool on 27/11/18
+        public const bool ISREAL = false;
         /// <summary>
         /// changed from int to bool on 14/11/18
         /// </summary>
@@ -2015,7 +2018,7 @@ namespace ZS.Math.Optimization
         }
         /* Set optimization direction for the objective function */
 
-        public bool add_constraint(lprec lp, ref double row, int constr_type, double rh)
+        public bool add_constraint(lprec lp, ref double?[] row, int constr_type, double rh)
         { throw new NotImplementedException(); }
 
         /// <summary>
@@ -2309,7 +2312,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public lprec read_freeMPS(ref string filename, int options)
         { throw new NotImplementedException(); }
-        public lprec read_freemps(FILE filename, int options)
+        public lprec read_freemps(FileStream filename, int options)
         { throw new NotImplementedException(); }
 
         /* Write a MPS file to output */
@@ -2725,9 +2728,9 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte inc_col_space(lprec lp, int deltacols)
         { throw new NotImplementedException(); }
-        public byte shift_rowcoldata(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
+        public bool shift_rowcoldata(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
         { throw new NotImplementedException(); }
-        public byte shift_basis(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
+        public bool shift_basis(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
         { throw new NotImplementedException(); }
         public byte shift_rowdata(lprec lp, int @base, int delta, LLrec usedmap)
         { throw new NotImplementedException(); }

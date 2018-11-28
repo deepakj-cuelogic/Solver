@@ -58,5 +58,27 @@ namespace ZS.Math.Optimization
             return (LUSOL_informstr_informText[inform - commonlib.LUSOL_INFORM_MIN]);
         }
 
+        /*NOT REQUIRED
+        internal void LUSOL_free(LUSOLrec LUSOL)
+        {
+            LUSOL_realloc_a(LUSOL, 0);
+            LUSOL_realloc_r(LUSOL, 0);
+            LUSOL_realloc_c(LUSOL, 0);
+            if (LUSOL.L0 != null)
+            {
+                LUSOL_matfree((LUSOL.L0));
+            }
+            if (LUSOL.U != null)
+            {
+                LUSOL_matfree((LUSOL.U));
+            }
+            if (!is_nativeBLAS())
+            {
+                unload_BLAS();
+            }
+            LUSOL_FREE(LUSOL);
+        }
+        */
+
     }
 }

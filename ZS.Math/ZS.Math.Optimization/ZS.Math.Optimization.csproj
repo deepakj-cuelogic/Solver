@@ -65,6 +65,7 @@
     <Compile Include="lusol6l0.cs" />
     <Compile Include="lusol6u.cs" />
     <Compile Include="MyBlas.cs" />
+    <Compile Include="MyBlasLib.cs" />
     <Compile Include="Z_LpBfp.cs" />
     <Compile Include="LpBit.cs" />
     <Compile Include="LpCrash.cs" />

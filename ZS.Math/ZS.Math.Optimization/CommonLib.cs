@@ -17,6 +17,7 @@ namespace ZS.Math.Optimization
         public const int matRowColStep = 1;
         public const int matValueStep = 1;
         public const int BFP_STAT_REFACT_TOTAL = 0;
+        public const int QS_IS_switch = 4;
 
         public const int LUSOL_INFORM_RANKLOSS = -1;
 
@@ -29,10 +30,10 @@ namespace ZS.Math.Optimization
         public const int LUSOL_SOLVE_Uw_v = 3;  /* w  solves   U w = v.        v  is not altered. */
         public const int LUSOL_SOLVE_Utv_w = 4;  /* v  solves   U'v = w.        w  is destroyed. */
         public const int LUSOL_SOLVE_Aw_v = 5; /* w  solves   A w = v.        v  is altered as in 1. */
-       //NOTED ISSUE: Temporary set to 0
-       //public const int LUSOL_FTRAN   LUSOL_SOLVE_Aw_v = 0;
-       //NOTED ISSUE: Temporary set to 0
-       //public const int LUSOL_BTRAN  LUSOL_SOLVE_Atv_w = 0;
+                                               //NOTED ISSUE: Temporary set to 0
+                                               //public const int LUSOL_FTRAN   LUSOL_SOLVE_Aw_v = 0;
+                                               //NOTED ISSUE: Temporary set to 0
+                                               //public const int LUSOL_BTRAN  LUSOL_SOLVE_Atv_w = 0;
 
         public const int LUSOL_SOLVE_Av_v = 7;  /* v  solves   A v = L D L'v = v(input). w  is not touched. */
         public const int LUSOL_SOLVE_LDLtv_v = 8;  /* v  solves       L |D| L'v = v(input). w  is not touched. */
@@ -53,8 +54,8 @@ namespace ZS.Math.Optimization
         public const int LUSOL_BASEORDER = 0;
         public const int LUSOL_ACCELERATE_L0 = 4;
         public const int LUSOL_INFORM_NOMEMLEFT = 10;
-        
-        
+
+
         //public const int LUSOL_RP_SMARTRATIO = 0;
         public const int ZERO = 0;
         public const int LUSOL_IP_FTRANCOUNT = 30;
@@ -65,7 +66,8 @@ namespace ZS.Math.Optimization
         public const int LUSOL_RP_RESIDUAL_U = 20;
         //END:ADDED BELOW CONSTANT FOR METHOD LU1L0 which is in lusol6l0.cs file
 
-        static Func<double, double, double> MIN = (x, y) => ((x) < (y) ? (x) : (y));
+        // changed from 'Func<double, double, double>' to 'Func<object, object, object>' on 27/11/18
+        internal static Func<object, object, object> MIN = (x, y) => (((double)x) < ((double)y) ? (x) : (y));
         internal static Func<double, double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
 
         internal static Func<bool, bool> my_boolstr = (x) => (!(x) ? false : true);
@@ -77,9 +79,9 @@ namespace ZS.Math.Optimization
         static Func<int, int, int, bool> BETWEEN = (x, a, b) => ((x - a) * (x - b) <= 0);
         internal static Func<bool, object, object, object> IF = (t, x, y) => ((t) ? (x) : (y));
         static Func<object, object> SIGN = (x) => ((int)(x) < 0 ? -1 : 1);
-
-        static Func<double, double, double> DELTA_SIZE = (newSize, oldSize) =>
-            (double)((newSize) * MIN(1.33, System.Math.Pow(1.5, System.Math.Abs(newSize) / ((oldSize + newSize) + 1))));
+        // changed from 'Func<double, double, double>' to 'Func<object, object, object>' on 27/11/18
+        internal static Func<object, object, object> DELTA_SIZE = (newSize, oldSize) =>
+            (double)(((double)newSize) * (double)MIN(1.33, System.Math.Pow(1.5, System.Math.Abs((sbyte)newSize) / (((double)oldSize + (double)newSize) + 1))));
 
         // ORIGINAL LINE: typedef int (CMP_CALLMODEL findCompare_func)(const void* current, const void* candidate);
         public delegate int findCompare_func(object current, object candidate);
@@ -138,9 +140,108 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        private static int findIndexEx(object target, object attributes, int count, int offset, int recsize, findCompare_func findCompare, byte ascending)
+        internal static int findIndexEx(object target, object attributes, int count, int offset, int recsize, findCompare_func findCompare, byte ascending)
         {
-            throw new NotImplementedException();
+            int focusPos;
+            int beginPos;
+            int endPos;
+            int compare;
+            int order;
+            Object focusAttrib;
+            Object beginAttrib;
+            Object endAttrib;
+
+            /* Set starting and ending index offsets */
+            beginPos = offset;
+            endPos = beginPos + count - 1;
+            if (endPos < beginPos)
+            {
+                return (-1);
+            }
+            order = (ascending != null ? -1 : 1);
+
+            /* Do binary search logic based on a sorted attribute vector */
+            focusPos = (beginPos + endPos) / 2;
+            //NOTED ISSUE
+            beginAttrib = CMP_ATTRIBUTES(beginPos);
+            focusAttrib = CMP_ATTRIBUTES(focusPos);
+            endAttrib = CMP_ATTRIBUTES(endPos);
+
+            compare = 0;
+            while (endPos - beginPos > LINEARSEARCH)
+            {
+                if (findCompare(target, beginAttrib) == 0)
+                {
+                    focusAttrib = beginAttrib;
+                    endPos = beginPos;
+                }
+                else if (findCompare(target, endAttrib) == 0)
+                {
+                    focusAttrib = endAttrib;
+                    beginPos = endPos;
+                }
+                else
+                {
+                    compare = findCompare(target, focusAttrib) * order;
+                    if (compare < 0)
+                    {
+                        beginPos = focusPos + 1;
+                        beginAttrib = CMP_ATTRIBUTES(beginPos);
+                        focusPos = (beginPos + endPos) / 2;
+                        focusAttrib = CMP_ATTRIBUTES(focusPos);
+                    }
+                    else if (compare > 0)
+                    {
+                        endPos = focusPos - 1;
+                        endAttrib = CMP_ATTRIBUTES(endPos);
+                        focusPos = (beginPos + endPos) / 2;
+                        focusAttrib = CMP_ATTRIBUTES(focusPos);
+                    }
+                    else
+                    {
+                        beginPos = focusPos;
+                        endPos = focusPos;
+                    }
+                }
+            }
+
+            /* Do linear (unsorted) search logic */
+            if (endPos - beginPos <= LINEARSEARCH)
+            {
+
+                /* Do traditional indexed access */
+                focusAttrib = CMP_ATTRIBUTES(beginPos);
+                if (beginPos == endPos)
+                {
+                    compare = findCompare(target, focusAttrib) * order;
+                }
+                else
+                {
+                    while ((beginPos < endPos) && ((compare = findCompare(target, focusAttrib) * order) < 0))
+                    {
+                        beginPos++;
+                        focusAttrib = CMP_ATTRIBUTES(beginPos);
+                    }
+                }
+            }
+
+            /* Return the index if a match was found, or signal failure with a -1        */
+            if (compare == 0) // Found; return retrieval index
+            {
+                return (beginPos);
+            }
+            else if (compare > 0) // Not found; last item
+            {
+                return (-beginPos);
+            }
+            else if (beginPos > offset + count - 1)
+            {
+                return (-(endPos + 1)); // Not found; end of list
+            }
+            else
+            {
+                return (-(beginPos + 1)); // Not found; intermediate point
+            }
         }
 
         private static void qsortex_swap(object attributes, int l, int r, int recsize, object tags, int tagsize, ref string save, ref string savetag)
@@ -192,28 +293,151 @@ namespace ZS.Math.Optimization
         }
         private static int QS_addfirst(QSORTrec[] a, object mydata)
         {
-            throw new NotImplementedException();
+            a[0].pvoid2.ptr = mydata;
+            return (0);
         }
-        private static int QS_append(QSORTrec[] a, int ipos, object mydata)
+        internal static int QS_append(QSORTrec[] a, int ipos, object mydata)
         {
-            throw new NotImplementedException();
+            if (ipos <= 0)
+            {
+                ipos = QS_addfirst(a, mydata);
+            }
+            else
+            {
+                a[ipos].pvoid2.ptr = mydata;
+            }
+            return (ipos);
         }
         private static void QS_replace(QSORTrec[] a, int ipos, object mydata)
         {
             throw new NotImplementedException();
         }
-        private static void QS_insert(QSORTrec[] a, int ipos, object mydata, int epos)
+        internal static void QS_insert(QSORTrec[] a, int ipos, object mydata, int epos)
         {
-            throw new NotImplementedException();
+            for (; epos > ipos; epos--)
+            {
+                a[epos] = a[epos - 1];
+            }
+            a[ipos].pvoid2.ptr = mydata;
         }
         private static void QS_delete(QSORTrec[] a, int ipos, int epos)
         {
             throw new NotImplementedException();
         }
-        private static byte QS_execute(QSORTrec[] a, int count, findCompare_func findCompare, ref int nswaps)
+        internal static bool QS_execute(QSORTrec[] a, int count, findCompare_func findCompare, ref int nswaps)
         {
-            throw new NotImplementedException();
+            int iswaps = 0;
+
+            /* Check and initialize */
+            if (count <= 1)
+            {
+                goto Finish;
+            }
+            count--;
+
+            /* Perform sort */
+            iswaps = QS_sort(a, 0, count, findCompare);
+
+            ///#if QS_IS_switch > 0
+            iswaps += QS_finish(a, 0, count, findCompare);
+            ///#endif
+
+            Finish:
+            if (nswaps != null)
+            {
+                nswaps = iswaps;
+            }
+            return (1);
         }
+
+        internal static int QS_sort(QSORTrec[] a, int l, int r, findCompare_func findCompare)
+        {
+            //ORIGINAL LINE: register int i, j, nmove = 0;
+            int i;
+            int j;
+            int nmove = 0;
+            QSORTrec v;
+
+            /* Perform the a fast QuickSort */
+            if ((r - l) > QS_IS_switch)
+            {
+                i = (r + l) / 2;
+
+                /* Tri-Median Method */
+                if (findCompare(a[l], a[i]) > 0)
+                {
+                    nmove++;
+                    QS_swap(a, l, i);
+                }
+                if (findCompare(a[l], a[r]) > 0)
+                {
+                    nmove++;
+                    QS_swap(a, l, r);
+                }
+                if (findCompare(a[i], a[r]) > 0)
+                {
+                    nmove++;
+                    QS_swap(a, i, r);
+                }
+
+                j = r - 1;
+                QS_swap(a, i, j);
+                i = l;
+                v = a[j];
+                for (;;)
+                {
+                    while (findCompare(a[++i], v) < 0)
+                    {
+                        ;
+                    }
+                    while (findCompare(a[--j], v) > 0)
+                    {
+                        ;
+                    }
+                    if (j < i)
+                    {
+                        break;
+                    }
+                    nmove++;
+                    QS_swap(a, i, j);
+                }
+                nmove++;
+                QS_swap(a, i, r - 1);
+                nmove += QS_sort(a, l, j, new findCompare_func(findCompare));
+                nmove += QS_sort(a, i + 1, r, new findCompare_func(findCompare));
+            }
+            return (nmove);
+        }
+
+        internal static int QS_finish(QSORTrec[] a, int lo0, int hi0, findCompare_func findCompare)
+        {
+            int i;
+            int j;
+            int nmove = 0;
+            QSORTrec v;
+
+            /* This is actually InsertionSort, which is faster for local sorts */
+            for (i = lo0 + 1; i <= hi0; i++)
+            {
+
+                /* Save bottom-most item */
+                v = a[i];
+
+                /* Shift down! */
+                j = i;
+                while ((j > lo0) && (findCompare(a[j - 1], v) > 0))
+                {
+                    a[j] = a[j - 1];
+                    j--;
+                    nmove++;
+                }
+
+                /* Store bottom-most item at the top */
+                a[j] = v;
+            }
+            return (nmove);
+        }
+
 
         private static int sortByREAL(ref int item, ref double weight, int size, int offset, byte unique)
         {
@@ -322,7 +546,7 @@ throw new NotImplementedException();
 
 
     /* This defines a 16 byte sort record (in both 32 and 64 bit OS-es) */
-        public class QSORTrec1
+    public class QSORTrec1
     {
         public object ptr;
         public object ptr2;

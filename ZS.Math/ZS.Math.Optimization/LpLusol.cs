@@ -94,10 +94,8 @@ namespace ZS.Math.Optimization
             LUSOL_FREE(mat);
         }
 
-        /* NOTED ISSUE
-         * NEED TO IDENTIFY THE WORKING OF BFP_CALLMODEL
         // MUST MODIFY 
-        internal BFP_CALLMODEL bfp_free(lprec lp)
+        internal void  bfp_free(lprec lp)    //BFP_CALLMODEL
         {
             INVrec lu;
 
@@ -107,6 +105,7 @@ namespace ZS.Math.Optimization
                 return;
             }
 
+            /*NOT REQUIRED
             // General arrays 
             FREE(lu.opts);
             FREE(lu.value);
@@ -115,8 +114,31 @@ namespace ZS.Math.Optimization
             LUSOL_free(lu.LUSOL);
 
             FREE(lu);
+            */
             lp.invB = null;
-        }*/
+        }
+
+        private void LUSOL_free(LUSOLrec LUSOL)
+        {
+            /*NOT REQUIRED
+            LUSOL_realloc_a(LUSOL, 0);
+            LUSOL_realloc_r(LUSOL, 0);
+            LUSOL_realloc_c(LUSOL, 0);
+            */
+            if (LUSOL.L0 != null)
+            {
+                LUSOL_matfree((LUSOL.L0));
+            }
+            if (LUSOL.U != null)
+            {
+                LUSOL_matfree((LUSOL.U));
+            }
+            if (!myblas.is_nativeBLAS())
+            {
+                myblas.unload_BLAS();
+            }
+            LUSOL_FREE(LUSOL);
+        }
 
 
     }

@@ -79,20 +79,86 @@ namespace ZS.Math.Optimization
         public static object FindImpliedEqualities;       /* Detect equalities (default is enabled) */
         public static object Eq2Reldiff;
 
-
-
         /* Put function headers here */
-        public static byte presolve_createUndo(lprec lp)
+        public static bool presolve_createUndo(lprec lp)
         {
-            throw new NotImplementedException(); throw new NotImplementedException();
+            if (lp.presolve_undo != null)
+            {
+                presolve_freeUndo(lp);
+            }
+            //C++ TO C# CONVERTER TODO TASK: The memory management function 'calloc' has no equivalent in C#:
+            lp.presolve_undo = new presolveundorec();    // (presolveundorec)calloc(1, sizeof(presolveundorec));
+            lp.presolve_undo.lp = lp;
+            if (lp.presolve_undo == null)
+            {
+                return false;
+            }
+            return true;
         }
+
         public static byte presolve_rebuildUndo(lprec lp, byte isprimal)
         {
             throw new NotImplementedException();
         }
-        public static byte inc_presolve_space(lprec lp, int delta, byte isrows)
+        public static bool inc_presolve_space(lprec lp, int delta, bool isrows)
         {
-            throw new NotImplementedException();
+            int i;
+            int ii;
+            int oldrowcolalloc;
+            int rowcolsum;
+            int oldrowalloc;
+            int oldcolalloc;
+            presolveundorec psundo = lp.presolve_undo;
+
+            if (psundo == null)
+            {
+                presolve_createUndo(lp);
+                psundo = lp.presolve_undo;
+            }
+
+            /* Set constants */
+            oldrowalloc = lp.rows_alloc - delta;
+            oldcolalloc = lp.columns_alloc - delta;
+            oldrowcolalloc = lp.sum_alloc - delta;
+            rowcolsum = lp.sum_alloc + 1;
+
+            /*NOT REQUIRED
+            // Reallocate lp memory 
+            if (isrows)
+            {
+                allocREAL(lp, psundo.fixed_rhs, lp.rows_alloc + 1, AUTOMATIC);
+            }
+            else
+            {
+                allocREAL(lp, psundo.fixed_obj, lp.columns_alloc + 1, AUTOMATIC);
+            }
+            allocINT(lp, psundo.var_to_orig, rowcolsum, AUTOMATIC);
+            allocINT(lp, psundo.orig_to_var, rowcolsum, AUTOMATIC);
+            */
+
+            /* Fill in default values, where appropriate */
+            if (isrows)
+            {
+                ii = oldrowalloc + 1;
+            }
+            else
+            {
+                ii = oldcolalloc + 1;
+            }
+            for (i = oldrowcolalloc + 1; i < rowcolsum; i++, ii++)
+            {
+                psundo.var_to_orig[i] = 0;
+                psundo.orig_to_var[i] = 0;
+                if (isrows)
+                {
+                    psundo.fixed_rhs[ii] = 0;
+                }
+                else
+                {
+                    psundo.fixed_obj[ii] = 0;
+                }
+            }
+            return true;
         }
 
         /// <summary>
@@ -124,9 +190,35 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public static byte presolve_freeUndo(lprec lp)
+        public static bool presolve_freeUndo(lprec lp)
         {
             throw new NotImplementedException();
+            /* NOT REQUIRED
+            presolveundorec psundo = lp.presolve_undo;
+
+            if (psundo == null)
+                return false;
+            NOT REQUIRED
+            FREE(psundo.orig_to_var);
+            FREE(psundo.var_to_orig);
+            FREE(psundo.fixed_rhs);
+            FREE(psundo.fixed_obj);
+           
+            if (psundo.deletedA != null)
+            {
+                freeUndoLadder((psundo.deletedA));
+            }
+            if (psundo.primalundo != null)
+            {
+                freeUndoLadder((psundo.primalundo));
+            }
+            if (psundo.dualundo != null)
+            {
+              lp_matrix.freeUndoLadder((psundo.dualundo));
+            }
+            FREE(lp.presolve_undo);
+            return (1);
+             */
         }
 
         public static byte presolve_updatesums(presolverec psdata)

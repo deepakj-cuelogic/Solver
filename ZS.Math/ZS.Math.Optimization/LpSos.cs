@@ -113,7 +113,7 @@ namespace ZS.Math.Optimization
         internal static byte SOS_member_sortlist(SOSgroup group, int sosindex)
         {
         throw new NotImplementedException();}
-        internal static byte SOS_shift_col(SOSgroup group, int sosindex, int column, int delta, LLrec usedmap, byte forceresort)
+        internal static bool SOS_shift_col(SOSgroup group, int sosindex, int column, int delta, LLrec usedmap, byte forceresort)
         {
         throw new NotImplementedException();}
         public static int SOS_member_delete(SOSgroup group, int sosindex, int member)
@@ -138,7 +138,7 @@ namespace ZS.Math.Optimization
         public static int SOS_get_candidates(SOSgroup group, int sosindex, int column, byte excludetarget, ref double upbound, ref double lobound)
         {
         throw new NotImplementedException();}
-        public static int SOS_is_member(SOSgroup group, int sosindex, int column)
+        public static bool SOS_is_member(SOSgroup group, int sosindex, int column)
         {
         throw new NotImplementedException();}
         public static byte SOS_is_member_of_type(SOSgroup group, int column, int sostype)

@@ -9,8 +9,20 @@ namespace ZS.Math.Optimization
     /// <summary>
     /// changed to static class on 8/11/18 to keep a single instance for LpMsp.cs
     /// </summary>
-    public static class myblas
+    public static class myblas 
     {
+        /* ************************************************************************ */
+        /* Function pointers for external BLAS library (C base 0)                   */
+        /* ************************************************************************ */
+        internal static MyBlasLib.BLAS_dscal_func BLAS_dscal;
+        internal static MyBlasLib.BLAS_dcopy_func BLAS_dcopy;
+        internal static MyBlasLib.BLAS_daxpy_func BLAS_daxpy;
+        internal static MyBlasLib.BLAS_dswap_func BLAS_dswap;
+        internal static MyBlasLib.BLAS_ddot_func BLAS_ddot;
+        internal static MyBlasLib.BLAS_idamax_func BLAS_idamax;
+        internal static MyBlasLib.BLAS_dload_func BLAS_dload;
+        internal static MyBlasLib.BLAS_dnormi_func BLAS_dnormi;
+
         public const int BLAS_BASE = 1;
         public const int UseMacroVector = 0;
 
@@ -50,14 +62,136 @@ namespace ZS.Math.Optimization
         /// changed from byte to bool on 8/11/18 as expected return type is bool in LpMps method
         /// </summary>
         public static bool is_nativeBLAS()
-        { throw new NotImplementedException(); }
+        {
+#if LoadableBlasLib
+  return ((bool)(hBLAS == null));
+#else
+            return true;
+#endif
+        }
         /// <summary>
         /// changed from byte to bool on 8/11/18 as expected return type is bool in LpMps method
         /// </summary>
         public static bool load_BLAS(ref string libname)
-        { throw new NotImplementedException(); }
-        public static byte unload_BLAS()
-        { throw new NotImplementedException(); }
+        {
+            bool result = true;
+
+#if LoadableBlasLib
+  if (hBLAS != null)
+  {
+#if WIN32
+//C++ TO C# CONVERTER NOTE: There is no C# equivalent to 'FreeLibrary':
+//	FreeLibrary(hBLAS);
+#else
+	dlclose(hBLAS);
+#endif
+	hBLAS = null;
+  }
+#endif
+
+            if (libname == null)
+            {
+                if (!mustinitBLAS && is_nativeBLAS())
+                {
+                    return false;
+                }
+                BLAS_dscal = my_dscal;
+                BLAS_dcopy = my_dcopy;
+                BLAS_daxpy = my_daxpy;
+                BLAS_dswap = my_dswap;
+                BLAS_ddot = my_ddot;
+                BLAS_idamax = my_idamax;
+                BLAS_dload = my_dload;
+                BLAS_dnormi = my_dnormi;
+                if (mustinitBLAS)
+                {
+                    mustinitBLAS = false;
+                }
+            }
+            else
+            {
+#if LoadableBlasLib
+#if WIN32
+   /* Get a handle to the Windows DLL module. */
+	hBLAS = LoadLibrary(libname);
+
+   /* If the handle is valid, try to get the function addresses. */
+	result = (bool)(hBLAS != null);
+	if (result)
+	{
+	  BLAS_dscal = (BLAS_dscal_func) GetProcAddress(hBLAS, BLAS_prec "scal");
+	  BLAS_dcopy = (BLAS_dcopy_func) GetProcAddress(hBLAS, BLAS_prec "copy");
+	  BLAS_daxpy = (BLAS_daxpy_func) GetProcAddress(hBLAS, BLAS_prec "axpy");
+	  BLAS_dswap = (BLAS_dswap_func) GetProcAddress(hBLAS, BLAS_prec "swap");
+	  BLAS_ddot = (BLAS_ddot_func) GetProcAddress(hBLAS, BLAS_prec "dot");
+	  BLAS_idamax = (BLAS_idamax_func) GetProcAddress(hBLAS, "i" BLAS_prec "amax");
+#if false
+//      BLAS_dload  = (BLAS_dload_func *)  GetProcAddress(hBLAS, BLAS_prec "load");
+//      BLAS_dnormi = (BLAS_dnormi_func *) GetProcAddress(hBLAS, BLAS_prec "normi");
+#endif
+	}
+#else
+   /* First standardize UNIX .SO library name format. */
+	string blasname = new string(new char[260]);
+//C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+	char * ptr;
+
+	blasname = libname;
+	if ((ptr = StringFunctions.StrRChr(libname, '/')) == null)
+	{
+	  ptr = libname;
+	}
+	else
+	{
+	  ptr++;
+	}
+	blasname = blasname.Substring(0, (int)(ptr - libname));
+	if (string.Compare(ptr, 0, "lib", 0, 3))
+	{
+	  blasname += "lib";
+	}
+	blasname += ptr;
+	if (string.Compare(blasname.Substring(blasname.Length) - 3, ".so"))
+	{
+	  blasname += ".so";
+	}
+
+   /* Get a handle to the module. */
+	hBLAS = dlopen(blasname, RTLD_LAZY);
+
+   /* If the handle is valid, try to get the function addresses. */
+	result = (bool)(hBLAS != null);
+	if (result)
+	{
+	  BLAS_dscal = (BLAS_dscal_func) dlsym(hBLAS, BLAS_prec "scal");
+	  BLAS_dcopy = (BLAS_dcopy_func) dlsym(hBLAS, BLAS_prec "copy");
+	  BLAS_daxpy = (BLAS_daxpy_func) dlsym(hBLAS, BLAS_prec "axpy");
+	  BLAS_dswap = (BLAS_dswap_func) dlsym(hBLAS, BLAS_prec "swap");
+	  BLAS_ddot = (BLAS_ddot_func) dlsym(hBLAS, BLAS_prec "dot");
+	  BLAS_idamax = (BLAS_idamax_func) dlsym(hBLAS, "i" BLAS_prec "amax");
+#if false
+//      BLAS_dload  = (BLAS_dload_func *)  dlsym(hBLAS, BLAS_prec "load");
+//      BLAS_dnormi = (BLAS_dnormi_func *) dlsym(hBLAS, BLAS_prec "normi");
+#endif
+	}
+#endif
+#endif
+                /* Do validation */
+                if (!result || ((BLAS_dscal == null) || (BLAS_dcopy == null) || (BLAS_daxpy == null) || (BLAS_dswap == null) || (BLAS_ddot == null) || (BLAS_idamax == null) || (BLAS_dload == null) || (BLAS_dnormi == null)))
+                {
+                    libname = null;
+                    load_BLAS(ref libname);
+                    result = false;
+                }
+            }
+            return result;
+        }
+
+        public static bool unload_BLAS()
+        {
+            string libname = null;
+            return (load_BLAS(ref libname));
+        }
 
         /* ************************************************************************ */
         /* User-callable BLAS definitions (C base 1)                                */

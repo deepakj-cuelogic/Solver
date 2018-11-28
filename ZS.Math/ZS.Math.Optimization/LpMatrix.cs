@@ -48,7 +48,8 @@ namespace ZS.Math.Optimization
             public double col_mat_value;
 #endif
         //ORIGINAL LINE: int *col_end;
-        public int[] col_end; /* columns_alloc+1 : col_end[i] is the index of the first element after column i; column[i] is stored in elements col_end[i-1] to col_end[i]-1 */
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        public int[][] col_end; /* columns_alloc+1 : col_end[i] is the index of the first element after column i; column[i] is stored in elements col_end[i-1] to col_end[i]-1 */
         //ORIGINAL LINE: int *col_tag;
         public int[] col_tag; // user-definable tag associated with each column
 
@@ -72,7 +73,7 @@ namespace ZS.Math.Optimization
 
 
         //ORIGINAL LINE: int *row_end;
-        public int[] row_end; /* rows_alloc+1 : row_end[i] is the index of the first element in row_mat after row i */
+        public int[][] row_end; /* rows_alloc+1 : row_end[i] is the index of the first element in row_mat after row i */
         //ORIGINAL LINE: int *row_tag;
         public int[] row_tag; // user-definable tag associated with each row
 
@@ -174,29 +175,104 @@ namespace ZS.Math.Optimization
 
         internal static MATrec mat_create(lprec lp, int rows, int columns, double epsvalue)
         {
-            throw new NotImplementedException();
+            MATrec newmat;
+
+            //C++ TO C# CONVERTER TODO TASK: The memory management function 'calloc' has no equivalent in C#:
+            newmat = new MATrec();  // (MATrec)calloc(1, sizeof(MATrec));
+            newmat.lp = lp;
+
+            newmat.rows_alloc = 0;
+            newmat.columns_alloc = 0;
+            newmat.mat_alloc = 0;
+
+            inc_matrow_space(newmat, rows);
+            newmat.rows = rows;
+            inc_matcol_space(newmat, columns);
+            newmat.columns = columns;
+            inc_mat_space(newmat, 0);
+
+            newmat.epsvalue = epsvalue;
+
+            return (newmat);
         }
+
         static byte mat_memopt(MATrec mat, int rowextra, int colextra, int nzextra)
         {
             throw new NotImplementedException();
         }
-        static void mat_free(MATrec[] matrix)
+        internal static void mat_free(MATrec[] matrix)
         {
             throw new NotImplementedException();
         }
-        static byte inc_matrow_space(MATrec mat, int deltarows)
+        internal static bool inc_matrow_space(MATrec mat, int deltarows)
         {
-            throw new NotImplementedException();
+            int rowsum;
+            int oldrowsalloc;
+            bool status = true;
+
+            /* Adjust lp row structures */
+            if (mat.rows + deltarows >= mat.rows_alloc)
+            {
+
+                /* Update memory allocation and sizes */
+                oldrowsalloc = mat.rows_alloc;
+                deltarows = (int)commonlib.DELTA_SIZE((double)deltarows, (mat.rows != null) ? Convert.ToDouble(mat.rows) : 0);
+                commonlib.SETMAX(deltarows, lp_lib.DELTAROWALLOC);
+                mat.rows_alloc += deltarows;
+                rowsum = mat.rows_alloc + 1;
+
+                /* Update row pointers */
+                status = lp_utils.allocINT(mat.lp, mat.row_end, rowsum, lp_types.AUTOMATIC);
+                mat.row_end_valid = false;
+            }
+            return (status);
         }
         static int mat_mapreplace(MATrec mat, LLrec rowmap, LLrec colmap, MATrec insmat) { throw new NotImplementedException(); }
         static int mat_matinsert(MATrec mat, MATrec insmat) { throw new NotImplementedException(); }
         static int mat_zerocompact(MATrec mat) { throw new NotImplementedException(); }
         static int mat_rowcompact(MATrec mat, byte dozeros) { throw new NotImplementedException(); }
         static int mat_colcompact(MATrec mat, int prev_rows, int prev_cols) { throw new NotImplementedException(); }
-        static byte inc_matcol_space(MATrec mat, int deltacols) { throw new NotImplementedException(); }
+        internal static bool inc_matcol_space(MATrec mat, int deltacols)
+        {
+            int i;
+            int colsum;
+            int oldcolsalloc;
+            bool status = true;
+
+            /* Adjust lp column structures */
+            if (mat.columns + deltacols >= mat.columns_alloc)
+            {
+
+                /* Update memory allocation and sizes */
+                oldcolsalloc = mat.columns_alloc;
+                deltacols = (int)commonlib.DELTA_SIZE(deltacols, mat.columns);
+                commonlib.SETMAX(deltacols, lp_lib.DELTACOLALLOC);
+                mat.columns_alloc += deltacols;
+                colsum = mat.columns_alloc + 1;
+                /// <summary> FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                /// PREVIOUS: status = lp_utils.allocINT(mat.lp, mat.col_end, colsum, lp_types.AUTOMATIC);
+                /// ERROR IN PREVIOUS: cannot convert from 'int[]' to 'int[][]'
+                /// FIX 1: changed col_end datatype from int[] to int[][]
+                /// </summary>
+                status = lp_utils.allocINT(mat.lp, mat.col_end, colsum, lp_types.AUTOMATIC);
+
+                /* Update column pointers */
+                if (oldcolsalloc == 0)
+                {
+                    mat.col_end[0][0] = 0;
+                }
+                for (i = (int)commonlib.MIN(oldcolsalloc, mat.columns) + 1; i < colsum; i++)
+                {
+                    mat.col_end[i] = mat.col_end[i - 1];
+                }
+                mat.row_end_valid = false;
+            }
+            return (status);
+
+        }
         static bool inc_mat_space(MATrec mat, int mindelta) { throw new NotImplementedException(); }
-        static int mat_shiftrows(MATrec mat, int[] bbase, int delta, LLrec varmap) { throw new NotImplementedException(); }
-        static int mat_shiftcols(MATrec mat, int[] bbase, int delta, LLrec varmap) { throw new NotImplementedException(); }
+        internal static int mat_shiftrows(MATrec mat, ref int bbase, int delta, LLrec varmap) { throw new NotImplementedException(); }
+        internal static int mat_shiftcols(MATrec mat, ref int bbase, int delta, LLrec varmap) { throw new NotImplementedException(); }
         static MATrec mat_extractmat(MATrec mat, LLrec rowmap, LLrec colmap, byte negated) { throw new NotImplementedException(); }
         static internal int mat_appendrow(MATrec mat, int count, double?[] row, int?[] colno, double mult, bool checkrowmode)
         {
@@ -750,7 +826,10 @@ namespace ZS.Math.Optimization
         {
             return (mat.col_end[mat.columns]);
         }
-        static int mat_collength(MATrec mat, int colnr) { throw new NotImplementedException(); }
+        internal static int mat_collength(MATrec mat, int colnr)
+        {
+            return (mat.col_end[colnr] - mat.col_end[colnr - 1]);
+        }
         static int mat_rowlength(MATrec mat, int rownr) { throw new NotImplementedException(); }
         static internal void mat_multrow(MATrec mat, int row_nr, double mult)
         {
@@ -1420,7 +1499,18 @@ namespace ZS.Math.Optimization
         static int countsUndoLadder(DeltaVrec DV) { throw new NotImplementedException(); }
         static int restoreUndoLadder(DeltaVrec DV, double[] target) { throw new NotImplementedException(); }
         static int decrementUndoLadder(DeltaVrec DV) { throw new NotImplementedException(); }
-        static byte freeUndoLadder(DeltaVrec[] DV) { throw new NotImplementedException(); }
+        static bool freeUndoLadder(DeltaVrec[] DV)
+        {
+            throw new NotImplementedException();
+            /*NOT REQUIRED
+            if ((DV == null) || (DV == null))
+                return false;
+
+            mat_free((DV.tracker));
+            FREEDV;
+            return (TRUE);
+            */
+        }
 
         /* Specialized presolve undo functions */
         static byte appendUndoPresolve(lprec lp, byte isprimal, double beta, int colnrDep) { throw new NotImplementedException(); }

@@ -47,8 +47,39 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        internal static byte allocINT(lprec lp, int[][] ptr, int size, byte clear)
+        internal static bool allocINT(lprec lp, int[][] ptr, int size, byte clear)
         {
+            /*NOT REQUIRED
+            if (clear == true)
+            {
+                //C++ TO C# CONVERTER TODO TASK: The memory management function 'calloc' has no equivalent in C#:
+                ptr[0] = new int[];
+            }
+            else if (clear & AUTOMATIC)
+            {
+                //C++ TO C# CONVERTER TODO TASK: The memory management function 'realloc' has no equivalent in C#:
+                ptr[0] = (int)realloc(ptr[0], size * sizeof(int));
+                if (clear & 1)
+                {
+                    MEMCLEAR(ptr[0], size);
+                }
+            }
+            else
+            {
+                //C++ TO C# CONVERTER TODO TASK: The memory management function 'malloc' has no equivalent in C#:
+                ptr[0] = (int)malloc(size * sizeof(int));
+            }
+            if ((ptr == null) && (size > 0))
+            {
+                lp.report(lp, CRITICAL, "alloc of %d 'INT' failed\n", size);
+                lp.spx_status = NOMEMORY;
+                return (0);
+            }
+            else
+            {
+                return (1);
+            }
+            */
             throw new NotImplementedException();
         }
         internal static byte allocREAL(lprec lp, double[][] ptr, int size, byte clear)
@@ -374,7 +405,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        internal static byte isActiveLink(LLrec linkmap, int itemnr)
+        internal static bool isActiveLink(LLrec linkmap, int itemnr)
         {
             throw new NotImplementedException();
         }

@@ -9,9 +9,19 @@ namespace ZS.Math.Optimization
     public static class LpPricePSE
     {
         /* Price norm management routines */
-        public static byte initPricer(lprec lp)
+        public static bool initPricer(lprec lp)
         {
-            throw new NotImplementedException();
+            if (!applyPricer(lp))
+            {
+                return false;
+            }
+
+            /* Free any pre-existing pricer */
+            freePricer(lp);
+
+            /* Allocate vector to fit current problem size */
+            return (resizePricer(lp));
+
         }
         public static bool applyPricer(lprec lp)
         {
@@ -31,13 +41,84 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public static byte resizePricer(lprec lp)
+        public static bool resizePricer(lprec lp)
         {
-            throw new NotImplementedException();
+            if (!applyPricer(lp))
+            {
+                return true;
+            }
+
+            /* NOT REQUIRED
+            // Reallocate vector for new size 
+            if (!allocREAL(lp, (lp.edgeVector), lp.sum_alloc + 1, AUTOMATIC))
+            {
+                return (0);
+            }
+
+            // Signal that we have not yet initialized the price vector 
+            MEMCLEAR(lp.edgeVector, lp.sum_alloc + 1);
+            */
+
+            lp.edgeVector[0] = -1;
+            return true;
+
         }
         public static double getPricer(lprec lp, int item, byte isdual)
         {
-            throw new NotImplementedException();
+            double value = 1.0;
+            string msg;
+
+            if (!applyPricer(lp))
+            {
+                return (value);
+            }
+
+            value = Convert.ToDouble(lp.edgeVector);
+
+            /* Make sure we have a price vector to use */
+            if (value < 0)
+            {
+                ///#if Paranoia
+                msg = "getPricer: Called without having being initialized!\n";
+                lp.report(lp, lp_lib.SEVERE, ref msg);
+                ///#endif
+                return (1.0);
+            }
+            /* We may be calling the primal from the dual (and vice-versa) for validation
+               of feasibility; ignore calling origin and simply return 1 */
+            else if (isdual != value)
+            {
+                return (1.0);
+            }
+            /* Do the normal norm retrieval */
+            else
+            {
+
+                if (isdual != null)
+                {
+                    item = lp.var_basic[item];
+                }
+
+                value = lp.edgeVector[item];
+
+                if (value == 0)
+                {
+                    value = 1.0;
+                    msg = "getPricer: Detected a zero-valued price at index %d\n";
+                    lp.report(lp, lp_lib.SEVERE, ref msg, item);
+                }
+                ///#if Paranoia
+                else if (value < 0)
+                {
+                    msg = "getPricer: Invalid %s reduced cost norm %g at index %d\n";
+                    //NOTED ISSUE
+                    lp.report(lp, lp_lib.SEVERE, ref msg, lp_types.my_if(Convert.ToBoolean(isdual), "dual", "primal"), value, item);
+                }
+                ///#endif
+
+                /* Return the norm */
+                return (System.Math.Sqrt(value));
+            }
         }
         public static bool restartPricer(lprec lp, bool isdual)
         {
