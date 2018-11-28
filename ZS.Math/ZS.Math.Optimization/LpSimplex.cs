@@ -630,7 +630,7 @@ namespace ZS.Math.Optimization
             int rownr;
             int P1extraDim = System.Math.Abs(lp.P1extraDim);
             LpCls objLpCls = new LpCls();
-
+            
 
             for (i = 1; (i <= lp.rows) && (P1extraDim > 0); i++)
             {
@@ -736,7 +736,7 @@ namespace ZS.Math.Optimization
 
             //ORIGINAL LINE: int *workINT = null, *nzdrow = lp->nzdrow;
             int? workINT = null;
-
+            
             //ORIGINAL LINE: int *nzdrow = lp->nzdrow;
             int[] nzdrow = lp.nzdrow;
 
@@ -744,7 +744,7 @@ namespace ZS.Math.Optimization
             {
                 msg = "Entered primal simplex algorithm with feasibility %s\n";
                 //ORIGINAL CODE: lp.report(lp, lp_lib.DETAILED,ref msg, commonlib.my_boolstr(primalfeasible));
-                lp.report(lp, lp_lib.DETAILED, ref msg, commonlib.my_boolstr(primalfeasible));
+                lp.report(lp, lp_lib.DETAILED,ref msg, commonlib.my_boolstr(primalfeasible));
             }
             /* Add sufficent number of artificial variables to make the problem feasible
             through the first phase; delete when primal feasibility has been achieved */
@@ -752,7 +752,7 @@ namespace ZS.Math.Optimization
             if (!primalfeasible)
             {
                 lp.simplex_mode = lp_lib.SIMPLEX_Phase1_PRIMAL;
-
+                
                 ///#if Paranoia
                 if (!LpCls.verify_basis(lp))
                 {
@@ -855,8 +855,8 @@ namespace ZS.Math.Optimization
                     break;
                 }
 
-                /* Find best column to enter the basis */
-                RetryCol:
+            /* Find best column to enter the basis */
+            RetryCol:
                 ///#if false
                 //    if(verify_solution(lp, FALSE, "spx_loop") > 0)
                 //      i = 1; // This is just a debug trap 
@@ -913,7 +913,7 @@ namespace ZS.Math.Optimization
 
                     /* Do special anti-degeneracy column selection, if specified */
                     int parameter = 0;
-                    if (objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_COLUMNCHECK) && !LpCls.check_degeneracy(lp, ref pcol, ref parameter))
+                    if (objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_COLUMNCHECK) && ! LpCls.check_degeneracy(lp, ref pcol, ref parameter))
                     {
                         if (lp.rejectpivot[0] < lp_lib.DEF_MAXPIVOTRETRY / 3)
                         {
@@ -944,7 +944,7 @@ namespace ZS.Math.Optimization
                         if (lp.bb_trace || (lp.bb_totalnodes == 0))
                         {
                             msg = "primloop: Assuming convergence with reduced accuracy %g.\n";
-                            lp.report(lp, lp_lib.DETAILED, ref msg, MAX(xviolated, cviolated));
+                            lp.report(lp, lp_lib.DETAILED,ref msg , MAX(xviolated, cviolated));
                         }
                         rownr = 0;
                         colnr = 0;
@@ -978,7 +978,7 @@ namespace ZS.Math.Optimization
                     else
                     {
                         /* First make sure that we are not suffering from precision loss */
-
+                        
                         ///#if primal_UseRejectionList
                         if (lp.rejectpivot[0] < lp_lib.DEF_MAXPIVOTRETRY)
                         {
@@ -1028,7 +1028,7 @@ namespace ZS.Math.Optimization
                             {
                                 msg = "Found feasibility by primal simplex after  %10.0f iter.\n";
                                 lp.report(lp, lp_lib.NORMAL, ref msg, (double)LpCls.get_total_iter(lp));
-                                if ((lp.usermessage != null) && (lp.msgmask != 0 & lp_lib.MSG_LPFEASIBLE != 0))
+                                if ((lp.usermessage != null) && (lp.msgmask!=0 & lp_lib.MSG_LPFEASIBLE!=0))
                                 {
                                     lp.usermessage(lp, lp.msghandle, lp_lib.MSG_LPFEASIBLE);
                                 }
@@ -1121,7 +1121,7 @@ namespace ZS.Math.Optimization
 
                     /* Check if we are still primal feasible; the default assumes that this check
                        is not necessary after the relaxed problem has been solved satisfactorily. */
-                    if ((lp.bb_level <= 1) || (lp.improve != 0 & lp_lib.IMPROVE_BBSIMPLEX != 0))
+                    if ((lp.bb_level <= 1) || (lp.improve!=0 & lp_lib.IMPROVE_BBSIMPLEX != 0))
                     { // NODE_RCOSTFIXING fix
                         objLpCls.set_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
                         i = rowdual(lp, lp.rhs, 0, 0, null);
@@ -1233,7 +1233,7 @@ namespace ZS.Math.Optimization
                 }
                 i = Convert.ToInt32(lp_matrix.invert(lp, lp_lib.INITSOL_USEZERO, true));
             }
-
+            
             ///#if Paranoia
             if (!verify_basis(lp))
             {
@@ -1244,16 +1244,16 @@ namespace ZS.Math.Optimization
 
             /* Switch to dual phase 1 simplex for MIP models during
                B&B phases, since this is typically far more efficient */
-
+            
             ///#if ForceDualSimplexInBB
             if ((lp.bb_totalnodes == 0) && (MIP_count(lp) > 0) && ((lp.simplex_strategy & lp_lib.SIMPLEX_Phase1_DUAL) == 0))
             {
                 lp.simplex_strategy &= ~lp_lib.SIMPLEX_Phase1_PRIMAL;
                 lp.simplex_strategy += lp_lib.SIMPLEX_Phase1_DUAL;
             }
-            ///#endif
+        ///#endif
 
-            Finish:
+        Finish:
             stallMonitor_finish(lp);
             multi_free((lp.multivars));
 

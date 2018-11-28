@@ -1936,8 +1936,10 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public string get_statustext(lprec lp, int statuscode)
         { throw new NotImplementedException(); }
-        public byte is_obj_in_basis(lprec lp)
-        { throw new NotImplementedException(); }
+        public bool is_obj_in_basis(lprec lp)
+        {
+            return (lp.obj_in_basis);
+        }
         public void set_obj_in_basis(lprec lp, byte obj_in_basis)
         { throw new NotImplementedException(); }
         /* Create and initialise a lprec structure defaults */
