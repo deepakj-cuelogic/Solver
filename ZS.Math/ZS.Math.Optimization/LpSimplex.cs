@@ -622,7 +622,7 @@ namespace ZS.Math.Optimization
             return (i);
         }
 
-        internal static void eliminate_artificials(lprec lp, ref double[] prow)
+        internal static void eliminate_artificials(lprec lp, ref double? prow)
         {
             int i;
             int j;
@@ -703,6 +703,7 @@ namespace ZS.Math.Optimization
             }
         }
 
+        //Changed By: CS Date:28/11/2018
         public static int primloop(lprec lp, bool primalfeasible, double primaloffset)
         {
             bool primal = true;
@@ -728,8 +729,8 @@ namespace ZS.Math.Optimization
             double xviolated = 0.0;
             double cviolated = 0.0;
             double? prow = null;
-            double?[] pcol = null;
-            double[] drow = lp.drow;
+            double pcol = 0;
+            double drow = lp.drow;
             string msg;
 
             LpCls objLpCls = new LpCls();
@@ -909,11 +910,11 @@ namespace ZS.Math.Optimization
                 if (colnr > 0)
                 {
                     changedphase = false;
-                    lp_matrix.fsolve(lp, colnr, pcol, null, lp.epsmachine, 1.0, true); // Solve entering column for Pi
+                    lp_matrix.fsolve(lp, colnr, ref pcol, null, lp.epsmachine, 1.0, true); // Solve entering column for Pi
 
                     /* Do special anti-degeneracy column selection, if specified */
                     int parameter = 0;
-                    if (objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_COLUMNCHECK) && ! LpCls.check_degeneracy(lp, ref pcol, ref parameter))
+                    if (objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_COLUMNCHECK) && ! objLpCls.check_degeneracy(lp, ref pcol, ref parameter))
                     {
                         if (lp.rejectpivot[0] < lp_lib.DEF_MAXPIVOTRETRY / 3)
                         {
@@ -934,7 +935,7 @@ namespace ZS.Math.Optimization
                     }
 
                     /* Find the leaving variable that gives the most stringent bound on the entering variable */
-                    theta = drow[0];
+                    theta = drow;
                     rownr = LpPrice.rowprim(lp, colnr, ref theta, ref pcol, ref workINT, forceoutEQ, ref cviolated);
 
                     ///#if AcceptMarginalAccuracy
@@ -944,7 +945,7 @@ namespace ZS.Math.Optimization
                         if (lp.bb_trace || (lp.bb_totalnodes == 0))
                         {
                             msg = "primloop: Assuming convergence with reduced accuracy %g.\n";
-                            lp.report(lp, lp_lib.DETAILED,ref msg , MAX(xviolated, cviolated));
+                            lp.report(lp, lp_lib.DETAILED,ref msg , commonlib.MAX(xviolated, cviolated));
                         }
                         rownr = 0;
                         colnr = 0;
@@ -969,7 +970,7 @@ namespace ZS.Math.Optimization
                         objLpCls.set_action(ref lp.spx_action, lp_lib.ACTION_ITERATE);
                         if (!lp.obj_in_basis) // We must manually copy the reduced cost for RHS update
                         {
-                            pcol[0] = lp_types.my_chsign(!lp.is_lower[colnr], drow);
+                            pcol = lp_types.my_chsign(!lp.is_lower[colnr], drow);
                         }
                         //NOTED ISSUE:
                         lp.bfp_prepareupdate(lp, rownr, colnr, ref pcol);
@@ -1018,10 +1019,10 @@ namespace ZS.Math.Optimization
                 {
                     Optimality:
                     /* Handle possible transition from phase 1 to phase 2 */
-                    if (!primalfeasible || isP1extra(lp))
+                    if (!primalfeasible || LpCls.isP1extra(lp))
                     {
 
-                        if (feasiblePhase1(lp, epsvalue))
+                        if (LpCls.feasiblePhase1(lp, epsvalue))
                         {
                             lp.spx_status = lp_lib.RUNNING;
                             if (lp.bb_totalnodes == 0)
@@ -1047,7 +1048,7 @@ namespace ZS.Math.Optimization
                                 //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
                                 ///#if Phase1EliminateRedundant
                                 /* If it is not a MIP model we can try to delete redundant rows */
-                                if ((lp.bb_totalnodes == 0) && (MIP_count(lp) == 0))
+                                if ((lp.bb_totalnodes == 0) && (LpCls.MIP_count(lp) == 0))
                                 {
                                     while (lp.P1extraDim > 0)
                                     {
@@ -1073,7 +1074,7 @@ namespace ZS.Math.Optimization
                                         if (lp.is_basic[k])
                                         {
                                             lp.is_basic[lp.rows + j] = false;
-                                            del_constraint(lp, k);
+                                            objLpCls.del_constraint(lp, k);
                                         }
                                         else
                                         {
@@ -1082,7 +1083,7 @@ namespace ZS.Math.Optimization
                                         objLpCls.del_column(lp, j);
                                         lp.P1extraDim--;
                                     }
-                                    lp.basis_valid = 1;
+                                    lp.basis_valid = true;
                                 }
                                 /* Otherwise we drive out the artificials by elimination pivoting */
                                 else
@@ -1124,7 +1125,8 @@ namespace ZS.Math.Optimization
                     if ((lp.bb_level <= 1) || (lp.improve!=0 & lp_lib.IMPROVE_BBSIMPLEX != 0))
                     { // NODE_RCOSTFIXING fix
                         objLpCls.set_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
-                        i = rowdual(lp, lp.rhs, 0, 0, null);
+                        double Parameter = 0;
+                        i = LpPrice.rowdual(lp, lp.rhs, false, false, ref Parameter);
                         LpCls.clear_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
                         if (i > 0)
                         {
@@ -1149,10 +1151,12 @@ namespace ZS.Math.Optimization
                     }
                     else if (minitcount > lp_lib.MAX_MINITUPDATES)
                     {
-                        recompute_solution(lp, lp_lib.INITSOL_USEZERO);
+                        LpCls.recompute_solution(lp, lp_lib.INITSOL_USEZERO);
                         minitcount = 0;
                     }
-                    minit = performiteration(lp, rownr, colnr, theta, primal, (bool)((stallaccept != Convert.ToBoolean(DefineConstants.AUTOMATIC))), null, null, pcol, null, null);
+                    double Parameter1 = 0;
+                    int Parameter2 = 0;
+                    minit = LpCls.performiteration(lp, rownr, colnr, theta, primal, (bool)((stallaccept != Convert.ToBoolean(DefineConstants.AUTOMATIC))), ref Parameter1, ref Parameter2, ref pcol, ref Parameter2, ref Parameter2);
                     if (minit != lp_lib.ITERATE_MAJORMAJOR)
                     {
                         minitcount++;
@@ -1171,7 +1175,7 @@ namespace ZS.Math.Optimization
                     /* Do a fast update of the reduced costs in preparation for the next iteration */
                     if (minit == lp_lib.ITERATE_MAJORMAJOR)
                     {
-                        update_reducedcosts(lp, primal, lastnr, colnr, pcol, drow);
+                        LpPrice.update_reducedcosts(lp, primal, lastnr, colnr, pcol, drow);
                     }
                     ///#endif
 
@@ -1187,7 +1191,7 @@ namespace ZS.Math.Optimization
                             lp.report(lp, lp_lib.SEVERE, ref msg, lastnr, (double)LpCls.get_total_iter(lp));
                         }
                         ///#endif
-                        del_column(lp, lastnr - lp.rows);
+                        objLpCls.del_column(lp, lastnr - lp.rows);
                         if (lp.P1extraDim > 0)
                         {
                             lp.P1extraDim--;
@@ -1199,7 +1203,7 @@ namespace ZS.Math.Optimization
                         if (lp.P1extraDim == 0)
                         {
                             colnr = 0;
-                            changedphase = 1;
+                            changedphase = true;
                             stallMonitor_reset(lp);
                         }
                     }
@@ -1229,13 +1233,13 @@ namespace ZS.Math.Optimization
                 clear_artificials(lp);
                 if (lp.spx_status != lp_lib.OPTIMAL)
                 {
-                    restore_basis(lp);
+                    LpCls.restore_basis(lp);
                 }
                 i = Convert.ToInt32(lp_matrix.invert(lp, lp_lib.INITSOL_USEZERO, true));
             }
             
             ///#if Paranoia
-            if (!verify_basis(lp))
+            if (!LpCls.verify_basis(lp))
             {
                 msg = "primloop: Invalid basis detected due to internal error\n";
                 lp.report(lp, lp_lib.SEVERE, ref msg);
@@ -1246,7 +1250,7 @@ namespace ZS.Math.Optimization
                B&B phases, since this is typically far more efficient */
             
             ///#if ForceDualSimplexInBB
-            if ((lp.bb_totalnodes == 0) && (MIP_count(lp) > 0) && ((lp.simplex_strategy & lp_lib.SIMPLEX_Phase1_DUAL) == 0))
+            if ((lp.bb_totalnodes == 0) && (LpCls.MIP_count(lp) > 0) && ((lp.simplex_strategy & lp_lib.SIMPLEX_Phase1_DUAL) == 0))
             {
                 lp.simplex_strategy &= ~lp_lib.SIMPLEX_Phase1_PRIMAL;
                 lp.simplex_strategy += lp_lib.SIMPLEX_Phase1_DUAL;
@@ -1255,7 +1259,8 @@ namespace ZS.Math.Optimization
 
         Finish:
             stallMonitor_finish(lp);
-            multi_free((lp.multivars));
+            //NOT REQUIRED
+            //multi_free((lp.multivars));
 
             //NOT REQUIRED
             //FREE(prow);

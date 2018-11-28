@@ -132,7 +132,8 @@ namespace ZS.Math.Optimization
         internal int?[] indexSet;             /* The final exported index list of pivot variables */
         internal int active;                 /* Index of currently active multiply priced row/column */
         internal int retries;
-        double step_base;
+        //Changed By: CS Date:28/11/2018
+        internal double step_base;
         internal double step_last;
         double obj_base;
         double obj_last;

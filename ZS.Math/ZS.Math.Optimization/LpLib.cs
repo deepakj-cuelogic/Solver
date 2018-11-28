@@ -402,7 +402,7 @@ namespace ZS.Math.Optimization
         public double full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
         public double[] edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
 
-        public double[] drow; // sum+1: Reduced costs of the last simplex
+        public double drow; // sum+1: Reduced costs of the last simplex
         //ORIGINAL LINE: int *nzdrow;
         public int[] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
         public double? duals; // rows_alloc+1 : The dual variables of the last LP
@@ -422,8 +422,9 @@ namespace ZS.Math.Optimization
 
         public long current_iter; // Number of iterations in the current/last simplex
         public long total_iter; // Number of iterations over all B&B steps
-        public ulong current_bswap; // Number of bound swaps in the current/last simplex
-        public ulong total_bswap; // Number of bount swaps over all B&B steps
+        //Changed By: CS Date:28/11/2018
+        public long current_bswap; // Number of bound swaps in the current/last simplex
+        public long total_bswap; // Number of bount swaps over all B&B steps
         public int solvecount; // The number of solve() performed in this model
         public int max_pivots; // Number of pivots between refactorizations of the basis
 
@@ -559,7 +560,7 @@ namespace ZS.Math.Optimization
         internal bool varmap_locked;      /* Determines whether the var_to_orig and orig_to_var are fixed */
 
         /* Variable state information */
-        internal byte basis_valid;        /* TRUE is the basis is still valid */
+        internal bool basis_valid;        /* TRUE is the basis is still valid */
         internal int crashmode;          /* Basis crashing mode (or none) */
         internal int[] var_basic;         /* rows_alloc+1: The list of columns in the basis */
         double[] val_nonbasic;      /* Array to store current values of non-basic variables */
@@ -741,6 +742,7 @@ namespace ZS.Math.Optimization
         internal BFP_lp bfp_updaterefactstats;
         internal BFPlreal_lpintintreal bfp_prepareupdate;
         internal BFPreal_lplrealreal bfp_pivotRHS;
+
         internal BFPbool_lpbool bfp_finishupdate;
         internal BFP_lprealint bfp_ftran_prepare;
         internal BFP_lprealint bfp_ftran_normal;
@@ -2820,7 +2822,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
 
         /* Solution-related functions */
-        public double compute_dualslacks(lprec lp, int target, double[][] dvalues, int[][] nzdvalues, byte dosum)
+        public double compute_dualslacks(lprec lp, int target, double[][] dvalues, int[][] nzdvalues, bool dosum)
         { throw new NotImplementedException(); }
         public byte solution_is_int(lprec lp, int index, byte checkfixed)
         { throw new NotImplementedException(); }
@@ -2963,7 +2965,7 @@ namespace ZS.Math.Optimization
         /* Pivot utility routines */
         public int findBasisPos(lprec lp, int notint, ref int var_basic)
         { throw new NotImplementedException(); }
-        public byte check_degeneracy(lprec lp, ref double pcol, ref int degencount)
+        public bool check_degeneracy(lprec lp, ref double pcol, ref int degencount)
         { throw new NotImplementedException(); }
 
         private void varmap_add(lprec lp, int @base, int delta)
