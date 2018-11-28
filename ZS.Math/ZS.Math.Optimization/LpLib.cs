@@ -370,7 +370,7 @@ namespace ZS.Math.Optimization
 
         /* Model status and solver result variables */
         public bool source_is_file;     // The base model was read from a file
-        public byte model_is_pure;      // The model has been built entirely from row and column additions
+        public bool model_is_pure;      // The model has been built entirely from row and column additions
         public byte model_is_valid;     // Has this lp pased the 'test'
         public bool tighten_on_set;     // Specify if bounds will be tightened or overriden at bound setting
         public bool names_used;         // Flag to indicate if names for rows and columns are used
@@ -392,7 +392,7 @@ namespace ZS.Math.Optimization
         public int solutionlimit;       // upper number of equal-valued solutions kept track of
 
         public double real_solution; // Optimal non-MIP solution base
-        public double solution; /* sum_alloc+1 : Solution array of the next to optimal LP,
+        public double[] solution; /* sum_alloc+1 : Solution array of the next to optimal LP,
                                    Index   0           : Objective function value,
                                    Indeces 1..rows     : Slack variable values,
                                    Indeced rows+1..sum : Variable values */
@@ -636,7 +636,8 @@ namespace ZS.Math.Optimization
         /// </summary>
         internal int bb_level;           /* Solver B&B working variable (recursion depth) */
         int bb_maxlevel;        /* The deepest B&B level of the last solution */
-        int bb_limitlevel;      /* The maximum B&B level allowed */
+        //changed on 28/11/18 (D)
+        internal int bb_limitlevel;      /* The maximum B&B level allowed */
         internal long bb_totalnodes;      /* Total number of nodes processed in B&B */
         int bb_solutionlevel;   /* The B&B level of the last / best solution */
         int bb_cutpoolsize;     /* Size of the B&B cut pool */
@@ -2730,9 +2731,9 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte inc_col_space(lprec lp, int deltacols)
         { throw new NotImplementedException(); }
-        public bool shift_rowcoldata(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
+        public bool shift_rowcoldata(lprec lp, int @base, int delta, LLrec usedmap, bool isrow)
         { throw new NotImplementedException(); }
-        public bool shift_basis(lprec lp, int @base, int delta, LLrec usedmap, byte isrow)
+        public bool shift_basis(lprec lp, int @base, int delta, LLrec usedmap, bool isrow)
         { throw new NotImplementedException(); }
         public byte shift_rowdata(lprec lp, int @base, int delta, LLrec usedmap)
         { throw new NotImplementedException(); }

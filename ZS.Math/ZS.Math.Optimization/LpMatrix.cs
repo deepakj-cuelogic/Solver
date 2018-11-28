@@ -137,7 +137,7 @@ namespace ZS.Math.Optimization
                                           mat->col_mat_colnr[item] = j; \
                                           mat->col_mat_value[item] = A
         */
-        static Action<int[], int[], int[], int[]> _SET_MAT_ijA = delegate (int[] item, int[] i, int[] j, int[] A)
+        static Action<int, int, int, int> _SET_MAT_ijA = delegate (int item, int i, int j, int A)
         {
             /// <summary>
             /// Cannot implicitly convert type 'int[]' to 'int' 
@@ -146,6 +146,21 @@ namespace ZS.Math.Optimization
             mat.col_mat_rownr[item] = i;
             mat.col_mat_colnr[item] = j;
             mat.col_mat_value[item] = A;
+        };
+
+        /*ORIGINAL CODE
+         * #define COL_MAT_COPY(left,right)  COL_MAT_COLNR(left) = COL_MAT_COLNR(right); \
+                                  COL_MAT_ROWNR(left) = COL_MAT_ROWNR(right); \
+                                  COL_MAT_VALUE(left) = COL_MAT_VALUE(right)
+                                  */
+        static Action<int, int> COL_MAT_COPY = delegate (int left, int right)
+        {
+            int colnrLeft = COL_MAT_COLNR(left);
+            colnrLeft = COL_MAT_COLNR(right);
+            int rownrLeft = COL_MAT_ROWNR(left);
+            rownrLeft = COL_MAT_ROWNR(right);
+            double valueLeft = COL_MAT_VALUE(left);
+            valueLeft = COL_MAT_VALUE(right);
         };
 
         //ORIGINAL CODE: #define CAM_Record                0
@@ -259,6 +274,8 @@ namespace ZS.Math.Optimization
                 /* Update column pointers */
                 if (oldcolsalloc == 0)
                 {
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
                     mat.col_end[0][0] = 0;
                 }
                 for (i = (int)commonlib.MIN(oldcolsalloc, mat.columns) + 1; i < colsum; i++)
@@ -271,8 +288,330 @@ namespace ZS.Math.Optimization
 
         }
         static bool inc_mat_space(MATrec mat, int mindelta) { throw new NotImplementedException(); }
-        internal static int mat_shiftrows(MATrec mat, ref int bbase, int delta, LLrec varmap) { throw new NotImplementedException(); }
-        internal static int mat_shiftcols(MATrec mat, ref int bbase, int delta, LLrec varmap) { throw new NotImplementedException(); }
+        internal static int mat_shiftrows(MATrec mat, ref int bbase, int delta, LLrec varmap)
+        {
+            int j;
+            int k;
+            int i;
+            int ii;
+            int thisrow;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *colend;
+            int colend;
+            int @base;
+            bool preparecompact = false;
+            //C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+            int rownr;
+
+            if (delta == 0)
+            {
+                return (0);
+            }
+            @base = System.Math.Abs(bbase);
+
+            if (delta > 0)
+            {
+
+                /* Insert row by simply incrementing existing row indeces */
+                if (@base <= mat.rows)
+                {
+                    k = mat_nonzeros(mat);
+                    rownr = COL_MAT_ROWNR(0);
+                    for (ii = 0; ii < k; ii++, rownr += matRowColStep)
+                    {
+                        if (rownr >= @base)
+                        {
+                            rownr += delta;
+                        }
+                    }
+                }
+                /* Set defaults (actual basis set in separate procedure) */
+                for (i = 0; i < delta; i++)
+                {
+                    ii = @base + i;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set first [] as 0 for now; need to check at run time
+                    mat.row_end[0][ii] = 0;
+                }
+            }
+            else if (@base <= mat.rows)
+            {
+
+                /* Check for preparation of mass-deletion of rows */
+                preparecompact = (bool)(varmap != null);
+                if (preparecompact)
+                {
+                    /* Create the offset array */
+                    int[][] newrowidx = null;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    lp_utils.allocINT(mat.lp, newrowidx, (mat.rows != null) ? Convert.ToInt32(mat.rows) + 1 : 1, 0);
+                    newrowidx[0][0] = 0;
+                    delta = 0;
+                    for (j = 1; j <= mat.rows; j++)
+                    {
+                        if (lp_utils.isActiveLink(varmap, j))
+                        {
+                            delta++;
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            //set second [] as 0 for now; need to check at run time
+                            newrowidx[j][0] = delta;
+                        }
+                        else
+                        {
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            //set second [] as 0 for now; need to check at run time
+                            newrowidx[j][0] = -1;
+                        }
+                    }
+                    k = 0;
+                    delta = 0;
+                    @base = mat_nonzeros(mat);
+                    rownr = COL_MAT_ROWNR(0);
+                    for (i = 0; i < @base; i++, rownr += matRowColStep)
+                    {
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        thisrow = newrowidx[rownr][0];
+                        if (thisrow < 0)
+                        {
+                            rownr = -1;
+                            delta++;
+                        }
+                        else
+                        {
+                            rownr = thisrow;
+                        }
+                    }
+                    /*NOT REQUIRED
+                    FREE(newrowidx);
+                    */
+                    return (delta);
+                }
+
+                /* Check if we should prepare for compacting later
+                   (this is in order to speed up multiple row deletions) */
+                preparecompact = (bool)(bbase < 0);
+                if (preparecompact)
+                {
+                    bbase = (int)lp_types.my_flipsign((bbase));
+                }
+
+                /* First make sure we don't cross the row count border */
+                if (@base - delta - 1 > mat.rows)
+                {
+                    delta = @base - ((mat.rows != null) ? Convert.ToInt32(mat.rows) - 1 : -1);
+                }
+
+                /* Then scan over all entries shifting and updating rows indeces */
+                if (preparecompact)
+                {
+                    k = 0;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now
+                    for (j = 1, colend = mat.col_end[0][0] + 1; j <= mat.columns; j++, colend++)
+                    {
+                        i = k;
+                        k = colend;
+                        rownr = COL_MAT_ROWNR(i);
+                        for (; i < k; i++, rownr += matRowColStep)
+                        {
+                            thisrow = rownr;
+                            if (thisrow < @base)
+                            {
+                                continue;
+                            }
+                            else if (thisrow >= @base - delta)
+                            {
+                                rownr += delta;
+                            }
+                            else
+                            {
+                                rownr = -1;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    k = 0;
+                    ii = 0;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now
+                    for (j = 1, colend = mat.col_end[0][0] + 1; j <= mat.columns; j++, colend++)
+                    {
+                        i = k;
+                        k = colend;
+                        rownr = COL_MAT_ROWNR(i);
+                        for (; i < k; i++, rownr += matRowColStep)
+                        {
+                            thisrow = rownr;
+                            if (thisrow >= @base)
+                            {
+                                if (thisrow >= @base - delta)
+                                {
+                                    rownr += delta;
+                                }
+                                else
+                                {
+                                    continue;
+                                }
+                            }
+                            if (ii != i)
+                            {
+                                COL_MAT_COPY(ii, i);
+                            }
+                            ii++;
+                        }
+                        colend = ii;
+                    }
+                }
+            }
+            return (0);
+        }
+
+        internal static int mat_shiftcols(MATrec mat, ref int bbase, int delta, LLrec varmap)
+        {
+            int i;
+            int ii;
+            int k;
+            int n;
+            int @base;
+
+
+            k = 0;
+            if (delta == 0)
+            {
+                return (k);
+            }
+            @base = System.Math.Abs(bbase);
+
+            if (delta > 0)
+            {
+                /* Shift pointers right */
+                for (ii = mat.columns; ii > @base; ii--)
+                {
+                    i = ii + delta;
+                    mat.col_end[i] = mat.col_end[ii];
+                }
+                /* Set defaults */
+                for (i = 0; i < delta; i++)
+                {
+                    ii = @base + i;
+                    mat.col_end[ii] = mat.col_end[ii - 1];
+                }
+            }
+            else
+            {
+
+                /* Check for preparation of mass-deletion of columns */
+                bool? preparecompact = (bool)(varmap != null);
+                if (preparecompact != null)
+                {
+                    /* Create the offset array */
+                    int j;
+                    //C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+                    int colnr;
+                    //C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+                    int colend;
+                    n = 0;
+                    k = 0;
+                    @base = 0;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now
+                    for (j = 1, colend = mat.col_end[0][0] + 1; j <= mat.columns; j++, colend++)
+                    {
+                        i = k;
+                        k = colend;
+                        if (lp_utils.isActiveLink(varmap, j))
+                        {
+                            @base++;
+                            ii = @base;
+                        }
+                        else
+                        {
+                            ii = -1;
+                        }
+                        if (ii < 0)
+                        {
+                            n += k - i;
+                        }
+                        colnr = COL_MAT_COLNR(i);
+                        for (; i < k; i++, colnr += matRowColStep)
+                        {
+                            colnr = ii;
+                        }
+                    }
+                    return (n);
+                }
+
+                /* Check if we should prepare for compacting later
+                   (this is in order to speed up multiple column deletions) */
+                //C++ TO C# CONVERTER TODO TASK: The following line was determined to be a copy assignment (rather than a reference assignment) - this should be verified and a 'CopyFrom' method should be created:
+                //ORIGINAL LINE: preparecompact = (MYBOOL)(*bbase < 0);
+                preparecompact = ((bool)(bbase < 0));
+                if (preparecompact != null)
+                {
+                    bbase = (int)lp_types.my_flipsign(bbase);
+                }
+
+                /* First make sure we don't cross the column count border */
+                if (@base - delta - 1 > mat.columns)
+                {
+                    delta = @base - mat.columns - 1;
+                }
+
+                /* Then scan over all entries shifting and updating column indeces */
+                if (preparecompact != null)
+                {
+                    //C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+                    int colnr;
+                    n = 0;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    i = mat.col_end[@base - 1][0];
+                    //set second [] as 0 for now
+                    k = mat.col_end[@base - delta - 1][0];
+                    for (colnr = COL_MAT_COLNR(i); i < k; i++, colnr += matRowColStep)
+                    {
+                        n++;
+                        colnr = -1;
+                    }
+                    k = n;
+                }
+                else
+                {
+                    /* Delete sparse matrix data, if required */
+                    if (@base <= mat.columns)
+                    {
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        i = mat.col_end[@base - 1][0]; // Beginning of data to be deleted
+                        //set second [] as 0 for now
+                        ii = mat.col_end[@base - delta - 1][0]; // Beginning of data to be shifted left
+                        n = mat_nonzeros(mat); // Total number of non-zeros
+                        k = ii - i; // Number of entries to be deleted
+                        if ((k > 0) && (n > i))
+                        {
+                            n -= ii;
+                            /* contains MEMMOVE operations, hence NOT REQUIRED
+                            COL_MAT_MOVE(i, ii, n);
+                            */
+                        }
+
+                        /* Update indexes */
+                        for (i = @base; i <= mat.columns + delta; i++)
+                        {
+                            ii = i - delta;
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            //set second [] as 0 for now for both (left & right); need to check at run time
+                            mat.col_end[i][0] = mat.col_end[ii][0] - k;
+                        }
+                    }
+                }
+            }
+            return (k);
+        }
+
         static MATrec mat_extractmat(MATrec mat, LLrec rowmap, LLrec colmap, byte negated) { throw new NotImplementedException(); }
         static internal int mat_appendrow(MATrec mat, int count, double?[] row, int?[] colno, double mult, bool checkrowmode)
         {
@@ -409,8 +748,12 @@ namespace ZS.Math.Optimization
 
             for (j = mat.columns; j >= firstcol; j--)
             {
-                stcol = mat.col_end[j] - 1;
-                mat.col_end[j] = elmnr + 1;
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                stcol = mat.col_end[j][0] - 1;
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                mat.col_end[j][0] = elmnr + 1;
             }
             /* Add a new non-zero entry */
             if ((((bool)isNZ) && (j == jj)) || ((addto != null) && ((bool)addto)))
@@ -450,7 +793,9 @@ namespace ZS.Math.Optimization
             }
 
             /* Shift previous column entries down */
-            i = stcol - mat.col_end[j - 1] + 1;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            i = stcol - mat.col_end[j - 1][0] + 1;
             if (i > 0)
             {
                 orignr -= i;
@@ -540,7 +885,9 @@ namespace ZS.Math.Optimization
             }
 
             /* Append sparse regular constraint values */
-            elmnr = mat.col_end[mat.columns - 1];
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            elmnr = mat.col_end[mat.columns - 1][0];
             if (column != null)
             {
                 row = -1;
@@ -587,7 +934,7 @@ namespace ZS.Math.Optimization
 
                         /* Store the item and update counters */
                         //TO DO
-                        SET_MAT_ijA(elmnr, row, mat.columns, value);
+                        _SET_MAT_ijA(elmnr, row, mat.columns, (int)value);
                         elmnr++;
                     }
                 }
@@ -597,16 +944,19 @@ namespace ZS.Math.Optimization
                 {
                     ///NOTED ISSUE
                     //double? (column != null) ? Convert.ToDouble(column[0]) : 0 + Convert.ToDouble(mat.rows)
-                    double c = (mat.rows != null) ? Convert.ToDouble(mat.rows) : 0;
-                    mat_appendcol(lp.matL, objLpCls.get_Lrows(lp), column + c, null, mult, checkrowmode);
+                    double?[] ccn = new double?[1];
+                    ccn[0] = ((mat.rows != null) ? Convert.ToDouble(mat.rows) : 0) + ((column != null) ? Convert.ToDouble(column[0]) : 0);
+                    mat_appendcol(lp.matL, objLpCls.get_Lrows(lp), ccn, null, mult, checkrowmode);
                 }
-
             }
 
             /* Set end of data */
-            mat.col_end[mat.columns] = elmnr;
-
-            return (mat.col_end[mat.columns] - mat.col_end[mat.columns - 1]);
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            mat.col_end[mat.columns][0] = elmnr;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now for both; need to check at run time
+            return (mat.col_end[mat.columns][0] - mat.col_end[mat.columns - 1][0]);
         }
         static byte mat_get_data(lprec lp, int matindex, byte isrow, int[] rownr, int[] colnr, double[][] value) { throw new NotImplementedException(); }
         static byte mat_set_rowmap(MATrec mat, int row_mat_index, int rownr, int colnr, int col_mat_index) { throw new NotImplementedException(); }
@@ -634,18 +984,26 @@ namespace ZS.Math.Optimization
                 rownr = COL_MAT_ROWNR(0);
                 for (i = 0; i < j; i++, rownr += matRowColStep)
                 {
-                    mat.row_end[rownr]++;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    mat.row_end[rownr][0]++;
                 }
                 for (i = 1; i <= mat.rows; i++)
                 {
-                    mat.row_end[i] += mat.row_end[i - 1];
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now for both; need to check at run time
+                    mat.row_end[i][0] += mat.row_end[i - 1][0];
                 }
 
                 /* Calculate the column index for every non-zero */
                 for (i = 1; i <= mat.columns; i++)
                 {
-                    j = mat.col_end[i - 1];
-                    je = mat.col_end[i];
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    j = mat.col_end[i - 1][0];
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    je = mat.col_end[i][0];
                     rownr = COL_MAT_ROWNR(j);
                     /// <summary> FIX_0693941b-e4fc-458f-bb39-e6c3540a30fc 19/11/18
                     /// PREVIOUS: colnr = COL_MAT_COLNR(j);
@@ -670,7 +1028,9 @@ namespace ZS.Math.Optimization
                         }
                         else
                         {
-                            mat_set_rowmap(mat, mat.row_end[rownr - 1] + rownum[rownr], rownr, i, j);
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            //set second [] as 0 for now; need to check at run time
+                            mat_set_rowmap(mat, mat.row_end[rownr - 1][0] + rownum[rownr], rownr, i, j);
                         }
                         rownum[rownr]++;
                     }
@@ -717,9 +1077,12 @@ namespace ZS.Math.Optimization
                 objlpReport.report(mat.lp, lp_lib.IMPORTANT, ref msg, row);
                 return (-1);
             }
-
-            low = mat.col_end[column - 1];
-            high = mat.col_end[column] - 1;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            low = mat.col_end[column - 1][0];
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            high = mat.col_end[column][0] - 1;
             if (low > high)
             {
                 return (-2);
@@ -794,8 +1157,12 @@ namespace ZS.Math.Optimization
 
             isA = (mat == mat.lp.matA);
 
-            ie = mat.col_end[col_nr];
-            for (i = mat.col_end[col_nr - 1]; i < ie; i++)
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            ie = mat.col_end[col_nr][0];
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            for (i = mat.col_end[col_nr - 1][0]; i < ie; i++)
             {
                 ///<summary>
                 /// PREVIOUS: COL_MAT_VALUE(i) *= mult;
@@ -824,11 +1191,15 @@ namespace ZS.Math.Optimization
         static byte mat_setvalue(MATrec mat, int Row, int Column, double Value, byte doscale) { throw new NotImplementedException(); }
         internal static int mat_nonzeros(MATrec mat)
         {
-            return (mat.col_end[mat.columns]);
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            return (mat.col_end[mat.columns][0]);
         }
         internal static int mat_collength(MATrec mat, int colnr)
         {
-            return (mat.col_end[colnr] - mat.col_end[colnr - 1]);
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now for both; need to check at run time
+            return (mat.col_end[colnr][0] - mat.col_end[colnr - 1][0]);
         }
         static int mat_rowlength(MATrec mat, int rownr) { throw new NotImplementedException(); }
         static internal void mat_multrow(MATrec mat, int row_nr, double mult)
@@ -861,9 +1232,13 @@ namespace ZS.Math.Optimization
                 else
                 {
                     //#endif
-                    k1 = mat.row_end[row_nr - 1];
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    k1 = mat.row_end[row_nr - 1][0];
                 }
-                k2 = mat.row_end[row_nr];
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                k2 = mat.row_end[row_nr][0];
                 for (i = k1; i < k2; i++)
                 {
                     ///<summary> FIX_b077d4ca-c675-4a2d-a4a9-9d70eb69cf70 19/11/18
@@ -877,7 +1252,52 @@ namespace ZS.Math.Optimization
             }
 
         }
-        static void mat_multadd(MATrec mat, double[] lhsvector, int varnr, double mult) { throw new NotImplementedException(); }
+        //Changed By: CS Date:28/11/2018
+        internal static void mat_multadd(MATrec mat, double[] lhsvector, int varnr, double mult)
+        {
+            int colnr;
+            //ORIGINAL LINE: register int ib, ie, *matRownr;
+            int ib;
+            int ie;
+            //ORIGINAL LINE: int *matRownr;
+            int matRownr;
+            //ORIGINAL LINE: register double *matValue;
+            double matValue;
+
+            LpCls objLpCls = new LpCls();
+
+            /* Handle case of a slack variable */
+            if (varnr <= mat.lp.rows)
+            {
+                lhsvector[varnr] += mult;
+                return;
+            }
+
+            /* Do operation on the objective */
+            if (mat.lp.matA == mat)
+            {
+                lhsvector[0] += LpCls.get_OF_active(mat.lp, varnr, mult);
+            }
+
+            /* Scan the constraint matrix target columns */
+            colnr = varnr - mat.lp.rows;
+            ib = Convert.ToInt32(mat.col_end[colnr - 1]);
+            ie = Convert.ToInt32(mat.col_end[colnr]);
+            if (ib < ie)
+            {
+
+                /* Initialize pointers */
+                matRownr = COL_MAT_ROWNR(ib);
+                matValue = COL_MAT_VALUE(ib);
+
+                /* Then loop over all regular rows */
+                for (; ib < ie; ib++, matValue += matValueStep, matRownr += matRowColStep)
+                {
+                    lhsvector[matRownr] += mult * matValue;
+                }
+            }
+
+        }
         static byte mat_setrow(MATrec mat, int rowno, int count, double[] row, int colno, byte doscale, byte checkrowmode) { throw new NotImplementedException(); }
         static byte mat_setcol(MATrec mat, int colno, int count, double[] column, int rowno, byte doscale, byte checkrowmode) { throw new NotImplementedException(); }
         static byte mat_mergemat(MATrec target, MATrec source, byte usecolmap) { throw new NotImplementedException(); }
@@ -910,7 +1330,9 @@ namespace ZS.Math.Optimization
                     //ArrayList newmat = new ArrayList();
                     List<MATitem> newmat = new List<MATitem>();
                     //newmat.Add(new MATitem());
-                    j = mat.row_end[0];
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    j = mat.row_end[0][0];
                     for (i = nz - 1; i >= j; i--)
                     {
                         k = i - j;
@@ -959,12 +1381,18 @@ namespace ZS.Math.Optimization
                 {
                     inc_matcol_space(mat, 1);
                 }
-                j = mat.row_end[0];
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                j = mat.row_end[0][0];
                 for (i = (mat.rows != null) ? Convert.ToInt32(mat.rows) : 0; i >= 1; i--)
                 {
-                    mat.row_end[i] -= j;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    mat.row_end[i][0] -= j;
                 }
-                mat.row_end[(mat.rows != null) ? Convert.ToInt32(mat.rows) : 0] = nz;
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                mat.row_end[(mat.rows != null) ? Convert.ToInt32(mat.rows) : 0][0] = nz;
                 lp_utils.swapPTR(mat.row_end.Cast<Object>().ToArray(), mat.col_end.Cast<Object>().ToArray());
 
                 /* Swap arrays of maximum values */
@@ -989,8 +1417,9 @@ namespace ZS.Math.Optimization
         static byte vec_compress(double[] densevector, int startpos, int endpos, double epsilon, double[] nzvector, int[] nzindex) { throw new NotImplementedException(); }
         static byte vec_expand(double[] nzvector, int nzindex, double[] densevector, int startpos, int endpos) { throw new NotImplementedException(); }
 
+        //Changed By: CS Date:28/11/2018
         /* Sparse matrix products */
-        static bool get_colIndexA(lprec lp, int varset, int colindex, bool append)
+        internal static bool get_colIndexA(lprec lp, int varset, int colindex, bool append)
         {
             int i;
             int varnr;
@@ -1223,8 +1652,12 @@ namespace ZS.Math.Optimization
                 {
                     colnr = varnr - nrows;
                     v = 0;
-                    ib = mat.col_end[colnr - 1];
-                    ie = mat.col_end[colnr];
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    ib = mat.col_end[colnr - 1][0];
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    ie = mat.col_end[colnr][0];
                     if (ib < ie)
                     {
 
@@ -1392,7 +1825,17 @@ namespace ZS.Math.Optimization
 
         /* Equation solution */
         static byte fimprove(lprec lp, double[] pcol, int nzidx, double roundzero) { throw new NotImplementedException(); }
-        static void ftran(lprec lp, double[] rhsvector, int nzidx, double roundzero) { throw new NotImplementedException(); }
+
+        //Changed By: CS Date:28/11/2018
+        internal static void ftran(lprec lp, double[] rhsvector, int nzidx, double roundzero)
+        {
+#if false
+        //  if(is_action(lp->improve, IMPROVE_SOLUTION) && lp->bfp_pivotcount(lp))
+        //    fimprove(lp, rhsvector, nzidx, roundzero);
+        //  else
+#endif
+            lp.bfp_ftran_normal(lp, ref rhsvector[0], nzidx);
+        }
         static byte bimprove(lprec lp, double[] rhsvector, int nzidx, double roundzero) { throw new NotImplementedException(); }
         static void btran(lprec lp, double rhsvector, int nzidx, double roundzero)
         {
@@ -1408,6 +1851,11 @@ namespace ZS.Math.Optimization
             if (varin > 0)
             {
                 int Para = 0;
+                /// <summary>
+                /// ERROR: cannot convert from 'ref double?[]' to 'ref double[]'
+                /// pcol is of type double?[]
+                /// type required for method is double[]
+                /// </summary>  
                 objLpCls.obtain_column(lp, varin, ref pcol, ref nzidx, ref Para);
             }
 
@@ -1518,10 +1966,13 @@ namespace ZS.Math.Optimization
 
         private static int mat_nz_unused(MATrec mat)
         {
-            return (mat.mat_alloc - mat.col_end[mat.columns]);
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            return (mat.mat_alloc - mat.col_end[mat.columns][0]);
         }
 
-        internal static bool bsolve(lprec lp, int row_nr, ref double rhsvector, ref int? nzidx, double roundzero, double ofscalar)
+        //Changed By: CS Date:28/11/2018
+        internal static bool bsolve(lprec lp, int row_nr, ref double[] rhsvector, ref int? nzidx, double roundzero, double ofscalar)
         {
             bool ok = true;
 
@@ -1533,7 +1984,7 @@ namespace ZS.Math.Optimization
             }
 
             /* Solve, adjusted for objective function scalar */
-            rhsvector = ofscalar;
+            rhsvector[0] = ofscalar;
             btran(lp, rhsvector, (nzidx != null) ? Convert.ToInt32(nzidx) : 0, roundzero);
 
             return (ok);

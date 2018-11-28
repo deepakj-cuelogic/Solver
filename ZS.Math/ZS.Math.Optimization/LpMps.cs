@@ -890,7 +890,7 @@ namespace ZS.Math.Optimization
                                     {
                                         if (field3.Length == 0) // CPLEX format does not provide a SOS name; create one
                                         {
-                                            field3 = string.Format("SOS_{0:D}", objLpCls.SOS_count(lp) + 1);
+                                            field3 = string.Format("SOS_{0:D}", LpCls.SOS_count(lp) + 1);
                                         }
                                     }
                                     else
@@ -975,7 +975,7 @@ namespace ZS.Math.Optimization
 
                     for (@var = 1; @var <= lp.columns; @var++)
                     {
-                        if (objLpCls.is_int(lp, @var))
+                        if (LpCls.is_int(lp, @var))
                         {
                             lower = objLpCls.get_lowbo(lp, @var);
                             upper = objLpCls.get_upbo(lp, @var);
@@ -1204,7 +1204,7 @@ namespace ZS.Math.Optimization
             if ((typeMPS & lp_lib.MPSFIXED) == lp_lib.MPSFIXED)
             {
                 MPSname = MPSnameFIXED;
-                ChangeSignObj = objLpCls.is_maxim(lp);
+                ChangeSignObj = LpCls.is_maxim(lp);
             }
             else if ((typeMPS & lp_lib.MPSFREE) == lp_lib.MPSFREE)
             {
@@ -1265,10 +1265,10 @@ namespace ZS.Math.Optimization
             write_data(userhandle, write_modeldata, ref msg, lp.columns);
             msg = "*<meta equalities={0}>\n";
             write_data(userhandle, write_modeldata, ref msg, lp.equalities);
-            if (objLpCls.SOS_count(lp) > 0)
+            if (LpCls.SOS_count(lp) > 0)
             {
                 msg = "*<meta SOS={0}>\n";
-                write_data(userhandle, write_modeldata, ref msg, objLpCls.SOS_count(lp));
+                write_data(userhandle, write_modeldata, ref msg, LpCls.SOS_count(lp));
             }
             msg = "*<meta integers={0}>\n";
             write_data(userhandle, write_modeldata, ref msg, lp.int_vars);
@@ -1278,7 +1278,7 @@ namespace ZS.Math.Optimization
                 write_data(userhandle, write_modeldata, ref msg, lp.sc_vars);
             }
             msg = "*<meta origsense='%s'>\n";
-            write_data(userhandle, write_modeldata, ref msg, (objLpCls.is_maxim(lp) ? "MAX" : "MIN"));
+            write_data(userhandle, write_modeldata, ref msg, (LpCls.is_maxim(lp) ? "MAX" : "MIN"));
             msg = "*\n";
             write_data(userhandle, write_modeldata, ref msg);
 
@@ -1286,7 +1286,7 @@ namespace ZS.Math.Optimization
             msg = "NAME          {0}\n";
             msg = objLpCls.get_lp_name(lp);
             write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref msg));
-            if (((typeMPS & lp_lib.MPSFREE) == lp_lib.MPSFREE) && (objLpCls.is_maxim(lp)))
+            if (((typeMPS & lp_lib.MPSFREE) == lp_lib.MPSFREE) && (LpCls.is_maxim(lp)))
             {
                 msg = "OBJSENSE\n MAX\n";
                 write_data(userhandle, write_modeldata, ref msg);
@@ -1332,13 +1332,13 @@ namespace ZS.Math.Optimization
             {
                 if (!objLpCls.is_splitvar(lp, i))
                 {
-                    if (objLpCls.is_int(lp, i) && (marker % 2) == 0)
+                    if (LpCls.is_int(lp, i) && (marker % 2) == 0)
                     {
                         msg = "    MARK{0}  'MARKER'                 'INTORG'\n";
                         write_data(userhandle, write_modeldata, ref msg, marker);
                         marker++;
                     }
-                    if (!objLpCls.is_int(lp, i) && (marker % 2) == 1)
+                    if (!LpCls.is_int(lp, i) && (marker % 2) == 1)
                     {
                         msg = "    MARK{0}  'MARKER'                 'INTEND'\n";
                         write_data(userhandle, write_modeldata, ref msg, marker);
@@ -1518,7 +1518,7 @@ namespace ZS.Math.Optimization
                     }
                     else
                     {
-                        if ((lp.orig_lowbo[i] != 0) || (objLpCls.is_int(lp, j)))
+                        if ((lp.orig_lowbo[i] != 0) || (LpCls.is_int(lp, j)))
                         { // Some solvers like CPLEX need to have a bound on a variable if it is integer, but not binary else it is interpreted as binary which is not ment
                             a = lp.orig_lowbo[i];
                             a = lp_scale.unscaled_value(lp, a, i);
@@ -1542,7 +1542,7 @@ namespace ZS.Math.Optimization
                             }
                         }
 
-                        if ((lp.orig_upbo[i] < lp.infinite) || (objLpCls.is_semicont(lp, j)))
+                        if ((lp.orig_upbo[i] < lp.infinite) || (LpCls.is_semicont(lp, j)))
                         {
                             a = lp.orig_upbo[i];
                             if (a < lp.infinite)
@@ -1555,9 +1555,9 @@ namespace ZS.Math.Optimization
                                 write_data(userhandle, write_modeldata, ref msg);
                                 putheader = false;
                             }
-                            if (objLpCls.is_semicont(lp, j))
+                            if (LpCls.is_semicont(lp, j))
                             {
-                                if (objLpCls.is_int(lp, j))
+                                if (LpCls.is_int(lp, j))
                                 {
                                     string getcolname = objLpCls.get_col_name(lp, i);
                                     msg = " SI BND       {0}  {1}\n";
@@ -1582,7 +1582,7 @@ namespace ZS.Math.Optimization
 
             /* Write optional SOS section */
             putheader = true;
-            for (i = 0; i < objLpCls.SOS_count(lp); i++)
+            for (i = 0; i < LpCls.SOS_count(lp); i++)
             {
                 SOSgroup SOS = lp.SOS;
 

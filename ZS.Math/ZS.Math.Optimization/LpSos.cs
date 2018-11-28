@@ -113,9 +113,143 @@ namespace ZS.Math.Optimization
         internal static byte SOS_member_sortlist(SOSgroup group, int sosindex)
         {
         throw new NotImplementedException();}
-        internal static bool SOS_shift_col(SOSgroup group, int sosindex, int column, int delta, LLrec usedmap, byte forceresort)
+        internal static bool SOS_shift_col(SOSgroup group, int sosindex, int column, int delta, LLrec usedmap, bool forceresort)
+        /* Routine to adjust SOS indeces for variable insertions or deletions;
+Note: SOS_shift_col must be called before make_SOSchain! */
+
         {
-        throw new NotImplementedException();}
+            int i;
+            int ii;
+            int n;
+            int nn;
+            int nr;
+            int changed;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *list;
+            int[] list;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: double *weights;
+            double[] weights;
+#if Paranoia
+  lprec lp = group.lp;
+  if ((sosindex < 0) || (sosindex > group.sos_count))
+  {
+	report(lp, IMPORTANT, "SOS_shift_col: Invalid SOS index %d\n", sosindex);
+	return (0);
+  }
+  else if ((column < 1) || (delta == 0))
+  {
+	report(lp, IMPORTANT, "SOS_shift_col: Invalid column %d specified with delta %d\n", column, delta);
+	return (0);
+  }
+#endif
+            if ((sosindex == 0) && (group.sos_count == 1))
+            {
+                sosindex = 1;
+            }
+            if (sosindex == 0)
+            {
+                for (i = 1; i <= group.sos_count; i++)
+                {
+                    if (!SOS_shift_col(group, i, column, delta, usedmap, forceresort))
+                    {
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                list = group.sos_list[sosindex - 1].members;
+                weights = group.sos_list[sosindex - 1].weights;
+                n = list[0];
+                nn = list[n + 1];
+                /* Case where variable indeces are to be incremented */
+                if (delta > 0)
+                {
+                    for (i = 1; i <= n; i++)
+                    {
+                        if (list[i] >= column)
+                        {
+                            list[i] += delta;
+                        }
+                    }
+                }
+                /* Case where variables are to be deleted/indeces decremented */
+                else
+                {
+                    changed = 0;
+                    if (usedmap != null)
+                    {
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //changed from 'int[] newidx' to 'int[][] newidx'; need to check at run time
+                        int[][] newidx = null;
+                        /* Defer creation of index mapper until we are sure that a
+                           member of this SOS is actually targeted for deletion */
+                        if (newidx == null)
+                        {
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            lp_utils.allocINT(group.lp, newidx, group.lp.columns + 1, 1);
+                            for (i = lp_utils.firstActiveLink(usedmap), ii = 1; i != 0; i = lp_utils.nextActiveLink(usedmap, i), ii++)
+                            {
+                                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                //set second [] as 0 for now; need to check at run time
+                                newidx[i][0] = ii;
+                            }
+                        }
+                        for (i = 1, ii = 0; i <= n; i++)
+                        {
+                            nr = list[i];
+                            /* Check if this SOS variable should be deleted */
+                            if (!lp_utils.isActiveLink(usedmap, nr))
+                            {
+                                continue;
+                            }
+                            /* If the index is "high" then make adjustment and shift */
+                            changed++;
+                            ii++;
+                            list[ii] = newidx[nr];
+                            weights[ii] = weights[i];
+                        }
+                        /*NOT REQUIRED
+                        FREE(newidx);
+                        */
+                    }
+                    else
+                    {
+                        for (i = 1, ii = 0; i <= n; i++)
+                        {
+                            nr = list[i];
+                            /* Check if this SOS variable should be deleted */
+                            if ((nr >= column) && (nr < column - delta))
+                            {
+                                continue;
+                            }
+                            /* If the index is "high" then decrement */
+                            if (nr > column)
+                            {
+                                changed++;
+                                nr += delta;
+                            }
+                            ii++;
+                            list[ii] = nr;
+                            weights[ii] = weights[i];
+                        }
+                    }
+                    /* Update the SOS length / type indicators */
+                    if (ii < n)
+                    {
+                        list[0] = ii;
+                        list[ii + 1] = nn;
+                    }
+                    /* Update mapping arrays to search large SOS's faster */
+                    if (forceresort && ((ii < n) || (changed > 0)))
+                    {
+                        SOS_member_sortlist(group, sosindex);
+                    }
+                }
+            }
+            return true;
+        }
         public static int SOS_member_delete(SOSgroup group, int sosindex, int member)
         {
         throw new NotImplementedException();}
@@ -140,7 +274,56 @@ namespace ZS.Math.Optimization
         throw new NotImplementedException();}
         public static bool SOS_is_member(SOSgroup group, int sosindex, int column)
         {
-        throw new NotImplementedException();}
+            int i;
+            bool n = false;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *list;
+            int[] list;
+            lprec lp;
+
+            if (group == null)
+            {
+                return false;
+            }
+            lp = group.lp;
+
+#if Paranoia
+  if ((sosindex < 0) || (sosindex > group.sos_count))
+  {
+	report(lp, IMPORTANT, "SOS_is_member: Invalid SOS index %d\n", sosindex);
+	return (n);
+  }
+#endif
+
+            if (sosindex == 0)
+            {
+                if (lp.var_type[column])    // why to compare constant values?? & (lp_lib.ISSOS | lp_lib.ISGUB)) != 0
+                {
+                    n = (bool)(SOS_memberships(group, column) > 0);
+                }
+            }
+            else if (lp.var_type[column])   // & (ISSOS | ISGUB)
+            {
+
+                /* Search for the variable */
+                i = SOS_member_index(group, sosindex, column);
+
+                /* Signal active status if found, otherwise return FALSE */
+                if (i > 0)
+                {
+                    list = group.sos_list[sosindex - 1].members;
+                    if (list[i] < 0)
+                    {
+                        n = false;
+                    }
+                    else
+                    {
+                        n = true;
+                    }
+                }
+            }
+            return n;
+        }
         public static byte SOS_is_member_of_type(SOSgroup group, int column, int sostype)
         {
         throw new NotImplementedException();}

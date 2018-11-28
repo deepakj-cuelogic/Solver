@@ -47,6 +47,8 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        //changed from 'int[][] ptr' to 'int[] ptr'; need to check at run time
         internal static bool allocINT(lprec lp, int[][] ptr, int size, byte clear)
         {
             /*NOT REQUIRED
@@ -407,7 +409,14 @@ namespace ZS.Math.Optimization
         }
         internal static bool isActiveLink(LLrec linkmap, int itemnr)
         {
-            throw new NotImplementedException();
+            if ((linkmap.map[itemnr] != 0) || (linkmap.map[linkmap.size + itemnr] != 0) || (linkmap.map[0] == itemnr))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         internal static int countActiveLink(LLrec linkmap)
         {
@@ -451,7 +460,21 @@ namespace ZS.Math.Optimization
         }
         internal static int firstInactiveLink(LLrec linkmap)
         {
-            throw new NotImplementedException();
+            int i;
+            int n;
+
+            if (countInactiveLink(linkmap) == 0)
+            {
+                return (0);
+            }
+            n = 1;
+            i = firstActiveLink(linkmap);
+            while (i == n)
+            {
+                n++;
+                i = nextActiveLink(linkmap, i);
+            }
+            return (n);
         }
         internal static int lastInactiveLink(LLrec linkmap)
         {
@@ -459,7 +482,18 @@ namespace ZS.Math.Optimization
         }
         internal static int nextInactiveLink(LLrec linkmap, int backitemnr)
         {
-            throw new NotImplementedException();
+            do
+            {
+                backitemnr++;
+            } while ((backitemnr <= linkmap.size) && isActiveLink(linkmap, backitemnr));
+            if (backitemnr <= linkmap.size)
+            {
+                return (backitemnr);
+            }
+            else
+            {
+                return (0);
+            }
         }
         internal static int prevInactiveLink(LLrec linkmap, int forwitemnr)
         {

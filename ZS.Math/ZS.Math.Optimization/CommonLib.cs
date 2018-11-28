@@ -87,7 +87,7 @@ namespace ZS.Math.Optimization
         public delegate int findCompare_func(object current, object candidate);
 
         static Func<int, int, object> CMP_COMPARE = (current, candidate) => (current < candidate ? -1 : (current > candidate ? 1 : 0));
-        /// <summary>
+        /// <summary> FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
         /// Not able to find variables in file i.e. attributes, recsize
         /// Please check usage and do changes appropriately 
         /// </summary>
@@ -163,8 +163,11 @@ namespace ZS.Math.Optimization
             /* Do binary search logic based on a sorted attribute vector */
             focusPos = (beginPos + endPos) / 2;
             //NOTED ISSUE
+            //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
             beginAttrib = CMP_ATTRIBUTES(beginPos);
+            //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
             focusAttrib = CMP_ATTRIBUTES(focusPos);
+            //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
             endAttrib = CMP_ATTRIBUTES(endPos);
 
             compare = 0;
@@ -186,14 +189,18 @@ namespace ZS.Math.Optimization
                     if (compare < 0)
                     {
                         beginPos = focusPos + 1;
+                        //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
                         beginAttrib = CMP_ATTRIBUTES(beginPos);
                         focusPos = (beginPos + endPos) / 2;
+                        //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
                         focusAttrib = CMP_ATTRIBUTES(focusPos);
                     }
                     else if (compare > 0)
                     {
                         endPos = focusPos - 1;
+                        //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
                         endAttrib = CMP_ATTRIBUTES(endPos);
+                        //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
                         focusPos = (beginPos + endPos) / 2;
                         focusAttrib = CMP_ATTRIBUTES(focusPos);
                     }
@@ -210,6 +217,7 @@ namespace ZS.Math.Optimization
             {
 
                 /* Do traditional indexed access */
+                //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
                 focusAttrib = CMP_ATTRIBUTES(beginPos);
                 if (beginPos == endPos)
                 {
@@ -220,6 +228,7 @@ namespace ZS.Math.Optimization
                     while ((beginPos < endPos) && ((compare = findCompare(target, focusAttrib) * order) < 0))
                     {
                         beginPos++;
+                        //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
                         focusAttrib = CMP_ATTRIBUTES(beginPos);
                     }
                 }
@@ -347,7 +356,7 @@ namespace ZS.Math.Optimization
             {
                 nswaps = iswaps;
             }
-            return (1);
+            return true;
         }
 
         internal static int QS_sort(QSORTrec[] a, int l, int r, findCompare_func findCompare)
