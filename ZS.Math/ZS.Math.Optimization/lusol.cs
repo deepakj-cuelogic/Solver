@@ -36,11 +36,10 @@ namespace ZS.Math.Optimization
         /* luparm OUTPUT parameters: */
         public const int LUSOL_IP_SINGULARITIES = 11;
 
-        internal int LUSOL_getSingularity(LUSOLrec LUSOL, int singitem)
+        internal static int LUSOL_getSingularity(lp_LUSOL.LUSOLrec LUSOL, int singitem)
         {
             throw new NotImplementedException();
         }
-
 
         internal int LUSOL_btran(LUSOLrec LUSOL, double[] b, int[] NZidx)
         {
@@ -75,6 +74,7 @@ namespace ZS.Math.Optimization
             }
             return (LUSOL_informstr_informText[inform - commonlib.LUSOL_INFORM_MIN]);
         }
+
 
         /*NOT REQUIRED
         internal void LUSOL_free(LUSOLrec LUSOL)

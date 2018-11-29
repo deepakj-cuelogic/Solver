@@ -22,5 +22,14 @@ namespace ZS.Math.Optimization
                 return (0);
             }
         }
+
+        internal static int bfp_rowextra(lprec lp)
+        {
+            if (lp.is_obj_in_basis(lp))
+                return (1);
+            else
+                return (0);
+        }
+
     }
 }
