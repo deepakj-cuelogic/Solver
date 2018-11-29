@@ -140,7 +140,7 @@ namespace ZS.Math.Optimization
             LUSOL_FREE(LUSOL);
         }
 
-        internal static int bfp_factorize(lprec lp, int uservars, int Bsize, bool usedpos, bool? final)
+        internal static int bfp_factorize(lprec lp, int uservars, int Bsize, bool? usedpos, bool? final)
         {
             int kcol;
             int inform;
@@ -220,15 +220,16 @@ namespace ZS.Math.Optimization
 		iEnter = LUSOL.iqinv[iEnter];
 		iEnter = LUSOL.ip[iEnter];
 #endif
-                        iLeave -= bfp_rowextra(lp); // This is the original B column/basis index
+                        iLeave -= LpBFP1.bfp_rowextra(lp); // This is the original B column/basis index
                         jLeave = lp.var_basic[iLeave]; // This is the IA column index in lp_solve
 
                         /* Express the slack index in original lp_solve [1..rows] reference and check validity */
                         /*       if(B4 != NULL) iEnter = B4->B4_row[iEnter]; v6 FUNCTIONALITY */
-                        iEnter -= bfp_rowextra(lp);
+                        iEnter -= LpBFP1.bfp_rowextra(lp);
                         if (lp.is_basic[iEnter])
                         {
-                            lp.report(lp, DETAILED, "bfp_factorize: Replacement slack %d is already basic!\n", iEnter);
+                            string msg = "bfp_factorize: Replacement slack {0} is already basic!\n";
+                            lp.report(lp, lp_lib.DETAILED, ref msg, iEnter);
 
                             /* See if we can find a good alternative slack variable to enter */
                             iEnter = 0;
@@ -239,7 +240,7 @@ namespace ZS.Math.Optimization
                                     if ((iEnter == 0) || (lp.upbo[inform] > lp.upbo[iEnter]))
                                     {
                                         iEnter = inform;
-                                        if (my_infinite(lp, lp.upbo[iEnter]))
+                                        if (lp_types.my_infinite(lp, lp.upbo[iEnter]))
                                         {
                                             break;
                                         }
@@ -248,7 +249,8 @@ namespace ZS.Math.Optimization
                             }
                             if (iEnter == 0)
                             {
-                                lp.report(lp, SEVERE, "bfp_factorize: Could not find replacement slack variable!\n");
+                                msg = "bfp_factorize: Could not find replacement slack variable!\n";
+                                lp.report(lp, lp_lib.SEVERE, ref msg);
                                 break;
                             }
                         }
@@ -262,8 +264,8 @@ namespace ZS.Math.Optimization
                             lp.fixedvars++;
                         }
                         hold = lp.upbo[jLeave];
-                        lp.is_lower[jLeave] = isfixed || (Math.Abs(hold) >= lp.infinite) || (lp.rhs[iLeave] < hold);
-                        lp.is_lower[iEnter] = 1;
+                        lp.is_lower[jLeave] = isfixed || (System.Math.Abs(hold) >= lp.infinite) || (lp.rhs[iLeave] < hold);
+                        lp.is_lower[iEnter] = true;
 
                         /* Do the basis replacement */
                         lp.set_basisvar(lp, iLeave, iEnter);
@@ -271,20 +273,25 @@ namespace ZS.Math.Optimization
                     }
 
                     /* Refactorize with slack substitutions */
-                    inform = bfp_LUSOLfactorize(lp, null, rownum, null);
+                    usedpos = null;
+                    singular = null;
+                    inform = bfp_LUSOLfactorize(lp, ref usedpos, ref rownum, ref singular);
                     replacedcols += singularcols;
                 }
 
                 /* Check if we had a fundamental problem */
                 if (singularities >= dimsize)
                 {
-                    lp.report(lp, IMPORTANT, "bfp_factorize: LUSOL was unable to recover from a singular basis\n");
-                    lp.spx_status = NUMFAILURE;
+                    string msg = "bfp_factorize: LUSOL was unable to recover from a singular basis\n";
+                    lp.report(lp, lp_lib.IMPORTANT, ref msg);
+                    lp.spx_status = lp_lib.NUMFAILURE;
                 }
             }
 
-            /* Clean up before returning */
+            /* NOT REQUIRED
+            // Clean up before returning 
             FREE(rownum);
+            */
 
             /* Update statistics */
             /* SETMAX(lp->invB->max_Bsize, (*Bsize)); */
@@ -301,7 +308,7 @@ namespace ZS.Math.Optimization
         /* LOCAL HELPER ROUTINE */
         //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
         //changed from 'ref int rownum' to 'ref int[][] rownum'; need to check at run time
-        private static int bfp_LUSOLfactorize(lprec lp, ref bool usedpos, ref int[][] rownum, ref int? singular)
+        private static int bfp_LUSOLfactorize(lprec lp, ref bool? usedpos, ref int[][] rownum, ref int? singular)
         {
             throw new NotImplementedException();
         }

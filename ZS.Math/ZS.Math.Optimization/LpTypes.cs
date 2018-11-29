@@ -22,12 +22,20 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: #define my_plural_y(count)       (count == 1 ? "y" : "ies")
         public static Func<int, string> my_plural_y = (count) => (count == 1 ? "y" : "ies");
 
+        /* ORIGINAL CODE: #if 1
+        #define my_infinite(lp, val)  ( (MYBOOL) (fabs(val) >= lp->infinite) )
+        #else
+        #define my_infinite(lp, val)  is_infinite(lp, val)
+        #endif*/
+        //as 1 is always going to be true, we don't need else part
+        public static Func<lprec, double, bool> my_infinite = (lp, val) => ((bool)(System.Math.Abs((sbyte)val) >= lp.infinite));
+
         //ORIGINAL LINE: #define my_roundzero(val, eps)  if (fabs((REAL) (val)) < eps) val = 0
         public static Action<double, double> my_roundzero = delegate (double val, double eps) { if (System.Math.Abs(val) < eps) val = 0; };
 
-        internal static string RESULTVALUEMASK = "%18.12g";
+                internal static string RESULTVALUEMASK = "%18.12g";
 
-        /* Library load status values */
+                /* Library load status values */
         internal const int LIB_LOADED = 0;
         internal const int LIB_NOTFOUND = 1;
         internal const int LIB_NOINFO = 2;
