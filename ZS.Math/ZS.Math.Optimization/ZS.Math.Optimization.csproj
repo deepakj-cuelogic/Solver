@@ -51,6 +51,7 @@
     <Compile Include="corecrt_wstdio.cs" />
     <Compile Include="Ini.cs" />
     <Compile Include="LpBFP1.cs" />
+    <Compile Include="LpBFP2.cs" />
     <Compile Include="LpBFPLib.cs" />
     <Compile Include="LpCls.cs" />
     <Compile Include="LpMatrix.cs" />

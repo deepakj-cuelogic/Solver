@@ -588,7 +588,7 @@ namespace ZS.Math.Optimization
         /// <summary>
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// </summary>
-        internal byte bb_break;           /* Solver working variable; signals break of the B&B */
+        internal bool bb_break;           /* Solver working variable; signals break of the B&B */
         internal byte wasPreprocessed;    /* The solve preprocessing was performed */
         internal bool wasPresolved;       /* The solve presolver was invoked */
         int INTfuture2;
@@ -644,7 +644,7 @@ namespace ZS.Math.Optimization
         int bb_cutpoolsize;     /* Size of the B&B cut pool */
         int bb_cutpoolused;     /* Currently used cut pool */
         int bb_constraintOF;    /* General purpose B&B parameter (typically for testing) */
-        int[] bb_cuttype;        /* The type of the currently used cuts */
+        internal int[] bb_cuttype;        /* The type of the currently used cuts */
         internal int[] bb_varactive;      /* The B&B state of the variable; 0 means inactive */
         DeltaVrec bb_upperchange;    /* Changes to upper bounds during the B&B phase */
         DeltaVrec bb_lowerchange;    /* Changes to lower bounds during the B&B phase */
@@ -653,11 +653,11 @@ namespace ZS.Math.Optimization
 
         internal double bb_breakOF;         /* User-settable value for the objective function deemed
                                to be sufficiently good in an integer problem */
-        double bb_limitOF;         /* "Dual" bound / limit to final optimal MIP solution */
+        internal double bb_limitOF;         /* "Dual" bound / limit to final optimal MIP solution */
         internal double bb_heuristicOF;     /* Set initial "at least better than" guess for objective function
                                (can significantly speed up B&B iterations) */
         double bb_parentOF;        /* The OF value of the previous BB simplex */
-        double bb_workOF;          /* The unadjusted OF value for the current best solution */
+        internal double bb_workOF;          /* The unadjusted OF value for the current best solution */
 
         /* Internal work arrays allocated as required */
         internal presolveundorec presolve_undo;
@@ -665,8 +665,8 @@ namespace ZS.Math.Optimization
 
         /* MIP parameters */
         double epsint;             /* Margin of error in determining if a float value is integer */
-        double mip_absgap;         /* Absolute MIP gap */
-        double mip_relgap;         /* Relative MIP gap */
+        internal double mip_absgap;         /* Absolute MIP gap */
+        internal double mip_relgap;         /* Relative MIP gap */
 
         /* Time/timer variables and extended status text */
         internal double timecreate;
@@ -674,9 +674,9 @@ namespace ZS.Math.Optimization
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// changed datatype from double to DateTime because unable to subtract from a datetime variale at yieldformessages() 6/11/18
         /// </summary>
-        internal double timestart;
-        double timeheuristic;
-        double timepresolved;
+        internal DateTime timestart;
+        internal double timeheuristic;
+        internal double timepresolved;
         internal double timeend;
         public double sectimeout;
 
@@ -1890,7 +1890,7 @@ namespace ZS.Math.Optimization
         public const double DEF_SCALINGEPS = 1.0e-02; /* Relative scaling convergence criterion for auto_scale */
         public const double DEF_LAGACCEPT = 1.0e-03; /* Default Lagrangean convergence acceptance criterion */
         public const double DEF_LAGCONTRACT = 0.90;/* The contraction parameter for Lagrangean iterations */
-        public const double DEF_LAGMAXITERATIONS = 100;/* The maximum number of Lagrangean iterations */
+        public const int DEF_LAGMAXITERATIONS = 100;/* The maximum number of Lagrangean iterations */
         public const double DEF_PSEUDOCOSTUPDATES = 7;/* The default number of times pseudo-costs are recalculated; experiments indicate that costs tend to stabilize*/
         public const double DEF_PSEUDOCOSTRESTART = 0.15;/* The fraction of price updates required for B&B restart when the mode is NODE_RESTARTMODE*/
         public const double DEF_MAXPRESOLVELOOPS = 0;/* Upper limit to the number of loops during presolve, <= 0 for no limit. */
@@ -2175,7 +2175,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public byte set_binary(lprec lp, int colnr, byte must_be_bin)
+        public byte set_binary(lprec lp, int colnr, bool must_be_bin)
         { throw new NotImplementedException(); }
         public byte is_binary(lprec lp, int colnr)
         { throw new NotImplementedException(); }
@@ -2245,8 +2245,33 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         /* Set/Get if lp_solve should prefer the dual simplex over the primal -- added by KE */
 
-        public void default_basis(lprec lp)
-        { throw new NotImplementedException(); }
+        public static void default_basis(lprec lp)
+        {
+            int i;
+
+            /* Set the slack variables to be basic; note that the is_basic[] array
+               is a helper array filled in presolve() to match var_basic[]. */
+            for (i = 1; i <= lp.rows; i++)
+            {
+                lp.var_basic[i] = i;
+                lp.is_basic[i] = true;
+                lp.is_lower[i] = true;
+            }
+            lp.var_basic[0] = 1; // Set to signal that this is the default basis
+
+            /* Set user variables at their lower bound, including the
+               dummy slack for the objective "constraint" */
+            for (; i <= lp.sum; i++)
+            {
+                lp.is_basic[i] = false;
+                lp.is_lower[i] = true;
+            }
+            lp.is_lower[0] = true;
+
+            set_action(ref lp.spx_action, ACTION_REBASE | ACTION_REINVERT | ACTION_RECOMPUTE);
+            lp.basis_valid = true; // Do not re-initialize basis on entering Solve
+
+        }
         public void set_basiscrash(lprec lp, int mode)
         { throw new NotImplementedException(); }
         public int get_basiscrash(lprec lp)
@@ -2635,8 +2660,13 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public int get_Nrows(lprec lp)
         { throw new NotImplementedException(); }
-        public int get_Lrows(lprec lp)
-        { throw new NotImplementedException(); }
+        internal static int get_Lrows(lprec lp)
+        {
+            if (lp.matL == null)
+                return (0);
+            else
+                return ((lp.matL.rows != null) ? Convert.ToInt32(lp.matL.rows) : 0);
+        }
 
         public int get_Norig_columns(lprec lp)
         { throw new NotImplementedException(); }
@@ -2827,7 +2857,8 @@ namespace ZS.Math.Optimization
         public byte solution_is_int(lprec lp, int index, byte checkfixed)
         { throw new NotImplementedException(); }
         public byte bb_better(lprec lp, int target, int mode)
-        { throw new NotImplementedException(); }
+        { 
+throw new NotImplementedException(); }
         public void construct_solution(lprec lp, ref double target)
         { throw new NotImplementedException(); }
         public void transfer_solution_var(lprec lp, int uservar)

@@ -321,7 +321,7 @@ namespace ZS.Math.Optimization
             lp.bb_bounds = null;
             lp.bb_basis = null;
 
-            lp.basis_valid = 0;
+            lp.basis_valid = false;
             lp.simplex_mode = SIMPLEX_DYNAMIC;
             lp.scaling_used = false;
             lp.columns_scaled = false;
@@ -1127,12 +1127,12 @@ namespace ZS.Math.Optimization
 
             return (set_bounds(lp, colnr, -lp.infinite, lp.infinite));
         }
-        int get_nonzeros(lprec lp)
+        new int get_nonzeros(lprec lp)
         {
             return (lp_matrix.mat_nonzeros(lp.matA));
         }
 
-        internal bool set_bounds(lprec lp, int colnr, double lower, double upper)
+        internal new bool set_bounds(lprec lp, int colnr, double lower, double upper)
         {
             if ((colnr > lp.columns) || (colnr < 1))
             {
@@ -1672,7 +1672,7 @@ namespace ZS.Math.Optimization
             }
 
             set_action(ref lp.spx_action, ACTION_REINVERT);
-            lp.basis_valid = 0;
+            lp.basis_valid = false;
 
             return true;
         }
@@ -2050,7 +2050,7 @@ namespace ZS.Math.Optimization
             return (countnz);
         }
 
-        internal new bool is_action(int actionvar, int testmask)
+        internal static new bool is_action(int actionvar, int testmask)
         {
             return ((bool)((actionvar & testmask) != 0));
         }
@@ -2301,7 +2301,7 @@ namespace ZS.Math.Optimization
             return (objlp_MPS.MPS_writefile(lp, MPSFIXED, ref filename));
         }
 
-        private new static int get_basisOF(lprec lp, int[] coltarget, double[] crow, int[] colno)
+        internal new static int get_basisOF(lprec lp, int[] coltarget, double[] crow, int[] colno)
         {
 
             /* Fill vector of basic OF values or subtract incoming values from these.
@@ -2863,7 +2863,7 @@ namespace ZS.Math.Optimization
                 lp.rhs[0] = lp.orig_rhs[0];
                 for (i = 1; i <= lp.rows; i++)
                 {
-                    if (objLpCls.is_constr_type(lp, i, EQ))
+                    if (LpCls.is_constr_type(lp, i, EQ))
                     {
                         theta = lp_utils.rand_uniform(lp, lprec.epsvalue);
                     }
@@ -4727,7 +4727,7 @@ internal static class StringFunctions
         }
 
         //Changed By: CS Date:28/11/2018
-        internal static bool performiteration(lprec lp, int rownr, int varin, double theta, bool primal, bool allowminit, ref double prow, ref int nzprow, ref double pcol, ref int nzpcol, ref int boundswaps)
+        internal static bool performiteration(lprec lp, int rownr, int varin, double theta, bool primal, bool allowminit, ref double?[] prow, ref int nzprow, ref double?[] pcol, ref int nzpcol, ref int boundswaps)
         {
             int varout;
             double pivot;
@@ -4976,7 +4976,7 @@ internal static class StringFunctions
                 }
                 if (!primal)
                 {
-                    pivot = compute_feasibilitygap(lp, (bool)!primal, 1);
+                    pivot = compute_feasibilitygap(lp, (bool)!primal, true);
                     msg = "performiteration: Feasibility gap at iter %.0f is " + lp_types.RESULTVALUEMASK + "\n";
                     lp.report(lp, NORMAL, ref msg, (double)get_total_iter(lp), pivot);
                 }
@@ -5043,7 +5043,9 @@ internal static class StringFunctions
             int i;
             int varnr;
             //ORIGINAL LINE: int *coltarget;
-            int coltarget;
+            //FIX_133d8fd1-d4bf-4e73-ac14-1bb037ba574f 29/11/18
+            int coltarget = 0;
+            string memvector = "";
             int[][] nzduals;
 
             //ORIGINAL LINE: int *nzvtemp = null;
@@ -5091,16 +5093,33 @@ internal static class StringFunctions
 
             /* Define variable target list and compute the reduced costs */
             //NOTED ISSUE
-            coltarget = (int)lp_utils.mempool_obtainVector(lp.workarrays, lp.columns + 1, sizeof(int));
-            if (!lp_matrix.get_colIndexA(lp, target, coltarget, false))
+            /// <summary> FIX_133d8fd1-d4bf-4e73-ac14-1bb037ba574f 29/11/18
+            /// PREVIOUS: coltarget = (int)lp_utils.mempool_obtainVector(lp.workarrays, lp.columns + 1, sizeof(int));
+            /// ERROR IN PREVIOUS: Cannot convert type 'string' to 'int'
+            /// FIX 1: 
+            /// </summary>
+            int id = 0;
+            bool res = int.TryParse(lp_utils.mempool_obtainVector(lp.workarrays, lp.columns + 1, sizeof(int)), out id);
+            if (res)
             {
-                lp_utils.mempool_releaseVector(lp.workarrays, (string)coltarget, 0);
-                return (0);
+                if (!lp_matrix.get_colIndexA(lp, target, coltarget, false))
+                {
+                    memvector = coltarget.ToString();
+                    lp_utils.mempool_releaseVector(lp.workarrays, ref memvector, 0);
+                    return (0);
+                }
             }
+            else
+                throw new Exception("lp_utils.mempool_obtainVector");
             int? Parameter = null;
             lp_matrix.bsolve(lp, 0, ref duals[0], ref Parameter, lp.epsmachine * DOUBLEROUND, 1.0);
-            lp_matrix.prod_xA(lp, coltarget, duals[0], null, lp.epsmachine, 1.0, duals[0], nzduals[0], lp_matrix.MAT_ROUNDDEFAULT | lp_matrix.MAT_ROUNDRC);
-            lp_utils.mempool_releaseVector(lp.workarrays, (string)coltarget, 0);
+            int nzinput = 0;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            lp_matrix.prod_xA(lp, ref coltarget, ref duals[0][0], ref nzinput, lp.epsmachine, 1.0, ref duals[0][0], ref nzduals[0][0], lp_matrix.MAT_ROUNDDEFAULT | lp_matrix.MAT_ROUNDRC);
+            //FIX_133d8fd1-d4bf-4e73-ac14-1bb037ba574f 29/11/18
+            memvector = coltarget.ToString();
+            lp_utils.mempool_releaseVector(lp.workarrays, ref memvector, 0);
 
             /* Compute sum or maximum infeasibility as specified */
             for (i = 1; i <= Convert.ToInt32(nzduals[0]); i++)
@@ -5168,7 +5187,7 @@ internal static class StringFunctions
                       lp.is_lower[i] = is_biton(lp.bb_basis.is_lower, i);
                     }
                 #endif*/
-                objLpCls.set_action(ref lp.spx_action, ACTION_REBASE | ACTION_REINVERT);
+                LpCls.set_action(ref lp.spx_action, ACTION_REBASE | ACTION_REINVERT);
             }
             return (ok);
         }
@@ -5176,6 +5195,673 @@ internal static class StringFunctions
         internal new static bool is_BasisReady(lprec lp)
         {
             return ((bool)(lp.var_basic[0] != lp_types.AUTOMATIC));
+        }
+
+        private bool set_obj_fnex(lprec lp, int count, double[] row, int[] colno)
+        {
+            bool chsgn = is_maxim(lp);
+            int i;
+            int ix;
+            double value;
+
+            if (row == null)
+                return false;
+
+            else if (colno == null)
+            {
+                if (count <= 0)
+                    count = lp.columns;
+                for (i = 1; i <= count; i++)
+                {
+                    value = row[i];
+#if DoMatrixRounding
+	  value = roundToPrecision(value, lp.matA.epsvalue);
+#endif
+                    lp.orig_obj[i] = lp_types.my_chsign(chsgn, lp_scale.scaled_mat(lp, value, 0, i));
+                }
+            }
+            else
+            {
+                /*NOT REQUIRED
+                MEMCLEAR(lp.orig_obj, lp.columns + 1);
+                */
+                for (i = 0; i < count; i++)
+                {
+                    ix = colno[i];
+                    value = row[i];
+#if DoMatrixRounding
+	  value = roundToPrecision(value, lp.matA.epsvalue);
+#endif
+                    lp.orig_obj[ix] = lp_types.my_chsign(chsgn, lp_scale.scaled_mat(lp, value, 0, ix));
+                }
+            }
+
+            return true;
+        }
+
+        internal new bool set_binary(lprec lp, int colnr, bool must_be_bin)
+        {
+            bool status = false;
+
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "set_binary: Column {0} out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return (status);
+            }
+
+            status = set_int(lp, colnr, must_be_bin);
+            if (status && must_be_bin)
+            {
+                status = set_bounds(lp, colnr, 0, 1);
+            }
+            return (status);
+        }
+
+        internal new void set_verbose(lprec lp, int verbose)
+        {
+            lp.verbose = verbose;
+        }
+
+        internal new int solve(lprec lp)
+        {
+#if FPUexception
+  catchFPU(_EM_INVALID | _EM_ZERODIVIDE | _EM_OVERFLOW | _EM_UNDERFLOW);
+#endif
+            if (has_BFP(lp))
+            {
+                lp.solvecount++;
+                if (is_add_rowmode(lp))
+                {
+                    set_add_rowmode(lp, false);
+                }
+                return (lp_simplex.lin_solve(lp));
+            }
+            else
+            {
+                return (NOBFP);
+            }
+        }
+
+        /* SUPPORT FUNCTION FOR BASIS FACTORIZATION PACKAGES */
+        internal new bool has_BFP(lprec lp)
+        {
+            //C++ TO C# CONVERTER TODO TASK: Statements that are interrupted by preprocessor statements are not converted by C++ to C# Converter:
+            return (is_nativeBFP(lp)
+       //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if LoadInverseLib == TRUE
+//C++ TO C# CONVERTER TODO TASK: Statements that are interrupted by preprocessor statements are not converted by C++ to C# Converter:
+	   || (bool)(lp.hBFP != null)
+#endif
+       );
+        }
+
+        internal new bool is_add_rowmode(lprec lp)
+        {
+            return (lp.matA.is_roworder);
+        }
+
+        internal new static void unset_OF_p1extra(lprec lp)
+        {
+            lp.P1extraVal = 0;
+            /*NOT REQUIRED
+            FREE(lp->obj);
+            */
+        }
+
+        /* Solution-related functions */
+        internal new static bool bb_better(lprec lp, int target, int mode)
+        /* Must handle four modes (logic assumes Min!):
+              -----|--.--|----->
+           1  ++++++-----------  LHS exclusive test point is better
+           2  +++++++++--------  LHS inclusive
+           3  ++++++-----++++++  LHS+RHS exclusive
+           4  --------+++++++++  RHS inclusive
+           5  -----------++++++  RHS exclusive
+        */
+        {
+            double epsvalue;
+            double offset = lprec.epsprimal;
+            double refvalue = lp.infinite;
+            double testvalue = lp.solution[0];
+            bool ismax = is_maxim(lp);
+            bool relgap = is_action(mode, OF_TEST_RELGAP);
+            bool fcast = is_action(target, OF_PROJECTED);
+            bool delta = is_action(target, OF_DELTA);
+            lp_report objlp_report = new lp_report();
+            string msg = "";
+
+            if (relgap)
+            {
+                epsvalue = lp.mip_relgap;
+                clear_action(ref mode, OF_TEST_RELGAP);
+            }
+            else
+            {
+                epsvalue = lp.mip_absgap;
+            }
+
+            if (delta)
+            {
+                clear_action(ref target, OF_DELTA);
+            }
+            if (fcast)
+            {
+                clear_action(ref target, OF_PROJECTED);
+            }
+#if Paranoia
+  if ((mode < OF_TEST_BT) || (mode > OF_TEST_WT))
+  {
+	report(lp, SEVERE, "bb_better: Passed invalid mode '%d'\n", mode);
+  }
+#endif
+
+            switch (target)
+            {
+                case OF_RELAXED:
+                    refvalue = lp.real_solution;
+                    break;
+                case OF_INCUMBENT:
+                    refvalue = (lp.best_solution[0] != null) ? Convert.ToDouble(lp.best_solution[0]) : 0;
+                    break;
+                case OF_WORKING:
+                    refvalue = lp_types.my_chsign(!ismax, lp.bb_workOF);
+                    if (fcast)
+                    {
+                        testvalue = lp_types.my_chsign(!ismax, lp.longsteps.obj_last) - epsvalue;
+                    }
+                    else
+                    {
+                        testvalue = lp_types.my_chsign(!ismax, lp.rhs[0]);
+                    }
+                    break;
+                case OF_USERBREAK:
+                    refvalue = lp.bb_breakOF;
+                    break;
+                case OF_HEURISTIC:
+                    refvalue = lp.bb_heuristicOF;
+                    break;
+                case OF_DUALLIMIT:
+                    refvalue = lp.bb_limitOF;
+                    break;
+                default:
+                    msg = "bb_better: Passed invalid test target '{0}'\n";
+                    objlp_report.report(lp, SEVERE, ref msg, target);
+                    return false;
+            }
+
+            /* Adjust the test value for the desired acceptability window */
+            if (delta)
+            {
+                commonlib.doubleSETMAX(epsvalue, lp.bb_deltaOF - epsvalue);
+            }
+            else
+            {
+                epsvalue = lp_types.my_chsign(target >= OF_USERBREAK, epsvalue); // *** This seems Ok, but should be verified
+            }
+            testvalue += lp_types.my_chsign(ismax, epsvalue);
+
+            /* Compute the raw test value */
+            if (relgap)
+            {
+                testvalue = lp_types.my_reldiff(testvalue, refvalue);
+            }
+            else
+            {
+                testvalue -= refvalue;
+            }
+
+            /* Make test value adjustment based on the selected option */
+            if (mode == OF_TEST_NE)
+            {
+                relgap = (bool)(System.Math.Abs(testvalue) >= offset);
+            }
+            else
+            {
+                testvalue = lp_types.my_chsign(mode > OF_TEST_NE, testvalue);
+                testvalue = lp_types.my_chsign(ismax, testvalue);
+                relgap = (bool)(testvalue < offset);
+            }
+            return (relgap);
+        }
+
+        internal new static double get_objective(lprec lp)
+        {
+            lp_report objlp_report = new lp_report();
+            if (lp.spx_status == OPTIMAL)
+            {
+                ;
+            }
+            else if (!lp.basis_valid)
+            {
+                string msg = "get_objective: Not a valid basis\n";
+                objlp_report.report(lp, CRITICAL, ref msg);
+                return (0.0);
+            }
+
+            return ((lp.best_solution[0] != null) ? Convert.ToDouble(lp.best_solution[0]) : 0);
+        }
+
+        internal bool get_variables(lprec lp, double @var)
+        {
+            lp_report objlp_report = new lp_report();
+            if (lp.spx_status == OPTIMAL)
+            {
+                ;
+            }
+            else if (!lp.basis_valid)
+            {
+                string msg = "get_variables: Not a valid basis\n";
+                objlp_report.report(lp, CRITICAL, ref msg);
+                return false;
+            }
+            /*NOT REQUIRED
+            MEMCOPY(@var, lp.best_solution + (1 + lp.rows), lp.columns);
+            */
+            return true;
+        }
+
+        internal static new void delete_lp(lprec lp)
+        {
+            if (lp == null)
+                return;
+            /*NOT REQUIRED
+            FREE(lp.rowcol_name);
+            FREE(lp.lp_name);
+            FREE(lp.ex_status);
+            
+            if (lp.names_used)
+            {
+                FREE(lp.row_name);
+                FREE(lp.col_name);
+                free_hash_table(lp.rowname_hashtab);
+                free_hash_table(lp.colname_hashtab);
+            }
+
+            mat_free(lp.matA);
+            lp.bfp_free(lp);
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if LoadInverseLib == TRUE
+  if (lp.hBFP != null)
+  {
+	set_BFP(lp, null);
+  }
+#endif
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if LoadLanguageLib == TRUE
+  if (lp.hXLI != null)
+  {
+	set_XLI(lp, null);
+  }
+#endif
+
+            unset_OF_p1extra(lp);
+            FREE(lp.orig_obj);
+            FREE(lp.orig_rhs);
+            FREE(lp.rhs);
+            FREE(lp.var_type);
+            set_var_weights(lp, null);
+            FREE(lp.bb_varbranch);
+            FREE(lp.sc_lobound);
+            FREE(lp.var_is_free);
+            FREE(lp.orig_upbo);
+            FREE(lp.orig_lowbo);
+            FREE(lp.upbo);
+            FREE(lp.lowbo);
+            FREE(lp.var_basic);
+            FREE(lp.is_basic);
+            FREE(lp.is_lower);
+            if (lp.bb_PseudoCost != null)
+            {
+                //   report(lp, SEVERE, "delete_lp: The B&B pseudo-cost array was not cleared on delete\n");
+                free_pseudocost(lp);
+            }
+            if (lp.bb_bounds != null)
+            {
+                report(lp, SEVERE, "delete_lp: The stack of B&B levels was not empty (failed at %.0f nodes)\n", (double)lp.bb_totalnodes);
+                unload_BB(lp);
+            }
+            if (lp.bb_basis != null)
+            {
+                   //report(lp, SEVERE, "delete_lp: The stack of saved bases was not empty on delete\n"); 
+                unload_basis(lp, 0);
+            }
+
+            FREE(lp.rejectpivot);
+            partial_freeBlocks((lp.rowblocks));
+            partial_freeBlocks((lp.colblocks));
+            multi_free((lp.multivars));
+            multi_free((lp.longsteps));
+
+            FREE(lp.solution);
+            FREE(lp.best_solution);
+            FREE(lp.full_solution);
+
+            presolve_freeUndo(lp);
+            mempool_free((lp.workarrays));
+
+            freePricer(lp);
+
+            FREE(lp.drow);
+            FREE(lp.nzdrow);
+
+            FREE(lp.duals);
+            FREE(lp.full_duals);
+            FREE(lp.dualsfrom);
+            FREE(lp.dualstill);
+            FREE(lp.objfromvalue);
+            FREE(lp.objfrom);
+            FREE(lp.objtill);
+            FREE(lp.row_type);
+
+            if (lp.sos_vars > 0)
+            {
+                FREE(lp.sos_priority);
+            }
+            free_SOSgroup((lp.SOS));
+            free_SOSgroup((lp.GUB));
+            freecuts_BB(lp);
+
+            if (lp.scaling_used)
+            {
+                FREE(lp.scalars);
+            }
+            if (lp.matL != null)
+            {
+                FREE(lp.lag_rhs);
+                FREE(lp.lambda);
+                FREE(lp.lag_con_type);
+                mat_free(lp.matL);
+            }
+            if (lp.streamowned)
+            {
+                set_outputstream(lp, null);
+            }
+
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if libBLAS > 0
+  if (!is_nativeBLAS())
+  {
+	unload_BLAS();
+  }
+#endif
+
+            FREE(lp);
+
+#if FORTIFY
+	// Fortify_LeaveScope(); 
+# endif
+*/
+        }
+
+        internal new static bool isPrimalFeasible(lprec lp, double tol, int[] infeasibles, ref double feasibilitygap)
+        {
+            int i;
+            bool feasible = true;
+
+            /* This is a short-hand call to rowdual() to check for primal infeasibility */
+
+#if false
+// /* Traditional indexing style */
+//  for(i = 1; i <= lp->rows; i++) {
+//    feasible = isBasisVarFeasible(lp, tol, i);
+#else
+            /* Fast array pointer style */
+            double rhsptr = new double();
+            LpCls objLpCls = new LpCls();
+
+            int idxptr;
+
+            if (infeasibles != null)
+            {
+                infeasibles[0] = 0;
+            }
+            for (i = 1, rhsptr = lp.rhs[0] + 1, idxptr = lp.var_basic[0] + 1; (i <= lp.rows); i++, rhsptr++, idxptr++)
+            {
+                feasible = true;
+                /*    if(((*rhsptr) < lp->lowbo[*idxptr]-tol) || ((*rhsptr) > lp->upbo[*idxptr]+tol)) */
+                if (((rhsptr) < -tol) || ((rhsptr) > lp.upbo[idxptr] + tol))
+                {
+                    feasible = false;
+                }
+#endif
+                if (!feasible)
+                {
+                    if (infeasibles == null)
+                    {
+                        break;
+                    }
+                    infeasibles[0]++;
+                    infeasibles[infeasibles[0]] = i;
+                }
+            }
+
+            /* Compute feasibility gap (could actually do this calculation above) */
+            if (feasibilitygap != null)
+            {
+                if (feasible)
+                {
+                    feasibilitygap = 0.0;
+                }
+                else
+                {
+                    feasibilitygap = objLpCls.feasibilityOffset(lp, 0);
+                }
+            }
+
+            return (feasible);
+        }
+
+        internal static double feasibilityOffset(lprec lp, bool isdual)
+        {
+            int i;
+            int j;
+            double f = new double();
+            double Extra = new double();
+
+            Extra = 0;
+            if (isdual)
+            {
+                /* This section computes a OF offset to ensure that the dual phase 1 is
+                   feasible.  It is used to compute a primal feasible base that can be
+                   passed to the primal simplex in phase 2. */
+#if false
+//
+// /* This is the legacy (v3.2-) P1extraVal logic that sets Extra to be the
+//    smallest negative reduced cost. Note that the reduced costs are the
+//    values of the dual slacks, which are [0..Inf> for feasibility.
+//    If we have negative reduced costs for bounded non-basic variables, we
+//    can simply switch the bound to obtain feasibility and possibly avoid
+//    having to set Extra. */
+//    if(!isDualFeasible(lp, lp->epsprimal, NULL, NULL, &f)
+//      Extra = f;
+//
+#else
+                /* Find the most negative of the objective coefficients. We will subtract this
+                   value from every element of the objective row, making it non-negative and
+                   the problem therefore dual feasible. */
+                for (i = 1; i <= lp.columns; i++)
+                {
+                    f = lp.orig_obj[i];
+                    if (f < Extra)
+                    {
+                        //ORIGINAL LINE: Extra = f;
+                        Extra = (f);
+                    }
+                }
+#endif
+            }
+
+            else
+            {
+                /* Set Extra to be the index of the most negative of the net RHS coefficients;
+                   this approach can be used in the primal phase 1 followed by the dual phase 2
+                   and when there are no ranged constraints.  When there are ranged constraints,
+                   additional artificial variables must be introduced. */
+                Extra = 0;
+                j = 0;
+                Extra = lp.infinite;
+                for (i = 1; i <= lp.rows; i++)
+                {
+                    f = lp.rhs[i];
+                    if (f < Extra)
+                    {
+                        //ORIGINAL LINE: Extra = f;
+                        Extra = (f);
+                        j = i;
+                    }
+                }
+                Extra = j;
+            }
+
+            return (Extra);
+
+        }
+
+        internal static bool isDualFeasible(lprec lp, double tol, ref int boundflipcount, int[] infeasibles, double feasibilitygap)
+        {
+            int i;
+            int varnr;
+            int n = 0;
+            int m = 0;
+            int target = SCAN_ALLVARS + USE_NONBASICVARS;
+            double f = 0;
+            bool feasible;
+            bool islower;
+
+            LpCls objLpCls = new LpCls();
+
+            /* The reduced costs are the values of the dual slacks, which
+               are [0..Inf> for feasibility.  If we have negative reduced costs
+               for bounded non-basic variables, we can simply switch the bound
+               of bounded variables to obtain dual feasibility and possibly avoid
+               having to use dual simplex phase 1. */
+            if ((infeasibles != null) || (boundflipcount != null))
+            {
+                //int[][] nzdcol_new and double[][] dcol_new are taken new for dual matrix, need to check at runtime.
+                int[][] nzdcol_new = null;
+                double[][] dcol_new = null;
+                int[] nzdcol = null;
+                double d = new double();
+                double[] dcol = null;
+
+                //ORIGINAL LINE: f = compute_dualslacks(lp, target, dcol, nzdcol, false);
+                f = compute_dualslacks(lp, target, dcol_new, nzdcol_new, false);
+                if (nzdcol != null)
+                {
+                    for (i = 1; i <= nzdcol[0]; i++)
+                    {
+                        varnr = nzdcol[i];
+                        islower = lp.is_lower[varnr];
+                        d = lp_types.my_chsign(!islower, dcol[varnr]);
+
+                        /* Don't bother with uninteresting non-basic variables */
+                        if ((d > -tol) || lp_types.my_unbounded(lp, varnr) || objLpCls.is_fixedvar(lp, varnr)) // Equality slack or a fixed variable ("type 3")
+                        {
+                            continue;
+                        }
+
+                        /* Check if we have non-flippable bounds, i.e. an unbounded variable
+                           (types 2+4), or bounded variables (type 3), and if the counter is NULL. */
+                        if ((boundflipcount == null) || ((lp.bb_level <= 1) && (lp_types.my_rangebo(lp, varnr) > System.Math.Abs(lp.negrange))) || (islower && lp_types.my_infinite(lp, lp.upbo[varnr])) || (!islower && lp_types.my_infinite(lp, lp_types.my_lowbo(lp, varnr))))
+                        {
+                            m++;
+                            if (infeasibles != null)
+                            {
+                                infeasibles[m] = varnr;
+                            }
+                        }
+                        /* Only do bound flips if the user-provided counter is non-NULL */
+                        else
+                        {
+                            lp.is_lower[varnr] = !islower;
+                            n++;
+                        }
+                    }
+                }
+                if (infeasibles != null)
+                {
+                    infeasibles[0] = m;
+                }
+
+                //NOT REQUIRED
+                //FREE(dcol);
+                //FREE(nzdcol);
+                if (n > 0)
+                {
+                    LpCls.set_action(ref lp.spx_action, ACTION_RECOMPUTE);
+                    if (m == 0)
+                    {
+                        f = 0;
+                    }
+                }
+            }
+            else
+            {
+                f = compute_dualslacks(lp, target, null, null, false);
+            }
+            /*    f = feasibilityOffset(lp, TRUE); */
+            /* Safe legacy mode */
+
+            /* Do an extra scan to see if there are bounded variables in the OF not present in any constraint;
+               Most typically, presolve fixes such cases, so this is rarely encountered. */
+
+            varnr = lp.rows + 1;
+            for (i = 1; i <= lp.columns; i++, varnr++)
+            {
+                if (lp_matrix.mat_collength(lp.matA, i) == 0)
+                {
+                    islower = lp.is_lower[varnr];
+                    if ((lp_types.my_chsign(islower, lp.orig_obj[i]) > 0) && !lp_SOS.SOS_is_member(lp.SOS, 0, i))
+                    {
+                        lp.is_lower[varnr] = !islower;
+                        if ((islower && lp_types.my_infinite(lp, lp.upbo[varnr])) || (!islower && lp_types.my_infinite(lp, lp_types.my_lowbo(lp, varnr))))
+                        {
+                            lp.spx_status = UNBOUNDED;
+                            break;
+                        }
+                        /* lp->is_lower[varnr] = !islower; */
+                        n++;
+                    }
+                }
+            }
+
+            /* Return status */
+
+            if (boundflipcount != null)
+            {
+                boundflipcount = n;
+            }
+            if (feasibilitygap != null)
+            {
+                lp_types.my_roundzero(f, tol);
+                feasibilitygap = f;
+            }
+            feasible = (bool)((f == 0) && (m == 0));
+
+            return (feasible);
+        }
+        internal new bool is_fixedvar(lprec lp, int varnr)
+        {
+            if (lp.bb_bounds == null)
+            {
+                if (varnr <= lp.rows)
+                {
+                    return ((bool)(lp.orig_upbo[varnr] < lp.epsmachine));
+                }
+                else
+                {
+                    return ((bool)(lp.orig_upbo[varnr] - lp.orig_lowbo[varnr] < lp.epsmachine));
+                }
+            }
+            else if ((varnr <= lp.rows) || (lp.bb_bounds.UBzerobased == true))
+            {
+                return ((bool)(lp.upbo[varnr] < lprec.epsvalue));
+            }
+            else
+            {
+                return ((bool)(lp.upbo[varnr] - lp.lowbo[varnr] < lprec.epsvalue));
+            }
         }
     }
 }

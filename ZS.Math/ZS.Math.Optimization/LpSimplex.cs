@@ -162,7 +162,7 @@ namespace ZS.Math.Optimization
             {
                 if (monitor.Icount == 1)
                 {
-                    monitor.prevobj = lp.rhs;
+                    monitor.prevobj = Convert.ToDouble(lp.rhs);
                     monitor.previnfeas = deltaobj;
                 }
                 monitor.Icount++;
@@ -170,7 +170,7 @@ namespace ZS.Math.Optimization
             }
 
             /* Define progress as primal objective less sum of (primal/dual) infeasibilities */
-            monitor.thisobj = lp.rhs;
+            monitor.thisobj = Convert.ToDouble(lp.rhs);
             monitor.thisinfeas = deltaobj;
 
             ///ORIGINAL CODE: if (lp.spx_trace && (lastnr > 0))
@@ -327,8 +327,9 @@ namespace ZS.Math.Optimization
                     lp.report(lp, msglevel, ref msg, monitor.spxfunc, (double)lp.get_total_iter(lp), lp.get_str_piv_rule(lp.get_piv_rule(lp)));
                     if ((altrule == PRICER_DEVEX) || (altrule == lp_lib.PRICER_STEEPESTEDGE))
                     {
-                        //NOTED ISSUE:
-                        LpPricePSE.restartPricer(lp, Convert.ToBoolean(DefineConstants.AUTOMATIC));
+                        //FIX_36b0c67a-e607-4230-95dd-a228e7622a87 29/11/18
+                        //lp_types.AUTOMATIC is byte and copmared with boolean type need to check at runtime.
+                        LpPricePSE.restartPricer(lp, Convert.ToBoolean(lp_types.AUTOMATIC));
                     }
                 }
 
@@ -352,8 +353,9 @@ namespace ZS.Math.Optimization
                     altrule = monitor.oldpivrule;
                     if ((altrule == PRICER_DEVEX) || (altrule == lp_lib.PRICER_STEEPESTEDGE))
                     {
-                        //NOTED ISSUE:
-                        LpPricePSE.restartPricer(lp, Convert.ToBoolean(DefineConstants.AUTOMATIC));
+                        //FIX_36b0c67a-e607-4230-95dd-a228e7622a87 29/11/18
+                        //lp_types.AUTOMATIC is byte and copmared with boolean type need to check at runtime.
+                        LpPricePSE.restartPricer(lp, Convert.ToBoolean(lp_types.AUTOMATIC));
                     }
                     msg = "...returned to original pivot selection rule at iter %.0f.\n";
                     lp.report(lp, msglevel, ref msg, (double)LpCls.get_total_iter(lp));
@@ -478,7 +480,7 @@ namespace ZS.Math.Optimization
                 add = (bool)(bvar <= lp.rows);
                 if (add)
                 {
-                    rhscoef = lp.rhs;
+                    rhscoef = Convert.ToDouble(lp.rhs);
 
                     /* Create temporary sparse array storage */
                     if (nzarray == null)
@@ -531,7 +533,7 @@ namespace ZS.Math.Optimization
                 {
                     msg = "add_artificial: Could not find replacement basis variable for row %d\n";
                     lp.report(lp, lp_lib.CRITICAL, ref msg, forrownr);
-                    lp.basis_valid = 0;
+                    lp.basis_valid = false;
                 }
 
             }
@@ -551,7 +553,8 @@ namespace ZS.Math.Optimization
                 msg = "get_artificialRow: Invalid column index %d\n";
                 lp.report(lp, lp_lib.SEVERE, ref msg, colnr);
             }
-            if (mat.col_end[colnr] - mat.col_end[colnr - 1] != 1)
+            //Added first array 0 as first row, need to check at runtime
+            if (mat.col_end[0][colnr] - mat.col_end[0][colnr - 1] != 1)
             {
                 msg = "get_artificialRow: Invalid column non-zero count\n";
                 lp.report(lp, lp_lib.SEVERE, ref msg);
@@ -559,7 +562,8 @@ namespace ZS.Math.Optimization
             ///#endif
 
             /* Return the row index of the singleton */
-            colnr = mat.col_end[colnr - 1];
+            //First row added as [0], need to check at runtime
+            colnr = mat.col_end[0][colnr - 1];
             colnr = lp_matrix.COL_MAT_ROWNR(colnr);
             return (colnr);
         }
@@ -582,7 +586,7 @@ namespace ZS.Math.Optimization
             for (i = 1; i <= lp.rows; i++)
             {
                 k = lp.var_basic[i];
-                if ((k > lp.sum - P1extraDim) && (lp.rhs == 0))
+                if ((k > lp.sum - P1extraDim) && (lp.rhs[i] == 0))
                 {
                     rownr = get_artificialRow(lp, k - lp.rows);
 
@@ -622,7 +626,7 @@ namespace ZS.Math.Optimization
             return (i);
         }
 
-        internal static void eliminate_artificials(lprec lp, ref double? prow)
+        internal static void eliminate_artificials(lprec lp, ref double?[] prow)
         {
             int i;
             int j;
@@ -630,7 +634,7 @@ namespace ZS.Math.Optimization
             int rownr;
             int P1extraDim = System.Math.Abs(lp.P1extraDim);
             LpCls objLpCls = new LpCls();
-            
+
 
             for (i = 1; (i <= lp.rows) && (P1extraDim > 0); i++)
             {
@@ -698,8 +702,8 @@ namespace ZS.Math.Optimization
             lp.P1extraDim = 0;
             if (n > 0)
             {
-                objLpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
-                lp.basis_valid = 1;
+                LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
+                lp.basis_valid = true;
             }
         }
 
@@ -728,8 +732,8 @@ namespace ZS.Math.Optimization
             double epsvalue = new double();
             double xviolated = 0.0;
             double cviolated = 0.0;
-            double? prow = null;
-            double pcol = 0;
+            double?[] prow = null;
+            double?[] pcol = null;
             double drow = lp.drow;
             string msg;
 
@@ -737,7 +741,7 @@ namespace ZS.Math.Optimization
 
             //ORIGINAL LINE: int *workINT = null, *nzdrow = lp->nzdrow;
             int? workINT = null;
-            
+
             //ORIGINAL LINE: int *nzdrow = lp->nzdrow;
             int[] nzdrow = lp.nzdrow;
 
@@ -745,7 +749,7 @@ namespace ZS.Math.Optimization
             {
                 msg = "Entered primal simplex algorithm with feasibility %s\n";
                 //ORIGINAL CODE: lp.report(lp, lp_lib.DETAILED,ref msg, commonlib.my_boolstr(primalfeasible));
-                lp.report(lp, lp_lib.DETAILED,ref msg, commonlib.my_boolstr(primalfeasible));
+                lp.report(lp, lp_lib.DETAILED, ref msg, commonlib.my_boolstr(primalfeasible));
             }
             /* Add sufficent number of artificial variables to make the problem feasible
             through the first phase; delete when primal feasibility has been achieved */
@@ -753,7 +757,7 @@ namespace ZS.Math.Optimization
             if (!primalfeasible)
             {
                 lp.simplex_mode = lp_lib.SIMPLEX_Phase1_PRIMAL;
-                
+
                 ///#if Paranoia
                 if (!LpCls.verify_basis(lp))
                 {
@@ -856,8 +860,8 @@ namespace ZS.Math.Optimization
                     break;
                 }
 
-            /* Find best column to enter the basis */
-            RetryCol:
+                /* Find best column to enter the basis */
+                RetryCol:
                 ///#if false
                 //    if(verify_solution(lp, FALSE, "spx_loop") > 0)
                 //      i = 1; // This is just a debug trap 
@@ -914,7 +918,7 @@ namespace ZS.Math.Optimization
 
                     /* Do special anti-degeneracy column selection, if specified */
                     int parameter = 0;
-                    if (objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_COLUMNCHECK) && ! objLpCls.check_degeneracy(lp, ref pcol, ref parameter))
+                    if (objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_COLUMNCHECK) && !LpCls.check_degeneracy(lp, ref pcol, ref parameter))
                     {
                         if (lp.rejectpivot[0] < lp_lib.DEF_MAXPIVOTRETRY / 3)
                         {
@@ -945,7 +949,7 @@ namespace ZS.Math.Optimization
                         if (lp.bb_trace || (lp.bb_totalnodes == 0))
                         {
                             msg = "primloop: Assuming convergence with reduced accuracy %g.\n";
-                            lp.report(lp, lp_lib.DETAILED,ref msg , commonlib.MAX(xviolated, cviolated));
+                            lp.report(lp, lp_lib.DETAILED, ref msg, commonlib.MAX(xviolated, cviolated));
                         }
                         rownr = 0;
                         colnr = 0;
@@ -967,9 +971,10 @@ namespace ZS.Math.Optimization
                     {
                         pendingunbounded = false;
                         lp.rejectpivot[0] = 0;
-                        objLpCls.set_action(ref lp.spx_action, lp_lib.ACTION_ITERATE);
+                        LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_ITERATE);
                         if (!lp.obj_in_basis) // We must manually copy the reduced cost for RHS update
                         {
+                            //NOTED ISSUE:
                             pcol = lp_types.my_chsign(!lp.is_lower[colnr], drow);
                         }
                         //NOTED ISSUE:
@@ -979,7 +984,7 @@ namespace ZS.Math.Optimization
                     else
                     {
                         /* First make sure that we are not suffering from precision loss */
-                        
+
                         ///#if primal_UseRejectionList
                         if (lp.rejectpivot[0] < lp_lib.DEF_MAXPIVOTRETRY)
                         {
@@ -999,7 +1004,7 @@ namespace ZS.Math.Optimization
                             {
                                 bfpfinal = true;
                                 pendingunbounded = true;
-                                objLpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
+                                LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
                             }
 
                             /* Conclude that the model is unbounded */
@@ -1029,7 +1034,7 @@ namespace ZS.Math.Optimization
                             {
                                 msg = "Found feasibility by primal simplex after  %10.0f iter.\n";
                                 lp.report(lp, lp_lib.NORMAL, ref msg, (double)LpCls.get_total_iter(lp));
-                                if ((lp.usermessage != null) && (lp.msgmask!=0 & lp_lib.MSG_LPFEASIBLE!=0))
+                                if ((lp.usermessage != null) && (lp.msgmask != 0 & lp_lib.MSG_LPFEASIBLE != 0))
                                 {
                                     lp.usermessage(lp, lp.msghandle, lp_lib.MSG_LPFEASIBLE);
                                 }
@@ -1097,7 +1102,7 @@ namespace ZS.Math.Optimization
                                 ///#endif
                             }
                             /* We must refactorize since the OF changes from phase 1 to phase 2 */
-                            objLpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
+                            LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
                             bfpfinal = true;
                         }
 
@@ -1122,9 +1127,9 @@ namespace ZS.Math.Optimization
 
                     /* Check if we are still primal feasible; the default assumes that this check
                        is not necessary after the relaxed problem has been solved satisfactorily. */
-                    if ((lp.bb_level <= 1) || (lp.improve!=0 & lp_lib.IMPROVE_BBSIMPLEX != 0))
+                    if ((lp.bb_level <= 1) || (lp.improve != 0 & lp_lib.IMPROVE_BBSIMPLEX != 0))
                     { // NODE_RCOSTFIXING fix
-                        objLpCls.set_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
+                        LpCls.set_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
                         double Parameter = 0;
                         i = LpPrice.rowdual(lp, lp.rhs, false, false, ref Parameter);
                         LpCls.clear_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
@@ -1154,7 +1159,7 @@ namespace ZS.Math.Optimization
                         LpCls.recompute_solution(lp, lp_lib.INITSOL_USEZERO);
                         minitcount = 0;
                     }
-                    double Parameter1 = 0;
+                    double?[] Parameter1 = null;
                     int Parameter2 = 0;
                     minit = LpCls.performiteration(lp, rownr, colnr, theta, primal, (bool)((stallaccept != Convert.ToBoolean(DefineConstants.AUTOMATIC))), ref Parameter1, ref Parameter2, ref pcol, ref Parameter2, ref Parameter2);
                     if (minit != lp_lib.ITERATE_MAJORMAJOR)
@@ -1237,7 +1242,7 @@ namespace ZS.Math.Optimization
                 }
                 i = Convert.ToInt32(lp_matrix.invert(lp, lp_lib.INITSOL_USEZERO, true));
             }
-            
+
             ///#if Paranoia
             if (!LpCls.verify_basis(lp))
             {
@@ -1248,16 +1253,16 @@ namespace ZS.Math.Optimization
 
             /* Switch to dual phase 1 simplex for MIP models during
                B&B phases, since this is typically far more efficient */
-            
+
             ///#if ForceDualSimplexInBB
             if ((lp.bb_totalnodes == 0) && (LpCls.MIP_count(lp) > 0) && ((lp.simplex_strategy & lp_lib.SIMPLEX_Phase1_DUAL) == 0))
             {
                 lp.simplex_strategy &= ~lp_lib.SIMPLEX_Phase1_PRIMAL;
                 lp.simplex_strategy += lp_lib.SIMPLEX_Phase1_DUAL;
             }
-        ///#endif
+            ///#endif
 
-        Finish:
+            Finish:
             stallMonitor_finish(lp);
             //NOT REQUIRED
             //multi_free((lp.multivars));
@@ -1270,10 +1275,687 @@ namespace ZS.Math.Optimization
             return (Convert.ToInt32(ok));
         }
 
-        public static int dualloop(lprec lp, byte dualfeasible, int[] dualinfeasibles, double dualoffset)
+        public static int dualloop(lprec lp, bool dualfeasible, int[] dualinfeasibles, double dualoffset)
         {
-            throw new NotImplementedException();
+            bool primal = false;
+            bool inP1extra;
+            bool dualphase1 = false;
+            bool changedphase = true;
+            bool pricerCanChange;
+            bool minit;
+            bool stallaccept;
+            bool longsteps;
+            bool forceoutEQ = false;
+            bool bfpfinal = false;
+            int i, colnr = 0, rownr = 0, lastnr = 0, candidatecount = 0, minitcount = 0;
+#if FixInaccurateDualMinit
+		 minitcolnr = 0,
+#endif
+            bool ok = true;
+            //ORIGINAL LINE: int *boundswaps = null;
+            int boundswaps = 0;
+            double theta = 0.0;
+            double epsvalue;
+            double xviolated = 0;
+            double cviolated = 0;
+            //ORIGINAL LINE: double *prow = null;
+            double prow = 0;
+            //ORIGINAL LINE: double *pcol = null;
+            double?[] pcol = null;
+            //ORIGINAL LINE: double *drow = lp->drow;
+            double[] drow = lp.drow;
+            //ORIGINAL LINE: int *nzprow = null, *workINT = null, *nzdrow = lp->nzdrow;
+            int[] nzprow = null;
+            //ORIGINAL LINE: int *workINT = null;
+            int[] workINT = null;
+            //ORIGINAL LINE: int *nzdrow = lp->nzdrow;
+            int nzdrow = Convert.ToInt32(lp.nzdrow);
+            string msg;
+            LpCls objLpCls = new LpCls();
+
+            if (lp.spx_trace)
+            {
+                msg = "Entered dual simplex algorithm with feasibility %s.\n";
+                lp.report(lp, lp_lib.DETAILED, ref msg, commonlib.my_boolstr(dualfeasible));
+            }
+            /* Allocate work arrays */
+            //NOT REQUIRED
+            // ok = allocREAL(lp, prow, lp.sum + 1, 1) && allocINT(lp, nzprow, lp.sum + 1, 0) && allocREAL(lp, pcol, lp.rows + 1, 1);
+            if (!ok)
+            {
+                goto Finish;
+            }
+
+            /* Set non-zero P1extraVal value to force dual feasibility when the dual
+               simplex is used as a phase 1 algorithm for the primal simplex.
+               The value will be reset when primal feasibility has been achieved, or
+               a dual non-feasibility has been encountered (no candidate for a first
+               leaving variable) */
+            inP1extra = (bool)(dualoffset != 0);
+            if (inP1extra)
+            {
+                LpCls.set_OF_p1extra(lp, dualoffset);
+                LpPricePSE.simplexPricer(lp, (bool)!primal);
+                lp_matrix.invert(lp, lp_lib.INITSOL_USEZERO, true);
+            }
+            else
+            {
+                LpPricePSE.restartPricer(lp, (bool)!primal);
+            }
+
+            /* Prepare dual long-step structures */
+#if false
+//  longsteps = TRUE;
+#elif false
+//  longsteps = (bool) ((MIP_count(lp) > 0) && (lp->bb_level > 1));
+#elif false
+//  longsteps = (bool) ((MIP_count(lp) > 0) && (lp->solutioncount >= 1));
+#else
+            longsteps = false;
+#endif
+#if UseLongStepDualPhase1
+  longsteps = !dualfeasible && (bool)(dualinfeasibles != null);
+#endif
+
+            if (longsteps)
+            {
+                lp.longsteps = LpPrice.multi_create(lp, true);
+                ok = (lp.longsteps != null) && LpPrice.multi_resize(lp.longsteps, Convert.ToInt32(commonlib.MIN(lp.boundedvars + 2, 11)), 1, true, true);
+                if (!ok)
+                {
+                    goto Finish;
+                }
+#if UseLongStepPruning
+	lp.longsteps.objcheck = 1;
+#endif
+                boundswaps = Convert.ToInt32(LpPrice.multi_indexSet(lp.longsteps, false));
+            }
+
+            /* Do regular dual simplex variable initializations */
+            lp.spx_status = lp_lib.RUNNING;
+            minit = lp_lib.ITERATE_MAJORMAJOR;
+            epsvalue = lp.epspivot;
+
+            msg = "dualloop";
+            ok = stallMonitor_create(lp, true, ref msg);
+            if (!ok)
+            {
+                goto Finish;
+            }
+
+            lp.rejectpivot[0] = 0;
+            if (dualfeasible)
+            {
+                lp.simplex_mode = lp_lib.SIMPLEX_Phase2_DUAL;
+            }
+            else
+            {
+                lp.simplex_mode = lp_lib.SIMPLEX_Phase1_DUAL;
+            }
+
+            /* Check if we have equality slacks in the basis and we should try to
+               drive them out in order to reduce chance of degeneracy in Phase 1.
+               forceoutEQ = FALSE :    Only eliminate assured "good" violated
+                                       equality constraint slacks
+                            AUTOMATIC: Seek more elimination of equality constraint
+                                       slacks (but not as aggressive as the rule
+                                       used in lp_solve v4.0 and earlier)
+                            TRUE:      Force remaining equality slacks out of the
+                                       basis */
+            if (dualphase1 || inP1extra || ((lp.fixedvars > 0) && objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_FIXEDVARS)))
+            {
+                forceoutEQ = Convert.ToBoolean(lp_types.AUTOMATIC);
+            }
+#if true
+            if (objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_DYNAMIC) && (objLpCls.bin_count(lp, 1) * 2 > lp.columns))
+            {
+                switch (forceoutEQ)
+                {
+                    case false:
+                        forceoutEQ = Convert.ToBoolean(lp_types.AUTOMATIC);
+                        break;
+                        /*     case AUTOMATIC: forceoutEQ = TRUE;
+                                             break;
+                             default:        forceoutEQ = TRUE; */
+                }
+            }
+#endif
+
+            while ((lp.spx_status == lp_lib.RUNNING) && !objLpCls.userabort(lp, -1))
+            {
+
+                /* Check if we have stalling (from numerics or degenerate cycling) */
+                pricerCanChange = !dualphase1 && !inP1extra;
+                stallaccept = stallMonitor_check(lp, rownr, colnr, lastnr, minit, pricerCanChange, ref forceoutEQ);
+                if (!stallaccept)
+                {
+                    break;
+                }
+
+                /* Store current LP index for reference at next iteration */
+                changedphase = false;
+
+                /* Compute (pure) dual phase1 offsets / reduced costs if appropriate */
+                dualphase1 &= (bool)(lp.simplex_mode == lp_lib.SIMPLEX_Phase1_DUAL);
+                if (longsteps && dualphase1 && !inP1extra)
+                {
+                    int[] Parameter = null;
+                    int Parameter1 = 0;
+                    objLpCls.obtain_column(lp, dualinfeasibles[1], ref pcol, ref Parameter, ref Parameter1);
+                    i = 2;
+                    for (i = 2; i <= dualinfeasibles[0]; i++)
+                    {
+                        lp_matrix.mat_multadd(lp.matA, pcol, dualinfeasibles[i], 1.0);
+                    }
+                    /* Solve (note that solved pcol will be used instead of lp->rhs) */
+                    lp_matrix.ftran(lp, pcol, Parameter1, lp.epsmachine);
+                }
+
+                /* Do minor iterations (non-basic variable bound flips) for as
+                   long as possible since this is a cheap way of iterating */
+#if (dual_Phase1PriceEqualities) || (dual_UseRejectionList)
+RetryRow:
+#endif
+                if (minit != Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY))
+                {
+                    i = 0;
+                    do
+                    {
+                        double d = 0;
+                        i++;
+                        rownr = LpPrice.rowdual(lp, lp_types.my_if(dualphase1, pcol, d), forceoutEQ, 1, xviolated);
+                    } while ((rownr == 0) && (i < LpPrice.partial_countBlocks(lp, (bool)!primal)) && LpPrice.partial_blockStep(lp, (bool)!primal));
+                }
+
+                /* Make sure that we do not erroneously conclude that an infeasible model is optimal */
+#if dual_UseRejectionList
+	if ((rownr == 0) && (lp.rejectpivot[0] > 0))
+	{
+	  lp.spx_status = INFEASIBLE;
+	  if ((lp.spx_trace && (lp.bb_totalnodes == 0)) || (lp.bb_trace && (lp.bb_totalnodes > 0)))
+	  {
+		report(lp, DETAILED, "The model is primal infeasible.\n");
+	  }
+	  rownr = lp.rejectpivot[1];
+	  colnr = 0;
+	  lp.rejectpivot[0] = 0;
+	  ok = 0;
+	  break;
+	}
+#endif
+
+                /* If we found a leaving variable, find a matching entering one */
+                LpCls.clear_action(ref lp.spx_action, lp_lib.ACTION_ITERATE);
+                if (rownr > 0)
+                {
+                    colnr = LpPrice.coldual(lp, rownr, ref prow, ref nzprow, ref drow, ref nzdrow, (bool)(dualphase1 && !inP1extra), (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), ref candidatecount, ref cviolated);
+                    if (colnr < 0)
+                    {
+                        minit = lp_lib.ITERATE_MAJORMAJOR;
+                        continue;
+                    }
+#if AcceptMarginalAccuracy
+	  else if (xviolated + cviolated < lp.epspivot)
+	  {
+		if (lp.bb_trace || (lp.bb_totalnodes == 0))
+		{
+		  report(lp, DETAILED, "dualloop: Assuming convergence with reduced accuracy %g.\n", MAX(xviolated, cviolated));
+		}
+		rownr = 0;
+		colnr = 0;
+	  }
+#endif
+                    /* Check if the long-dual found reason to prune the B&B tree */
+                    if (lp.spx_status == lp_lib.FATHOMED)
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    colnr = 0;
+                }
+
+                /* Process primal-infeasible row */
+                if (rownr > 0)
+                {
+
+                    if (colnr > 0)
+                    {
+#if Paranoia
+		if ((rownr > lp.rows) || (colnr > lp.sum))
+		{
+		  report(lp, SEVERE, "dualloop: Invalid row %d(%d) and column %d(%d) pair selected at iteration %.0f\n", rownr, lp.rows, colnr - lp.columns, lp.columns, (double) get_total_iter(lp));
+		  lp.spx_status = UNKNOWNERROR;
+		  break;
+		}
+#endif
+                        lp_matrix.fsolve(lp, colnr, pcol, workINT, lp.epsmachine, 1.0, true);
+
+#if FixInaccurateDualMinit
+	   /* Prevent bound flip-flops during minor iterations; used to detect
+	      infeasibility after triggering of minor iteration accuracy management */
+		if (colnr != minitcolnr)
+		{
+		  minitcolnr = 0;
+		}
+#endif
+
+                        /* Getting division by zero here; catch it and try to recover */
+                        if (pcol[rownr] == 0)
+                        {
+                            if (lp.spx_trace)
+                            {
+                                msg = "dualloop: Attempt to divide by zero (pcol[%d])\n";
+                                lp.report(lp, lp_lib.DETAILED, ref msg, rownr);
+                            }
+                            if (!LpCls.refactRecent(lp))
+                            {
+                                msg = "...trying to recover by refactorizing basis.\n";
+                                lp.report(lp, lp_lib.DETAILED, ref msg);
+                                LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
+                                bfpfinal = false;
+                            }
+                            else
+                            {
+                                if (lp.bb_totalnodes == 0)
+                                {
+                                    msg = "...cannot recover by refactorizing basis.\n";
+                                    lp.report(lp, lp_lib.DETAILED, ref msg);
+                                }
+                                lp.spx_status = lp_lib.NUMFAILURE;
+                                ok = false;
+                            }
+                        }
+                        else
+                        {
+                            LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_ITERATE);
+                            lp.rejectpivot[0] = 0;
+                            if (!lp.obj_in_basis) // We must manually copy the reduced cost for RHS update
+                            {
+                                pcol[0] = lp_types.my_chsign(!lp.is_lower[colnr], drow[colnr]);
+                            }
+                            theta = lp.bfp_prepareupdate(lp, rownr, colnr, ref pcol);
+
+                            /* Verify numeric accuracy of the basis factorization and change to
+                               the "theoretically" correct version of the theta */
+                            if ((lp.improve != 0 & lp_lib.IMPROVE_THETAGAP != 0) && (!LpCls.refactRecent(lp)) && (lp_types.my_reldiff(System.Math.Abs(theta), System.Math.Abs(prow)) > lp.epspivot * 10.0 * System.Math.Log(2.0 + 50.0 * lp.rows)))
+                            { // This is my kludge - KE
+                                LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
+                                bfpfinal = true;
+#if IncreasePivotOnReducedAccuracy
+			lp.epspivot = MIN(1.0e-4, lp.epspivot * 2.0);
+#endif
+                                msg = "dualloop: Refactorizing at iter %.0f due to loss of accuracy.\n";
+                                lp.report(lp, lp_lib.DETAILED, ref msg, (double)LpCls.get_total_iter(lp));
+                            }
+                            theta = prow;
+                            LpCls.compute_theta(lp, rownr, ref theta, !lp.is_lower[colnr], 0, primal);
+                        }
+                    }
+
+#if FixInaccurateDualMinit
+	  /* Force reinvertion and try another row if we did not find a bound-violated leaving column */
+	  else if (!refactRecent(lp) && (minit != ITERATE_MAJORMAJOR) && (colnr != minitcolnr))
+	  {
+		minitcolnr = colnr;
+		i = invert(lp, INITSOL_USEZERO, 1);
+		if ((lp.spx_status == USERABORT) || (lp.spx_status == TIMEOUT))
+		{
+		  break;
+		}
+		else if (!i)
+		{
+		  lp.spx_status = SINGULAR_BASIS;
+		  break;
+		}
+		minit = ITERATE_MAJORMAJOR;
+		continue;
+	  }
+#endif
+
+                    /* We may be infeasible, have lost dual feasibility, or simply have no valid entering
+                       variable for the selected row.  The strategy is to refactorize if we suspect numerical
+                       problems and loss of dual feasibility; this is done if it has been a while since
+                       refactorization.  If not, first try to select a different row/leaving variable to
+                       see if a valid entering variable can be found.  Otherwise, determine this model
+                       as infeasible. */
+                    else
+                    {
+
+                        /* As a first option, try to recover from any numerical trouble by refactorizing */
+                        if (!LpCls.refactRecent(lp))
+                        {
+                            LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
+                            bfpfinal = true;
+                        }
+
+#if dual_UseRejectionList
+		/* Check for pivot size issues */
+		else if (lp.rejectpivot[0] < DEF_MAXPIVOTRETRY)
+		{
+		  lp.spx_status = RUNNING;
+		  lp.rejectpivot[0]++;
+		  lp.rejectpivot[lp.rejectpivot[0]] = rownr;
+		  if (lp.bb_totalnodes == 0)
+		  {
+			report(lp, DETAILED, "...trying to find another pivot row!\n");
+		  }
+		  goto RetryRow;
+		}
+#endif
+                        /* Check if we may have lost dual feasibility if we also did phase 1 here */
+                        else if (dualphase1 && (dualoffset != 0))
+                        {
+                            lp.spx_status = lp_lib.LOSTFEAS;
+                            if ((lp.spx_trace && (lp.bb_totalnodes == 0)) || (lp.bb_trace && (lp.bb_totalnodes > 0)))
+                            {
+                                msg = "dualloop: Model lost dual feasibility.\n";
+                                lp.report(lp, lp_lib.DETAILED, ref msg);
+                            }
+                            ok = false;
+                            break;
+                        }
+                        /* Otherwise just determine that we are infeasible */
+                        else
+                        {
+                            if (lp.spx_status == lp_lib.RUNNING)
+                            {
+#if TRUE
+                                if (xviolated < lp.epspivot)
+                                {
+                                    if (lp.bb_trace || (lp.bb_totalnodes == 0))
+                                    {
+                                        msg = "The model is primal optimal, but marginally infeasible.\n";
+                                        lp.report(lp, lp_lib.NORMAL, ref msg);
+                                    }
+                                    lp.spx_status = lp_lib.OPTIMAL;
+                                    break;
+                                }
+#endif
+                                lp.spx_status = lp_lib.INFEASIBLE;
+                                if ((lp.spx_trace && (lp.bb_totalnodes == 0)) || (lp.bb_trace && (lp.bb_totalnodes > 0)))
+                                {
+                                    msg = "The model is primal infeasible.\n";
+                                    lp.report(lp, lp_lib.DETAILED, ref msg);
+                                }
+                            }
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+
+                /* Make sure that we enter the primal simplex with a high quality solution */
+                else if (inP1extra && !LpCls.refactRecent(lp) && objLpCls.is_action(lp.improve, lp_lib.IMPROVE_INVERSE))
+                {
+                    LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
+                    bfpfinal = true;
+                }
+
+                /* High quality solution with no leaving candidates available ... */
+                else
+                {
+
+                    bfpfinal = true;
+
+#if dual_RemoveBasicFixedVars
+	  /* See if we should try to eliminate basic fixed variables;
+	    can be time-consuming for some models */
+	  if (inP1extra && (colnr == 0) && (lp.fixedvars > 0) && is_anti_degen(lp, ANTIDEGEN_FIXEDVARS))
+	  {
+		report(lp, DETAILED, "dualloop: Trying to pivot out %d fixed basic variables at iter %.0f\n", lp.fixedvars, (double) get_total_iter(lp));
+		rownr = 0;
+		while (lp.fixedvars > 0)
+		{
+		  rownr = findBasicFixedvar(lp, rownr, 1);
+		  if (rownr == 0)
+		  {
+			colnr = 0;
+			break;
+		  }
+		  colnr = find_rowReplacement(lp, rownr, prow, nzprow);
+		  if (colnr > 0)
+		  {
+			theta = 0;
+			performiteration(lp, rownr, colnr, theta, 1, 0, prow, null, null, null, null);
+			lp.fixedvars--;
+		  }
+		}
+	  }
+#endif
+
+                    /* Check if we are INFEASIBLE for the case that the dual is used
+                       as phase 1 before the primal simplex phase 2 */
+                    double Parameter = 0;
+                    if (inP1extra && (colnr < 0) && !LpCls.isPrimalFeasible(lp, lprec.epsprimal, null, ref Parameter))
+                    {
+                        if (lp.bb_totalnodes == 0)
+                        {
+                            if (dualfeasible)
+                            {
+                                msg = "The model is primal infeasible and dual feasible.\n";
+                                lp.report(lp, lp_lib.DETAILED, ref msg);
+                            }
+                            else
+                            {
+                                msg = "The model is primal infeasible and dual unbounded.\n";
+                                lp.report(lp, lp_lib.DETAILED, ref msg);
+                            }
+                        }
+                        LpCls.set_OF_p1extra(lp, 0);
+                        inP1extra = false;
+                        LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
+                        lp.spx_status = lp_lib.INFEASIBLE;
+                        lp.simplex_mode = lp_lib.SIMPLEX_UNDEFINED;
+                        ok = false;
+                    }
+
+                    /* Check if we are FEASIBLE (and possibly also optimal) for the case that the
+                       dual is used as phase 1 before the primal simplex phase 2 */
+                    else if (inP1extra)
+                    {
+
+                        /* Set default action; force an update of the rhs vector, adjusted for
+                           the new P1extraVal=0 (set here so that usermessage() behaves properly) */
+                        if (lp.bb_totalnodes == 0)
+                        {
+                            msg = "Found feasibility by dual simplex after    %10.0f iter.\n";
+                            lp.report(lp, lp_lib.NORMAL, ref msg, (double)LpCls.get_total_iter(lp));
+                            if ((lp.usermessage != null) && (lp.msgmask != 0 & lp_lib.MSG_LPFEASIBLE != 0))
+                            {
+                                lp.usermessage(lp, lp.msghandle, lp_lib.MSG_LPFEASIBLE);
+                            }
+                        }
+                        LpCls.set_OF_p1extra(lp, 0);
+                        inP1extra = false;
+                        LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
+
+#if true
+                        /* Optionally try another dual loop, if so selected by the user */
+                        if ((lp.simplex_strategy != 0 & lp_lib.SIMPLEX_DUAL_PRIMAL != 0) && (lp.fixedvars == 0))
+                        {
+                            lp.spx_status = lp_lib.SWITCH_TO_PRIMAL;
+                        }
+#endif
+                        changedphase = true;
+
+                    }
+                    /* We are primal feasible and also optimal if we were in phase 2 */
+                    else
+                    {
+
+                        lp.simplex_mode = lp_lib.SIMPLEX_Phase2_DUAL;
+
+                        /* Check if we still have equality slacks stuck in the basis; drive them out? */
+                        if ((lp.fixedvars > 0) && (lp.bb_totalnodes == 0))
+                        {
+#if dual_Phase1PriceEqualities
+		  if (forceoutEQ != 1)
+		  {
+			forceoutEQ = 1;
+			goto RetryRow;
+		  }
+#endif
+#if Paranoia
+		  report(lp, NORMAL,
+#else
+                            msg = "Found dual solution with %d fixed slack variables left basic.\n";
+                            lp.report(lp, lp_lib.DETAILED,
+#endif
+                    ref msg,
+                                      lp.fixedvars);
+                        }
+                        /* Check if we are still dual feasible; the default assumes that this check
+                          is not necessary after the relaxed problem has been solved satisfactorily. */
+                        colnr = 0;
+                        if ((dualoffset != 0) || (lp.bb_level <= 1) || (lp.improve != 0 & lp_lib.IMPROVE_BBSIMPLEX != 0) || (lp.bb_rule != 0 & lp_lib.NODE_RCOSTFIXING != 0))
+                        { // NODE_RCOSTFIXING fix
+                            LpCls.set_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
+                            double d = 0;
+                            colnr = LpPrice.colprim(lp, ref drow, ref nzdrow, false, 1, ref candidatecount, false, ref d);
+                            LpCls.clear_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
+                            if ((dualoffset == 0) && (colnr > 0))
+                            {
+                                lp.spx_status = lp_lib.LOSTFEAS;
+                                if (lp.total_iter == 0)
+                                {
+                                    msg = "Recovering lost dual feasibility at iter %10.0f.\n";
+                                    lp.report(lp, lp_lib.DETAILED, ref msg, (double)LpCls.get_total_iter(lp));
+                                }
+                                break;
+                            }
+                        }
+
+                        if (colnr == 0)
+                        {
+                            lp.spx_status = lp_lib.OPTIMAL;
+                        }
+                        else
+                        {
+                            lp.spx_status = lp_lib.SWITCH_TO_PRIMAL;
+                            if (lp.total_iter == 0)
+                            {
+                                msg = "Use primal simplex for finalization at iter  %10.0f.\n";
+                                lp.report(lp, lp_lib.DETAILED, ref msg, (double)LpCls.get_total_iter(lp));
+                            }
+                        }
+                        if ((lp.total_iter == 0) && (lp.spx_status == lp_lib.OPTIMAL))
+                        {
+                            msg = "Optimal solution with dual simplex at iter   %10.0f.\n";
+                            lp.report(lp, lp_lib.DETAILED, ref msg, (double)LpCls.get_total_iter(lp));
+                        }
+                    }
+
+                    /* Determine if we are ready to break out of the loop */
+                    if (!changedphase)
+                    {
+                        break;
+                    }
+                }
+
+                /* Check if we are allowed to iterate on the chosen column and row */
+                if (objLpCls.is_action(lp.spx_action, lp_lib.ACTION_ITERATE))
+                {
+
+                    lastnr = lp.var_basic[rownr];
+                    if (LpCls.refactRecent(lp) == Convert.ToBoolean(lp_types.AUTOMATIC))
+                    {
+                        minitcount = 0;
+                    }
+                    else if (minitcount > lp_lib.MAX_MINITUPDATES)
+                    {
+                        LpCls.recompute_solution(lp, lp_lib.INITSOL_USEZERO);
+                        minitcount = 0;
+                    }
+                    int Parameter = 0;
+                    minit = LpCls.performiteration(lp, rownr, colnr, theta, primal, (bool)((stallaccept != Convert.ToBoolean(lp_types.AUTOMATIC))), ref prow, ref nzprow, ref pcol, ref Parameter, ref boundswaps);
+
+                    /* Check if we should abandon iterations on finding that there is no
+                      hope that this branch can improve on the incumbent B&B solution */
+                    if (lp.is_strongbranch != 0 && (lp.solutioncount >= 1) && !lp.spx_perturbed && !inP1extra && LpCls.bb_better(lp, lp_lib.OF_WORKING, lp_lib.OF_TEST_WE))
+                    {
+                        lp.spx_status = lp_lib.FATHOMED;
+                        ok = true;
+                        break;
+                    }
+
+                    if (minit != lp_lib.ITERATE_MAJORMAJOR)
+                    {
+                        minitcount++;
+                    }
+
+                    /* Update reduced costs for (pure) dual long-step phase 1 */
+                    if (longsteps && dualphase1 && !inP1extra)
+                    {
+                        int Para1 = 0;
+                        double Para2 = 0;
+                        dualfeasible = LpCls.isDualFeasible(lp, lprec.epsprimal, ref Para1, dualinfeasibles, Para2);
+                        if (dualfeasible)
+                        {
+                            dualphase1 = true;
+                            changedphase = false;
+                            lp.simplex_mode = lp_lib.SIMPLEX_Phase2_DUAL;
+                        }
+                    }
+#if UseDualReducedCostUpdate
+	  /* Do a fast update of reduced costs in preparation for the next iteration */
+	  else if (minit == ITERATE_MAJORMAJOR)
+	  {
+		update_reducedcosts(lp, primal, lastnr, colnr, prow, drow);
+	  }
+#endif
+                    if ((minit == lp_lib.ITERATE_MAJORMAJOR) && (lastnr <= lp.rows) && objLpCls.is_fixedvar(lp, lastnr))
+                    {
+                        lp.fixedvars--;
+                    }
+                }
+                /* Refactorize if required to */
+                if (Convert.ToBoolean(lp.bfp_mustrefactorize(lp)))
+                {
+                    if (lp_matrix.invert(lp, lp_lib.INITSOL_USEZERO, bfpfinal))
+                    {
+
+#if false
+// /* Verify dual feasibility in case we are attempting the extra dual loop */
+//        if(changedphase && (dualoffset != 0) && !inP1extra && (lp->spx_status != SWITCH_TO_PRIMAL)) {
+//#if 1
+//          if(!isDualFeasible(lp, lp->epsdual, &colnr, NULL, NULL)) {
+//#else
+//          set_action(&lp->piv_strategy, PRICE_FORCEFULL);
+//            colnr = colprim(lp, drow, nzdrow, FALSE, 1, &candidatecount, FALSE, NULL);
+//          clear_action(&lp->piv_strategy, PRICE_FORCEFULL);
+//          if(colnr > 0) {
+//#endif
+//            lp->spx_status = SWITCH_TO_PRIMAL;
+//            colnr = 0;
+//          }
+//        }
+#endif
+
+                        bfpfinal = false;
+#if ResetMinitOnReinvert
+		minit = ITERATE_MAJORMAJOR;
+#endif
+                    }
+                    else
+                    {
+                        lp.spx_status = lp_lib.SINGULAR_BASIS;
+                    }
+                }
+            }
+
+            Finish:
+            stallMonitor_finish(lp);
+            //NOT REQUIRED
+            //multi_free((lp.longsteps));
+            //FREE(prow);
+            //FREE(nzprow);
+            //FREE(pcol);
+
+            return (Convert.ToInt32(ok));
         }
+
         public static int spx_run(lprec lp, byte validInvB)
         {
             throw new NotImplementedException();
@@ -1290,9 +1972,90 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public static int lin_solve(lprec lp)
+
+        internal static int lin_solve(lprec lp)
         {
-            throw new NotImplementedException();
+            int status = lp_lib.NOTRUN;
+            lp_report objlp_report = new lp_report();
+
+            /* Don't do anything in case of an empty model */
+            lp.lag_status = lp_lib.NOTRUN;
+            /* if(get_nonzeros(lp) == 0) { */
+            if (lp.columns == 0)
+            {
+                LpCls.default_basis(lp);
+                lp.spx_status = lp_lib.NOTRUN;
+                return (lp.spx_status);
+            }
+
+            /* Otherwise reset selected arrays before solving */
+            LpCls.unset_OF_p1extra(lp);
+            /*NOT REQUIRED
+            LpCls.free_duals(lp);
+            */
+            /*NOT REQUIRED
+            FREE(lp.drow);
+            FREE(lp.nzdrow);
+            
+            if (lp.bb_cuttype != null)
+            {
+                freecuts_BB(lp);
+            }
+            */
+
+            /* Reset/initialize timers */
+            lp.timestart = DateTime.Now;
+            lp.timeheuristic = 0;
+            lp.timepresolved = 0;
+            lp.timeend = 0;
+
+            /* Do heuristics ahead of solving the model */
+            if (heuristics(lp, lp_types.AUTOMATIC) != lp_lib.RUNNING)
+            {
+                return (lp_lib.INFEASIBLE);
+            }
+
+            /* Solve the full, prepared model */
+            status = spx_solve(lp);
+            if ((LpCls.get_Lrows(lp) > 0) && (lp.lag_status == lp_lib.NOTRUN))
+            {
+                if (status == lp_lib.OPTIMAL)
+                {
+                    status = lag_solve(lp, lp.bb_heuristicOF, lp_lib.DEF_LAGMAXITERATIONS);
+                }
+                else
+                {
+                    string msg = "\nCannot do Lagrangean optimization since root model was not solved.\n";
+                    objlp_report.report(lp, lp_lib.IMPORTANT, ref msg);
+                }
+            }
+
+            /* Reset heuristic in preparation for next run (if any) */
+            lp.bb_heuristicOF = lp_types.my_chsign(LpCls.is_maxim(lp), lp.infinite);
+
+            /* Check that correct status code is returned */
+            /*
+               peno 26.12.07
+               status was not set to SUBOPTIMAL, only lp->spx_status
+               Bug occured by a change in 5.5.0.10 when  && (lp->bb_totalnodes > 0) was added
+               added status =
+               See UnitTest3
+            */
+            /*
+               peno 12.01.08
+               If an integer solution is found with the same objective value as the relaxed solution then
+               searching is stopped. This by setting lp->bb_break. However this resulted in a report of SUBOPTIMAL
+               solution. For this,  && !bb_better(lp, OF_DUALLIMIT, OF_TEST_BE) is added in the test.
+               See UnitTest20
+            */
+            if ((lp.spx_status == lp_lib.OPTIMAL) && (lp.bb_totalnodes > 0))
+            {
+                if ((lp.bb_break && !LpCls.bb_better(lp, lp_lib.OF_DUALLIMIT, lp_lib.OF_TEST_BE)))
+                {
+                    status = lp.spx_status = lp_lib.SUBOPTIMAL;
+                }
+            }
+            return (status);
         }
     }
 }

@@ -33,9 +33,18 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: #define my_roundzero(val, eps)  if (fabs((REAL) (val)) < eps) val = 0
         public static Action<double, double> my_roundzero = delegate (double val, double eps) { if (System.Math.Abs(val) < eps) val = 0; };
 
-                internal static string RESULTVALUEMASK = "%18.12g";
+        internal static string RESULTVALUEMASK = "%18.12g";
 
-                /* Library load status values */
+        // #define my_unbounded(lp, varnr)  ((lp->upbo[varnr] >= lp->infinite) && (lp->lowbo[varnr] <= -lp->infinite))
+        public static Func<lprec, int, bool> my_unbounded = (lp, varnr) => ((lp.upbo[varnr] >= lp.infinite) && (lp.lowbo[varnr] <= -lp.infinite));
+
+        public static Func<lprec, int, double> my_rangebo = (lp, varnr) => (lp.upbo[varnr]);
+
+        public static Func<lprec, int, double> my_lowbo = (lp, varnr) => (0.0);
+
+        internal static string RESULTVALUEMASK = "%18.12g";
+
+        /* Library load status values */
         internal const int LIB_LOADED = 0;
         internal const int LIB_NOTFOUND = 1;
         internal const int LIB_NOINFO = 2;
@@ -49,7 +58,7 @@ namespace ZS.Math.Optimization
         internal const int LIB_STR_MAXLEN = 23;
         internal const int COMP_PREFERNONE = 0;
         internal const int COMP_PREFERCANDIDATE = 0;
-        internal const int COMP_PREFERINCUMBENT= -1;
+        internal const int COMP_PREFERINCUMBENT = -1;
 
         /* Byte-sized Booleans and extended options */
         internal const byte FALSE = 0;
@@ -139,21 +148,21 @@ namespace ZS.Math.Optimization
         internal int[] freeList;             /* The indeces of available positions in "items" */
         internal QSORTrec[] sortedList;      /* List of pointers to "pricerec" items in sorted order */
         double[] stepList;          /* Working array (values in sortedList order) */
-        double[] valueList;         /* Working array (values in sortedList order) */
+        internal double[] valueList;         /* Working array (values in sortedList order) */
         internal int?[] indexSet;             /* The final exported index list of pivot variables */
         internal int active;                 /* Index of currently active multiply priced row/column */
         internal int retries;
         //Changed By: CS Date:28/11/2018
         internal double step_base;
         internal double step_last;
-        double obj_base;
-        double obj_last;
+        internal double obj_base;
+        internal double obj_last;
         internal double epszero;
-        double maxpivot;
-        double maxbound;
+        internal double maxpivot;
+        internal double maxbound;
         internal bool sorted;
         internal bool truncinf;
-        byte objcheck;
+        internal bool objcheck;
         internal bool dirty;
     }
 }

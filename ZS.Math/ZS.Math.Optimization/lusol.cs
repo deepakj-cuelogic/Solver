@@ -10,9 +10,14 @@ namespace ZS.Math.Optimization
     /* ------------------------------------------------------------------------- */
     public delegate void LUSOLlogfunc(object lp, object userhandle, string buf);
 
+    
+
 
     public class lusol
     {
+        //ORIGINAL CODE: #define LUSOL_FREE(ptr)               {free(ptr); ptr=NULL;}
+        internal static Action<object> LUSOL_FREE = delegate (object obj) { obj = null; };
+
         public const int LUSOL_RP_SMARTRATIO = 0;
         public const int LUSOL_IP_ROWCOUNT_L0 = 32;
         public const int LUSOL_AUTOORDER = 2;
@@ -36,9 +41,48 @@ namespace ZS.Math.Optimization
         /* luparm OUTPUT parameters: */
         public const int LUSOL_IP_SINGULARITIES = 11;
 
-        internal static int LUSOL_getSingularity(lp_LUSOL.LUSOLrec LUSOL, int singitem)
+        internal static int LUSOL_getSingularity(LUSOLrec LUSOL, int singitem)
         {
             throw new NotImplementedException();
+        }
+
+        private void LUSOL_free(LUSOLrec LUSOL)
+        {
+            /*NOT REQUIRED
+            LUSOL_realloc_a(LUSOL, 0);
+            LUSOL_realloc_r(LUSOL, 0);
+            LUSOL_realloc_c(LUSOL, 0);
+            */
+            if (LUSOL.L0 != null)
+            {
+                LUSOL_matfree((LUSOL.L0));
+            }
+            if (LUSOL.U != null)
+            {
+                LUSOL_matfree((LUSOL.U));
+            }
+            if (!myblas.is_nativeBLAS())
+            {
+                myblas.unload_BLAS();
+            }
+            LUSOL_FREE(LUSOL);
+        }
+
+        internal void LUSOL_matfree(LUSOLmat[] mat)
+        {
+            if ((mat == null) || (mat[0] == null))
+            {
+                return;
+            }
+            // can send whole object and set it to null at once
+            /*NOT REQUIRED
+            LUSOL_FREE(mat.a);
+            LUSOL_FREE(mat.indc);
+            LUSOL_FREE(mat.indr);
+            LUSOL_FREE(mat.lenx);
+            LUSOL_FREE(mat.indx);
+            */
+            LUSOL_FREE(mat);
         }
 
         internal int LUSOL_btran(LUSOLrec LUSOL, double[] b, int[] NZidx)
@@ -130,7 +174,7 @@ namespace ZS.Math.Optimization
         public int maxm;
         public int m;
         public int lenr;
-        public int ip;
+        public int[] ip;
         public int iqloc;
         public int ipinv;
         public int locr;
@@ -141,9 +185,9 @@ namespace ZS.Math.Optimization
         public int lenc;
         public int iq;
         public int iploc;
-        public int iqinv;
+        public int[] iqinv;
         public int locc;
-        public double w;
+        public double[] w;
         public double vLU6L;
 
         /* List of singular columns, with dynamic size allocation */
@@ -157,10 +201,8 @@ namespace ZS.Math.Optimization
 
         /* Extra arrays of length m for TRP*/
         public double amaxr;
-
-        /* Extra array for L0 and U stored by row/column for faster btran/ftran */
-        public LUSOLmat L0;
-        public LUSOLmat U;
+        public LUSOLmat[] L0;
+        public LUSOLmat[] U;
 
         /* Miscellaneous data */
         public int expanded_a;
