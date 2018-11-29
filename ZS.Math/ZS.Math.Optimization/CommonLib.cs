@@ -86,7 +86,7 @@ namespace ZS.Math.Optimization
         // ORIGINAL LINE: typedef int (CMP_CALLMODEL findCompare_func)(const void* current, const void* candidate);
         public delegate int findCompare_func(object current, object candidate);
 
-        static Func<int, int, object> CMP_COMPARE = (current, candidate) => (current < candidate ? -1 : (current > candidate ? 1 : 0));
+        static Func<double, double, object> CMP_COMPARE = (current, candidate) => (current < candidate ? -1 : (current > candidate ? 1 : 0));
         /// <summary> FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
         /// Not able to find variables in file i.e. attributes, recsize
         /// Please check usage and do changes appropriately 
@@ -283,9 +283,9 @@ namespace ZS.Math.Optimization
         /// Please check usage and do changes appropriately 
         /// </summary>
         // ORIGINAL LINE: int CMP_CALLMODEL compareREAL(const void* current, const void* candidate);
-        private static int compareREAL(object current, object candidate)
+        internal static int compareREAL(object current, object candidate)
         {
-            throw new NotImplementedException();
+            return (int)(CMP_COMPARE((double)current, (double)candidate));
         }
         private static void hpsort(object attributes, int count, int offset, int recsize, byte descending, findCompare_func findCompare)
         {

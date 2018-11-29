@@ -9,7 +9,7 @@ namespace ZS.Math.Optimization
     {
         /* Find an entering column for the case that the specified basic variable
         is fixed or zero - typically used for artificial variable elimination */
-        internal static int find_rowReplacement(lprec lp, int rownr, ref double[] prow, ref int[] nzprow)
+        internal static int find_rowReplacement(lprec lp, int rownr, ref double?[] prow, ref int[] nzprow)
         {
             /* The logic in this section generally follows Chvatal: Linear Programming, p. 130
            Basically, the function is a specialized coldual(). */
@@ -1026,7 +1026,7 @@ namespace ZS.Math.Optimization
         }
 
         /* Find the primal simplex leaving basic column variable */
-        internal static int rowprim(lprec lp, int colnr, ref double theta, ref double pcol, ref int? nzpcol, bool forceoutEQ, ref double xviol)
+        internal static int rowprim(lprec lp, int colnr, ref double theta, ref double?[] pcol, ref int? nzpcol, bool forceoutEQ, ref double xviol)
         {
             int i;
             int ii;
@@ -1764,7 +1764,7 @@ namespace ZS.Math.Optimization
 
         //Changed By: CS Date:28/11/2018
         /* Computation of reduced costs */
-        internal static void update_reducedcosts(lprec lp, bool isdual, int leave_nr, int enter_nr, double[] prow, double[] drow)
+        internal static void update_reducedcosts(lprec lp, bool isdual, int leave_nr, int enter_nr, double?[] prow, double drow)
         {
             /* "Fast" update of the dual reduced cost vector; note that it must be called
                after the pivot operation and only applies to a major "true" iteration */
@@ -1797,5 +1797,668 @@ namespace ZS.Math.Optimization
             }
         }
 
+        /* Find the dual simplex entering non-basic variable */
+        internal static int coldual(lprec lp, int row_nr, ref double prow, ref int[] nzprow, ref double[] drow, ref int nzdrow, bool dualphase1, bool skipupdate, ref int candidatecount, ref double xviol)
+        {
+            string msg = "";
+            LpCls objLpCls = new LpCls();
+            int i;
+            int iy;
+            int iz = 0;
+            int ix;
+            int k;
+            int nbound;
+            double w = new double();
+            double g = new double();
+            double quot = new double();
+            double viol = new double();
+            double p = new double();
+            double epspivot = lp.epspivot;
+#if MachinePrecRoundRHS
+  REAL epsvalue = lp.epsmachine;
+#else
+            double epsvalue = lprec.epsvalue;
+#endif
+            pricerec current = new pricerec();
+            pricerec candidate = new pricerec();
+            bool isbatch = false;
+            bool dolongsteps = (bool)(lp.longsteps != null);
+
+            /* Initialize */
+            if (xviol != null)
+            {
+                xviol = lp.infinite;
+            }
+            if (dolongsteps != null && !dualphase1)
+            {
+                dolongsteps = Convert.ToBoolean(lp_types.AUTOMATIC); // Sets Phase1 = TRUE, Phase2 = AUTOMATIC
+            }
+            current.theta = lp.infinite;
+            current.pivot = 0;
+            current.varno = 0;
+            current.epspivot = epspivot;
+            current.isdual = true;
+            current.lp = lp;
+            candidate.epspivot = epspivot;
+            candidate.isdual = true;
+            candidate.lp = lp;
+            candidatecount = 0;
+
+            /* Compute reduced costs */
+            if (!skipupdate)
+            {
+        #if UseDualReducedCostUpdate
+	        /* Recompute from scratch only at the beginning, otherwise update */
+	        if ((lp.current_iter > 0) && (refactRecent(lp) < AUTOMATIC))
+	        {
+	          compute_reducedcosts(lp, 1, row_nr, null, 1, prow, nzprow, null, null, MAT_ROUNDDEFAULT);
+	        }
+	        else
+	        {
+                        compute_reducedcosts(lp, 1, row_nr, null, 1, prow, nzprow, drow, nzdrow, MAT_ROUNDDEFAULT);
+            }
+        #endif
+                    }
+
+        #if false
+        // /* Override all above to do in-line testing with fixed test set */
+        //  if(lp->rows > 1 && lp->columns > 10)
+        //    longdual_testset(lp, 10, row_nr, prow, nzprow, drow, nzdrow);
+        #endif
+
+                    /* Compute the current violation of the bounds of the outgoing variable,
+                       negative for violation of lower bound, positive for upper bound violation.
+                       (Basic variables are always lower-bounded, by lp_solve convention) */
+                    g = 1;
+          viol = lp.rhs[row_nr];
+          if (viol > 0)
+          { // Check if the leaving variable is >= its upper bound
+	        p = lp.upbo[lp.var_basic[row_nr]];
+	        if (p<lp.infinite)
+	        {
+	          viol -= p;
+
+              lp_types.my_roundzero(viol, epsvalue);
+	          if (viol > 0)
+	          {
+		        g = -1;
+	          }
+        }
+	        /* Do validation of numerics */
+	        if (g == 1)
+	        {
+	          if (viol >= lp.infinite)
+	          {
+                msg = "coldual: Large basic solution value %g at iter %.0f indicates numerical instability\n";
+                lp.report(lp, lp_lib.IMPORTANT, ref msg, lp.rhs[row_nr], (double)LpCls.get_total_iter(lp));
+		        lp.spx_status = lp_lib.NUMFAILURE;
+		        return (0);
+
+	          }
+	          if (skipupdate)
+	          {
+                msg = "coldual: Inaccurate bound-flip accuracy at iter %.0f\n";
+                lp.report(lp, lp_lib.DETAILED, ref msg, (double)LpCls.get_total_iter(lp));
+	          }
+	          else
+	          {
+                msg = "coldual: Leaving variable %d does not violate bounds at iter %.0f\n";
+                lp.report(lp, lp_lib.SEVERE, ref msg, row_nr, (double) LpCls.get_total_iter(lp));
+	          }
+	          return (-1);
+	        }
+          }
+
+          /* Update local value of pivot setting */
+          lp._piv_rule_ = objLpCls.get_piv_rule(lp);
+
+        /* Condense list of relevant targets */
+          p = 0;
+          k = 0;
+          nbound = 0;
+          ix = 1;
+          iy = Convert.ToInt32(nzprow[0]);
+          for (ix = 1; ix <= iy; ix++)
+          {
+	        i = nzprow[ix];
+	        w = prow * g; // Change sign if upper bound of the leaving variable is violated
+                             /* Change sign if the non-basic variable is currently upper-bounded */
+                             /* w *= 2*lp->is_lower[i] - 1; */
+                             /* fails on AIX!!! */
+        w = lp_types.my_chsign(!lp.is_lower[i], w);
+
+	        /* Check if the candidate is worth using for anything */
+	        if (w< -epsvalue)
+	        {
+	          /* Tally bounded variables */
+	          if (lp.upbo[i] < lp.infinite)
+	          {
+		        nbound++;
+	          }
+
+	          /* Update the nz-index */
+	          k++;
+	          nzprow[k] = i;
+
+              commonlib.SETMAX(Convert.ToInt32(p), Convert.ToInt32(-w));
+	        }
+        #if Paranoia
+	        else
+	        {
+	          if (lp.spx_trace)
+	          {
+		        report(lp, FULL, "coldual: Candidate variable prow[%d] rejected with %g too small\n", i, w);
+	          }
+	        }
+        #endif
+
+          }
+          nzprow[0] = k;
+          if (xviol != null)
+          {
+
+            xviol = p;
+          }
+
+        #if UseRelativePivot_Dual
+        /*  epspivot *= sqrt(lp->matA->dynrange) / lp->matA->infnorm; */
+          epspivot /= MAX(1, Math.Sqrt(lp.matA.rowmax[row_nr]));
+        #endif
+            current.epspivot = epspivot;
+            candidate.epspivot = epspivot;
+
+          /* Initialize the long-step structures if indicated */
+          if (dolongsteps)
+          {
+	        if ((nzprow[0] <= 1) || (nbound == 0))
+	        { // Don't bother
+	          dolongsteps = false;
+	          lp.longsteps.indexSet[0] = 0;
+	        }
+	        else
+	        {
+
+              multi_restart(lp.longsteps);
+
+              multi_valueInit(lp.longsteps, g* viol, lp.rhs[0]);
+	        }
+          }
+
+          /* Loop over all entering column candidates */
+            ix = 1;
+            iy = nzprow[0];
+            makePriceLoop(lp, ref ix, ref iy, ref iz);
+            iy *= iz;
+          for (; ix* iz <= iy; ix += iz)
+          {
+	        i = nzprow[ix];
+
+	        /* Compute the dual ratio (prow = w and drow = cbar in Chvatal's "nomenclatura") */
+	        w = prow * g; // Change sign if upper bound of the leaving variable is violated
+            quot = -drow[i] / w; // Remember this sign-reversal in multi_recompute!
+
+	        /* Apply the selected pivot strategy (smallest theta) */
+	        candidate.theta = quot; // Note that abs() is applied in findSubstitutionVar
+	        candidate.pivot = w;
+	        candidate.varno = i;
+
+	        /* Collect candidates for minor iterations/bound flips */
+	        if (dolongsteps)
+	        {
+	          if (isbatch && (ix == iy))
+	          {
+		        isbatch = Convert.ToBoolean(lp_types.AUTOMATIC);
+	          }
+	          if (collectMinorVar(candidate, lp.longsteps, (bool)(dolongsteps == Convert.ToBoolean(lp_types.AUTOMATIC)), isbatch) && lp.spx_trace)
+	          {
+                msg = "coldual: Long-dual break point with %d bound-flip variables\n";
+                lp.report(lp, lp_lib.DETAILED, ref msg, lp.longsteps.used);
+	          }
+	          if (lp.spx_status == lp_lib.FATHOMED)
+	          {
+		        return (0);
+	          }
+	        }
+
+	        /* We have a candidate for entering the basis; check if it is better than the incumbent */
+	        else if (findSubstitutionVar(current, candidate, ref candidatecount))
+	        {
+	          break;
+	        }
+          }
+
+          /* Set entering variable and long-step bound swap variables */
+          if (dolongsteps)
+          {
+
+            candidatecount = lp.longsteps.used;
+            i = multi_enteringvar(lp.longsteps, null, 3);
+          }
+          else
+          {
+	        i = current.varno;
+          }
+
+          if (lp.spx_trace)
+          {
+            msg = "coldual: Entering column %d, reduced cost %g, pivot value %g, bound swaps %d\n";
+            lp.report(lp, lp_lib.NORMAL, ref msg, i, drow[i], prow, multi_used(lp.longsteps));
+          }
+
+          return (i);
+
+        }
+
+        internal static void multi_valueInit(multirec multi, double step_base, double obj_base)
+        {
+            multi.step_base = multi.step_last = step_base;
+            multi.obj_base = multi.obj_last = obj_base;
+#if Paranoia
+  if (step_base > 0)
+  {
+	report(multi.lp, SEVERE, "multi_valueInit: Positive constraint violation %g provided at iteration %6.0f\n", step_base, (double) get_total_iter(multi.lp));
+  }
+#endif
+        }
+
+        /* Bound flip variable accumulation routine */
+        private static bool collectMinorVar(pricerec candidate, multirec longsteps, bool isphase2, bool isbatch)
+        {
+            int inspos =0;
+
+            /* 1. Check for ratio and pivot validity (to have the extra flexibility that all
+                  bound-flip candidates are also possible as basis-entering variables */
+            if (!validSubstitutionVar(candidate))
+            {
+                return (false);
+            }
+
+            /* 2. If the free-list is empty we need to see if we have a better candidate,
+                  and for this the candidate list has to be sorted by merit */
+            if (!isbatch && !longsteps.sorted && (longsteps.used > 1) && ((longsteps.freeList[0] == 0) || multi_truncatingvar(longsteps, candidate.varno) || (longsteps.step_last >= longsteps.epszero)))
+            {
+                //ORIGINAL LINE: longsteps.sorted = commonlib.QS_execute(longsteps.sortedList, longsteps.used, (findCompare_func)compareSubstitutionQS, inspos);
+                //NOTED ISSUE:
+                longsteps.sorted = commonlib.QS_execute(longsteps.sortedList, longsteps.used, (commonlib.findCompare_func)compareSubstitutionQS, inspos);
+                longsteps.dirty = (bool)(inspos > 0);
+                if (longsteps.dirty)
+                {
+                    multi_recompute(longsteps, 0, isphase2, 1);
+                }
+            }
+
+            /* 3. Now handle three cases...
+                  - Add to the list when the list is not full and there is opportunity for improvement,
+                  - Check if we should replace an incumbent when the list is full,
+                  - Check if we should replace an incumbent when the list is not full, there is no room
+                    for improvement, but the current candidate is better than an incumbent. */
+            //NOTED ISSUE:
+            inspos = addCandidateVar(candidate, longsteps, (commonlib.findCompare_func)compareSubstitutionQS, 1);
+
+            /* 4. Recompute steps and objective, and (if relevant) determine if we
+                  may be suboptimal in relation to an incumbent MILP solution. */
+            return ((bool)(inspos >= 0) && ((isbatch == true) || multi_recompute(longsteps, inspos, isphase2, 1)));
+        }
+
+        internal static int compareSubstitutionQS(QSORTrec current, QSORTrec candidate)
+        {
+            return (compareBoundFlipVar((pricerec)current.pvoidint2.ptr, (pricerec)candidate.pvoidint2.ptr));
+            /*  return( compareSubstitutionVar((pricerec *) current->self, (pricerec *) candidate->self) ); */
+        }
+
+        internal static int compareBoundFlipVar(pricerec current, pricerec candidate)
+        {
+            //ORIGINAL LINE: register double testvalue, margin;
+            double testvalue;
+            double margin;
+            //ORIGINAL LINE: register int result = COMP_PREFERNONE;
+            int result = lp_types.COMP_PREFERNONE;
+            //ORIGINAL LINE: register lprec *lp = current->lp;
+            lprec lp = current.lp;
+            bool candbetter = new bool();
+            int currentvarno = current.varno;
+            int candidatevarno = candidate.varno;
+
+            if (!current.isdual)
+            {
+                candidatevarno = lp.var_basic[candidatevarno];
+                currentvarno = lp.var_basic[currentvarno];
+            }
+
+            /* Compute the ranking test metric. */
+            testvalue = candidate.theta;
+            margin = current.theta;
+            if (candidate.isdual)
+            {
+                testvalue = System.Math.Abs(testvalue);
+                margin = System.Math.Abs(margin);
+            }
+            if (System.Math.Abs(margin) < lp_lib.LIMIT_ABS_REL)
+            {
+                testvalue -= margin;
+            }
+            else
+            {
+                testvalue = lp_types.my_reldiff(testvalue, margin);
+            }
+
+            /* Find if the new Theta is smaller or near equal (i.e. testvalue <= eps)
+               compared to the previous best; ties will be broken by pivot size or index */
+            margin = lp_lib.PREC_SUBSTFEASGAP;
+            //ORIGINAL LINE: candbetter = (MYBOOL)(testvalue < 0);
+            candbetter = ((bool)(testvalue < 0));
+            if (candbetter != null)
+            {
+                if (testvalue < -margin)
+                {
+                    result = lp_types.COMP_PREFERCANDIDATE;
+                }
+            }
+            else if (testvalue > margin)
+            {
+                result = lp_types.COMP_PREFERINCUMBENT;
+            }
+
+            /* Resolve a tie */
+            if (result == lp_types.COMP_PREFERNONE)
+            {
+
+                /* Tertiary selection based on priority for large pivot sizes */
+                if (result == lp_types.COMP_PREFERNONE)
+                {
+                    double currentpivot = System.Math.Abs(current.pivot);
+                    double candidatepivot = System.Math.Abs(candidate.pivot);
+                    if (candidatepivot > currentpivot + margin)
+                    {
+                        result = lp_types.COMP_PREFERCANDIDATE;
+                    }
+                    else if (candidatepivot < currentpivot - margin)
+                    {
+                        result = lp_types.COMP_PREFERINCUMBENT;
+                    }
+                }
+
+                /* Secondary selection based on priority for narrow-bounded variables */
+                if (result == lp_types.COMP_PREFERNONE)
+                {
+                    result = commonlib.compareREAL((lp.upbo[currentvarno]), (lp.upbo[candidatevarno]));
+                }
+
+            }
+
+            /* Select absolute best if the non-primary criteria failed to separate */
+            if ((result == lp_types.COMP_PREFERNONE) && candbetter != null)
+            {
+                result = lp_types.COMP_PREFERCANDIDATE;
+                goto Finish;
+            }
+
+            /* Quaternary selection by index value */
+            if (result == lp_types.COMP_PREFERNONE)
+            {
+                if (candidatevarno < currentvarno)
+                {
+                    result = lp_types.COMP_PREFERCANDIDATE;
+                }
+                else
+                {
+                    result = lp_types.COMP_PREFERINCUMBENT;
+                }
+                if (lp._piv_left_)
+                {
+                    result = -result;
+                }
+            }
+
+        Finish:
+            return (result);
+        }
+
+        internal static bool multi_recompute(multirec multi, int index, bool isphase2, bool fullupdate)
+        {
+            int i;
+            int n;
+            double lB;
+            double uB;
+            double Alpha;
+            double this_theta;
+            double prev_theta;
+            lprec lp = multi.lp;
+            pricerec thisprice;
+
+            /* Define target update window */
+            if (multi.dirty)
+            {
+                index = 0;
+                n = multi.used - 1;
+            }
+            else if (fullupdate)
+            {
+                n = multi.used - 1;
+            }
+            else
+            {
+                n = index;
+            }
+
+            /* Initialize accumulators from the specified update index */
+            if (index == 0)
+            {
+                multi.maxpivot = 0;
+                multi.maxbound = 0;
+                multi.step_last = multi.step_base;
+                multi.obj_last = multi.obj_base;
+                thisprice = null;
+                this_theta = 0;
+            }
+            else
+            {
+                multi.obj_last = multi.valueList[index - 1];
+                multi.step_last = multi.sortedList[index - 1].pvoidreal.realval;
+                thisprice = (pricerec)(multi.sortedList[index - 1].pvoidreal.ptr);
+                this_theta = thisprice.theta;
+            }
+
+            /* Update step lengths and objective values */
+            while ((index <= n) && (multi.step_last < multi.epszero))
+            {
+
+                /* Update parameters for this loop */
+                prev_theta = this_theta;
+                thisprice = (pricerec)(multi.sortedList[index].pvoidreal.ptr);
+                this_theta = thisprice.theta;
+                Alpha = System.Math.Abs(thisprice.pivot);
+                uB = lp.upbo[thisprice.varno];
+                lB = 0;
+                commonlib.SETMAX(Convert.ToInt32(multi.maxpivot), Convert.ToInt32(Alpha));
+                commonlib.SETMAX(Convert.ToInt32(multi.maxbound), Convert.ToInt32(uB));
+
+                /* Do the value updates */
+                if (isphase2)
+                {
+                    multi.obj_last += (this_theta - prev_theta) * multi.step_last; // Sign-readjusted from coldual()/Maros
+                    if (uB >= lp.infinite)
+                    {
+                        multi.step_last = lp.infinite;
+                    }
+                    else
+                    {
+                        multi.step_last += Alpha * (uB - lB);
+                    }
+                }
+                else
+                {
+                    multi.obj_last += (this_theta - prev_theta) * multi.step_last; // Sign-readjusted from coldual()/Maros
+                    multi.step_last += Alpha;
+                }
+
+                /* Store updated values at the indexed locations */
+                multi.sortedList[index].pvoidreal.realval = multi.step_last;
+                multi.valueList[index] = multi.obj_last;
+#if Paranoia
+	if (lp.spx_trace && (multi.step_last > lp.infinite))
+	{
+	  report(lp, SEVERE, "multi_recompute: A very large step-size %g was generated at iteration %6.0f\n", multi.step_last, (double) get_total_iter(lp));
+	}
+#endif
+                index++;
+            }
+
+            /* Discard candidates entered earlier that now make the OF worsen, and
+               make sure that the released positions are added to the free list. */
+            n = index;
+            while (n < multi.used)
+            {
+                i = ++multi.freeList[0];
+                multi.freeList[i] = (int)(Convert.ToInt32((pricerec)multi.sortedList[n].pvoidreal.ptr) - Convert.ToInt32(multi.items));
+                n++;
+            }
+            multi.used = index;
+            if (multi.sorted && (index == 1))
+            {
+                multi.sorted = false;
+            }
+            multi.dirty = false;
+
+            /* Return TRUE if the step is now positive */
+            return ((bool)(multi.step_last >= multi.epszero));
+        }
+
+        internal static int multi_enteringvar(multirec multi, pricerec current, int priority)
+        {
+            lprec lp = multi.lp;
+            int i = 0;
+            int bestindex;
+            int colnr;
+            double bound = new double();
+            double score = new double();
+            double bestscore = -lp.infinite;
+            double b1 = new double();
+            double b2 = new double();
+            double b3 = new double();
+            pricerec candidate;
+            pricerec bestcand;
+            string msg;
+
+            /* Check that we have a candidate */
+            multi.active = bestindex = 0;
+            if ((multi == null) || (multi.used == 0))
+            {
+                return (bestindex);
+            }
+
+            /* Check for pruning possibility of the B&B tree */
+            if (multi.objcheck && (lp.solutioncount > 0) && LpCls.bb_better(lp, lp_lib.OF_WORKING | lp_lib.OF_PROJECTED, lp_lib.OF_TEST_WE))
+            {
+                lp.spx_status = lp_lib.FATHOMED;
+                return (bestindex);
+            }
+
+            /* Check the trivial case */
+            if (multi.used == 1)
+            {
+                bestcand = (pricerec)(multi.sortedList[bestindex].pvoidreal.ptr);
+                goto Finish;
+            }
+
+        /* Set priority weights */
+        Redo:
+            switch (priority)
+            {
+                case 0:
+                    b1 = 0.0; b2 = 0.0; b3 = 1.0; // Only OF
+                    bestindex = multi.used - 2;
+                    break;
+                case 1:
+                    b1 = 0.2; b2 = 0.3; b3 = 0.5;
+                    break; // Emphasize OF
+                case 2:
+                    b1 = 0.3; b2 = 0.5; b3 = 0.2;
+                    break; // Emphasize bound
+                case 3:
+                    b1 = 0.6; b2 = 0.2; b3 = 0.2;
+                    break; // Emphasize pivot
+                case 4:
+                    b1 = 1.0; b2 = 0.0; b3 = 0.0;
+                    break; // Only pivot
+                default:
+                    b1 = 0.4; b2 = 0.2; b3 = 0.4; // Balanced default
+                    break;
+            }
+            bestcand = (pricerec)(multi.sortedList[bestindex].pvoidreal.ptr);
+
+            /* Loop over all candidates to get the best entering candidate;
+               start at the end to try to maximize the chain length */
+            for (i = multi.used - 1; i >= 0; i--)
+            {
+                candidate = (pricerec)(multi.sortedList[i].pvoidreal.ptr);
+                colnr = candidate.varno;
+                bound = lp.upbo[colnr];
+                score = System.Math.Abs(candidate.pivot) / multi.maxpivot;
+                score = System.Math.Pow(1.0 + score, b1) * System.Math.Pow(1.0 + System.Math.Log(bound / multi.maxbound + 1), b2) * System.Math.Pow(1.0 + (double)i / multi.used, b3);
+                if (score > bestscore)
+                {
+                    //ORIGINAL LINE: bestscore = score;
+                    bestscore = (score);
+                    bestindex = i;
+                    bestcand = candidate;
+                }
+            }
+
+            /* Do pivot protection */
+            if ((priority < 4) && (System.Math.Abs(bestcand.pivot) < lp.epssolution))
+            {
+                bestindex = 0;
+                priority++;
+                goto Redo;
+            }
+
+        Finish:
+            /* Make sure we shrink the list and update */
+            multi.active = colnr = bestcand.varno;
+            if (bestindex < multi.used - 1)
+            {
+#if false
+// /*    if(lp->upbo[colnr] >= lp->infinite) */
+//    QS_swap(multi->sortedList, bestindex, multi->used-1);
+//    multi_recompute(multi, bestindex, (bestcand->isdual == AUTOMATIC), TRUE);
+#else
+                multi.used = i + 1;
+#endif
+            }
+            int?[] Parameter = null;
+            multi_populateSet(multi, ref Parameter, multi.active);
+
+            /* Compute the entering theta and update parameters */
+            score = (multi.used == 1 ? multi.step_base : multi.sortedList[multi.used - 2].pvoidreal.realval);
+            score /= bestcand.pivot;
+            score = lp_types.my_chsign(!lp.is_lower[multi.active], score);
+
+            if (lp.spx_trace && (System.Math.Abs(score) > 1 / lprec.epsprimal))
+            {
+                msg = "multi_enteringvar: A very large Theta %g was generated (pivot %g)\n";
+                lp.report(lp, lp_lib.IMPORTANT, ref msg, score, bestcand.pivot);
+            }
+            multi.step_base = score;
+            if (current != null)
+            {
+                //ORIGINAL LINE: *current = *bestcand;
+                current = (bestcand);
+            }
+
+            return (multi.active);
+        }
+
+        internal static int multi_used(multirec multi)
+        {
+            if (multi == null)
+            {
+                return (0);
+            }
+            else
+            {
+                return (multi.used);
+            }
+        }
     }
 }

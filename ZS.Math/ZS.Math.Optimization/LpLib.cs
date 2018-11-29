@@ -517,6 +517,8 @@ namespace ZS.Math.Optimization
         /* RHS storage */
         public double[] orig_rhs; /* rows_alloc+1 : The RHS after scaling and sign
                                    changing, but before 'Bound transformation' */
+
+        
         /// <summary>
         /// 1501
         /// </summary>
@@ -574,7 +576,7 @@ namespace ZS.Math.Optimization
         BBPSrec bb_PseudoCost;     /* Data structure for costing of node branchings */
         internal int bb_PseudoUpdates;   /* Maximum number of updates for pseudo-costs */
         internal int bb_strongbranches;  /* The number of strong B&B branches performed */
-        int is_strongbranch;    /* Are we currently in a strong branch mode? */
+        internal int is_strongbranch;    /* Are we currently in a strong branch mode? */
         int bb_improvements;    /* The number of discrete B&B objective improvement steps */
 
         /* Solver working variables */
@@ -584,7 +586,7 @@ namespace ZS.Math.Optimization
         internal double P1extraVal;         /* Phase 1 OF/RHS offset for feasibility */
         internal int P1extraDim;         /* Phase 1 additional columns/rows for feasibility */
         internal int spx_action;         /* ACTION_ variables for the simplex routine */
-        byte spx_perturbed;      /* The variable bounds were relaxed/perturbed into this simplex */
+        internal bool spx_perturbed;      /* The variable bounds were relaxed/perturbed into this simplex */
         /// <summary>
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// </summary>
@@ -653,11 +655,11 @@ namespace ZS.Math.Optimization
 
         internal double bb_breakOF;         /* User-settable value for the objective function deemed
                                to be sufficiently good in an integer problem */
-        double bb_limitOF;         /* "Dual" bound / limit to final optimal MIP solution */
+        internal double bb_limitOF;         /* "Dual" bound / limit to final optimal MIP solution */
         internal double bb_heuristicOF;     /* Set initial "at least better than" guess for objective function
                                (can significantly speed up B&B iterations) */
         double bb_parentOF;        /* The OF value of the previous BB simplex */
-        double bb_workOF;          /* The unadjusted OF value for the current best solution */
+        internal double bb_workOF;          /* The unadjusted OF value for the current best solution */
 
         /* Internal work arrays allocated as required */
         internal presolveundorec presolve_undo;
@@ -665,8 +667,8 @@ namespace ZS.Math.Optimization
 
         /* MIP parameters */
         double epsint;             /* Margin of error in determining if a float value is integer */
-        double mip_absgap;         /* Absolute MIP gap */
-        double mip_relgap;         /* Relative MIP gap */
+        internal double mip_absgap;         /* Absolute MIP gap */
+        internal double mip_relgap;         /* Relative MIP gap */
 
         /* Time/timer variables and extended status text */
         internal double timecreate;

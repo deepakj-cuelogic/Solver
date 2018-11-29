@@ -120,7 +120,9 @@ namespace ZS.Math.Optimization
                 return (System.Math.Sqrt(value));
             }
         }
-        public static bool restartPricer(lprec lp, int isdual)
+
+        //FIX_36b0c67a-e607-4230-95dd-a228e7622a87 29/11/18
+        public static bool restartPricer(lprec lp, bool isdual)
         {
             double[] sEdge;
             double seNorm;
@@ -135,7 +137,9 @@ namespace ZS.Math.Optimization
             return ok;
 
             /* Store the active/current pricing type */
-            if (isdual == lp_types.AUTOMATIC)
+            //FIX_36b0c67a-e607-4230-95dd-a228e7622a87 29/11/18
+            //lp_types.AUTOMATIC is byte and copmared with boolean type need to check at runtime.
+            if (isdual == Convert.ToBoolean(lp_types.AUTOMATIC))
             {
                 isdual = Convert.ToInt32(lp.edgeVector[0]);
             }
