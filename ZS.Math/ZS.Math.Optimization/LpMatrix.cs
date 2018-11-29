@@ -2095,7 +2095,7 @@ namespace ZS.Math.Optimization
 
             /* Now do the refactorization */
             //NOTED ISSUE
-            singularities = lp.bfp_factorize(lp, usercolB, k, ref usedpos, final_Renamed);
+            singularities = lp_LUSOL.bfp_factorize(lp, usercolB, k, usedpos, final_Renamed);
 
             /* Do user reporting */
             if (objLpCls.userabort(lp, lp_lib.MSG_INVERT))

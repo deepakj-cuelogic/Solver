@@ -4141,8 +4141,8 @@ internal static class StringFunctions
                         /* Shift variable priority data */
                         if ((lp.var_priority != null) || (lp.sos_priority != null))
                         {
-                            int[] colmap = null;
-                            int k;
+                            //int[] colmap = null;
+                            //int k;
                             //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
                             //changed from 'int[] colmap' to 'int[][] colmap'; need to check at run time
                             int[][] colmap = null;

@@ -47,13 +47,13 @@ namespace ZS.Math.Optimization
             //  if(lu->num_pivots == 1) {
             //    if(lu->LUSOL->luparm[LUSOL_IP_ACCELERATION] > 0)
             //      lp->report(lp, NORMAL, "RowL0 R:%10.7f  C:%10.7f  NZ:%10.7f\n",
-            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_ROWCOUNT_L0] / lu->LUSOL->m,
-            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_COLCOUNT_L0] / lu->LUSOL->m,
-            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_NONZEROS_L0] / pow((REAL) lu->LUSOL->m, 2));
+            //                             (double) lu->LUSOL->luparm[LUSOL_IP_ROWCOUNT_L0] / lu->LUSOL->m,
+            //                             (double) lu->LUSOL->luparm[LUSOL_IP_COLCOUNT_L0] / lu->LUSOL->m,
+            //                             (double) lu->LUSOL->luparm[LUSOL_IP_NONZEROS_L0] / pow((double) lu->LUSOL->m, 2));
             //    else
             //      lp->report(lp, NORMAL, "ColL0 C:%10.7f  NZ:%10.7f\n",
-            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_COLCOUNT_L0] / lu->LUSOL->m,
-            //                             (REAL) lu->LUSOL->luparm[LUSOL_IP_NONZEROS_L0] / pow((REAL) lu->LUSOL->m, 2));
+            //                             (double) lu->LUSOL->luparm[LUSOL_IP_COLCOUNT_L0] / lu->LUSOL->m,
+            //                             (double) lu->LUSOL->luparm[LUSOL_IP_NONZEROS_L0] / pow((double) lu->LUSOL->m, 2));
             //  }
             ///#endif
 
@@ -95,7 +95,7 @@ namespace ZS.Math.Optimization
         }
 
         // MUST MODIFY 
-        internal void  bfp_free(lprec lp)    //BFP_CALLMODEL
+        internal void bfp_free(lprec lp)    //BFP_CALLMODEL
         {
             INVrec lu;
 
@@ -140,8 +140,171 @@ namespace ZS.Math.Optimization
             LUSOL_FREE(LUSOL);
         }
 
+        internal static int bfp_factorize(lprec lp, int uservars, int Bsize, bool usedpos, bool? final)
+        {
+            int kcol;
+            int inform;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *rownum = null;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'int rownum' to 'int[][] rownum'; need to check at run time
+            int[][] rownum = null;
+            int singularities = 0;
+            int dimsize = lp.invB.dimcount;
+            LUSOLrec LUSOL = lp.invB.LUSOL;
 
-    }
+            /* Set dimensions and create work array */
+            commonlib.SETMAX(lp.invB.max_Bsize, Bsize + (1 + lp.rows - uservars));
+            kcol = lp.invB.dimcount;
+            LUSOL.m = kcol;
+            LUSOL.n = kcol;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18; need to check at run time
+            lp_utils.allocINT(lp, rownum, kcol + 1, 0);
+
+            /* Check if the refactorization frequency is low;
+               tighten pivot thresholds if appropriate */
+            inform = lp.bfp_pivotcount(lp);
+            if (final == null && !lp.invB.force_refact && !lp.is_action(lp.spx_action, lp_lib.ACTION_TIMEDREINVERT) && (inform > 5) && (inform < 0.25 * lp.bfp_pivotmax(lp)))
+            {
+                bfp_LUSOLtighten(lp);
+            }
+
+            int? singular = null;
+            /* Reload B and factorize */
+            inform = bfp_LUSOLfactorize(lp, ref usedpos, ref rownum, ref singular);
+
+            /* Do some checks */
+#if Paranoia
+  if (uservars != lp.invB.user_colcount)
+  {
+	lp.report(lp, SEVERE, "bfp_factorize: User variable count reconciliation failed\n");
+	return (singularities);
+  }
+#endif
+
+            /* Check result and do further remedial action if necessary */
+            if (inform != lusol.LUSOL_INFORM_LUSUCCESS)
+            {
+                int singularcols;
+                int replacedcols = 0;
+                double hold = new double();
+
+                /* Make sure we do not tighten factorization pivot criteria too often, and simply
+                   accept the substitution of slack columns into the basis */
+                if ((lp.invB.num_singular + 1) % TIGHTENAFTER == 0)
+                {
+                    bfp_LUSOLtighten(lp);
+                }
+
+                /* Try to restore a non-singular basis by substituting singular columns with slacks */
+                while ((inform == lusol.LUSOL_INFORM_LUSINGULAR) && (replacedcols < dimsize))
+                {
+                    int iLeave;
+                    int jLeave;
+                    int iEnter;
+                    bool isfixed;
+
+                    singularities++;
+                    singularcols = LUSOL.luparm[lusol.LUSOL_IP_SINGULARITIES];
+                    hold = (double)lp.get_total_iter(lp);
+                    lp.report(lp, lp_lib.NORMAL, "bfp_factorize: Resolving %d singularit%s at refact %d, iter %.0f\n", singularcols, lp_types.my_plural_y(singularcols), lp.invB.num_refact, hold);
+
+                    /* Find the failing / singular column(s) and make slack substitutions */
+                    for (kcol = 1; kcol <= singularcols; kcol++)
+                    {
+
+                        /* Determine leaving and entering columns. */
+                        iLeave = lusol.LUSOL_getSingularity(LUSOL, kcol); // This is the singular column as natural index
+                        iEnter = iLeave; // This is the target replacement slack
+#if 1
+		iEnter = LUSOL.iqinv[iEnter];
+		iEnter = LUSOL.ip[iEnter];
+#endif
+                        iLeave -= bfp_rowextra(lp); // This is the original B column/basis index
+                        jLeave = lp.var_basic[iLeave]; // This is the IA column index in lp_solve
+
+                        /* Express the slack index in original lp_solve [1..rows] reference and check validity */
+                        /*       if(B4 != NULL) iEnter = B4->B4_row[iEnter]; v6 FUNCTIONALITY */
+                        iEnter -= bfp_rowextra(lp);
+                        if (lp.is_basic[iEnter])
+                        {
+                            lp.report(lp, DETAILED, "bfp_factorize: Replacement slack %d is already basic!\n", iEnter);
+
+                            /* See if we can find a good alternative slack variable to enter */
+                            iEnter = 0;
+                            for (inform = 1; inform <= lp.rows; inform++)
+                            {
+                                if (!lp.is_basic[inform])
+                                {
+                                    if ((iEnter == 0) || (lp.upbo[inform] > lp.upbo[iEnter]))
+                                    {
+                                        iEnter = inform;
+                                        if (my_infinite(lp, lp.upbo[iEnter]))
+                                        {
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (iEnter == 0)
+                            {
+                                lp.report(lp, SEVERE, "bfp_factorize: Could not find replacement slack variable!\n");
+                                break;
+                            }
+                        }
+
+                        /* We should update bound states for both the entering and leaving variables.
+                           Note that this may cause (primal or dual) infeasibility, but I assume that
+                           lp_solve traps this and takes necessary corrective action. */
+                        isfixed = is_fixedvar(lp, iEnter);
+                        if (isfixed)
+                        {
+                            lp.fixedvars++;
+                        }
+                        hold = lp.upbo[jLeave];
+                        lp.is_lower[jLeave] = isfixed || (Math.Abs(hold) >= lp.infinite) || (lp.rhs[iLeave] < hold);
+                        lp.is_lower[iEnter] = 1;
+
+                        /* Do the basis replacement */
+                        lp.set_basisvar(lp, iLeave, iEnter);
+
+                    }
+
+                    /* Refactorize with slack substitutions */
+                    inform = bfp_LUSOLfactorize(lp, null, rownum, null);
+                    replacedcols += singularcols;
+                }
+
+                /* Check if we had a fundamental problem */
+                if (singularities >= dimsize)
+                {
+                    lp.report(lp, IMPORTANT, "bfp_factorize: LUSOL was unable to recover from a singular basis\n");
+                    lp.spx_status = NUMFAILURE;
+                }
+            }
+
+            /* Clean up before returning */
+            FREE(rownum);
+
+            /* Update statistics */
+            /* SETMAX(lp->invB->max_Bsize, (*Bsize)); */
+            lp.invB.num_singular += singularities; // The total number of singular updates
+
+            return (singularities);
+        }
+
+        private static void bfp_LUSOLtighten(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        /* LOCAL HELPER ROUTINE */
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        //changed from 'ref int rownum' to 'ref int[][] rownum'; need to check at run time
+        private static int bfp_LUSOLfactorize(lprec lp, ref bool usedpos, ref int[][] rownum, ref int? singular)
+        {
+            throw new NotImplementedException();
+        }
 
     /* typedef */
     public class INVrec
@@ -231,7 +394,7 @@ namespace ZS.Math.Optimization
         public int num_singular; // The total number of singular updates
         public string opts;
         public byte is_dirty; // Specifies if a column is incompletely processed
-        public byte force_refact; // Force refactorization at the next opportunity
+        public bool force_refact; // Force refactorization at the next opportunity
         public byte timed_refact; // Set if timer-driven refactorization should be active
         public byte set_Bidentity; // Force B to be the identity matrix at the next refactorization
     }

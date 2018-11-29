@@ -19,6 +19,9 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: #define my_reldiff(x, y)       (((x) - (y)) / (1.0 + fabs((REAL) (y))))
         public static Func<double, double, double> my_reldiff = (x, y) => (((x) - (y)) / (1.0 + System.Math.Abs((double)(y))));
 
+        //ORIGINAL LINE: #define my_plural_y(count)       (count == 1 ? "y" : "ies")
+        public static Func<int, string> my_plural_y = (count) => (count == 1 ? "y" : "ies");
+
         //ORIGINAL LINE: #define my_roundzero(val, eps)  if (fabs((REAL) (val)) < eps) val = 0
         public static Action<double, double> my_roundzero = delegate (double val, double eps) { if (System.Math.Abs(val) < eps) val = 0; };
 
