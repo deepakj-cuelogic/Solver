@@ -633,7 +633,7 @@ namespace ZS.Math.Optimization
         internal double epssolution;        /* The solution tolerance for final validation */
 
         /* Branch & Bound working parameters */
-        int bb_status;          /* Indicator that the last solvelp() gave an improved B&B solution */
+        internal int bb_status;          /* Indicator that the last solvelp() gave an improved B&B solution */
         /// <summary>
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// </summary>
