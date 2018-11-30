@@ -1958,7 +1958,253 @@ RetryRow:
 
         public static int spx_run(lprec lp, byte validInvB)
         {
-            throw new NotImplementedException();
+            int i;
+            int j;
+            int singular_count;
+            int lost_feas_count;
+
+            //ORIGINAL LINE: int *infeasibles = null;
+            int[] infeasibles = null;
+
+            //ORIGINAL LINE: int *boundflip_count;
+            int boundflip_count;
+            bool primalfeasible = new bool();
+            bool dualfeasible = new bool();
+            bool lost_feas_state = new bool();
+            bool isbb = new bool();
+            double primaloffset = 0;
+            double dualoffset = 0;
+            LpCls objLpCls = new LpCls();
+            string msg;
+
+            lp.current_iter = 0;
+            lp.current_bswap = 0;
+            lp.spx_status = lp_lib.RUNNING;
+            lp.bb_status = lp.spx_status;
+            lp.P1extraDim = 0;
+            LpCls.set_OF_p1extra(lp, 0);
+            singular_count = 0;
+            lost_feas_count = 0;
+            lost_feas_state = false;
+            lp.simplex_mode = lp_lib.SIMPLEX_DYNAMIC;
+
+            /* Compute the number of fixed basic and bounded variables (used in long duals) */
+            lp.fixedvars = 0;
+            lp.boundedvars = 0;
+            for (i = 1; i <= lp.rows; i++)
+            {
+                j = lp.var_basic[i];
+                if ((j <= lp.rows) && objLpCls.is_fixedvar(lp, j))
+                {
+                    lp.fixedvars++;
+                }
+                if ((lp.upbo[i] < lp.infinite) && (lp.upbo[i] > lprec.epsprimal))
+                {
+                    lp.boundedvars++;
+                }
+            }
+            for (; i <= lp.sum; i++)
+            {
+                if ((lp.upbo[i] < lp.infinite) && (lp.upbo[i] > lprec.epsprimal))
+                {
+                    lp.boundedvars++;
+                }
+            }
+#if UseLongStepDualPhase1
+  allocINT(lp, infeasibles, lp.columns + 1, 0);
+  infeasibles[0] = 0;
+#endif
+
+            /* Reinvert for initialization, if necessary */           
+            //ORIGINAL LINE: isbb = (MYBOOL)((MIP_count(lp) > 0) && (lp->bb_level > 1));
+            isbb = ((bool)((LpCls.MIP_count(lp) > 0) && (lp.bb_level > 1)));
+            if (LpCls.is_action(lp.spx_action, lp_lib.ACTION_REINVERT))
+            {
+                if (isbb != null && (lp.bb_bounds.nodessolved == 0))
+                {
+                    /*    if(isbb && (lp->bb_basis->pivots == 0)) */
+                    LpCls.recompute_solution(lp, Convert.ToBoolean(lp_lib.INITSOL_SHIFTZERO));
+                }
+                else
+                {
+                    i = Convert.ToInt32(lp_types.my_if(LpCls.is_action(lp.spx_action, lp_lib.ACTION_REBASE), lp_lib.INITSOL_SHIFTZERO, Convert.ToDouble(lp_lib.INITSOL_USEZERO)));
+                    lp_matrix.invert(lp, Convert.ToBoolean(i), true);
+                }
+            }
+            else if (LpCls.is_action(lp.spx_action, lp_lib.ACTION_REBASE))
+            {
+                LpCls.recompute_solution(lp, Convert.ToBoolean(lp_lib.INITSOL_SHIFTZERO));
+            }
+
+            /* Optionally try to do bound flips to obtain dual feasibility */
+            if (LpCls.is_action(lp.improve, lp_lib.IMPROVE_DUALFEAS) || (lp.rows == 0))
+            {
+                boundflip_count = i;
+            }
+            else
+            {
+                boundflip_count = 0;
+            }
+
+            /* Loop for as long as is needed */
+            while (lp.spx_status == lp_lib.RUNNING)
+            {
+
+                /* Check for dual and primal feasibility */
+                dualfeasible = isbb != null || LpCls.isDualFeasible(lp, lprec.epsprimal, ref boundflip_count, infeasibles, dualoffset);
+
+                /* Recompute if the dual feasibility check included bound flips */
+                if (LpCls.is_action(lp.spx_action, lp_lib.ACTION_RECOMPUTE))
+                {
+                    LpCls.recompute_solution(lp, lp_lib.INITSOL_USEZERO);
+                }
+                primalfeasible = LpCls.isPrimalFeasible(lp, lprec.epsprimal, null, ref primaloffset);
+
+                if (objLpCls.userabort(lp, -1))
+                {
+                    break;
+                }
+
+                lp_report objReport = new lp_report();
+                if (lp.spx_trace)
+                {
+                    if (primalfeasible != null)
+                    {
+                        msg = "Start at primal feasible basis\n";
+                        objReport.report(lp, lp_lib.NORMAL, ref msg);
+                    }
+                    else if (dualfeasible)
+                    {
+                        msg = "Start at dual feasible basis\n";
+                        objReport.report(lp, lp_lib.NORMAL, ref msg);
+                    }
+                    else if (lost_feas_count > 0)
+                    {
+                        msg = "Continuing at infeasible basis\n";
+                        objReport.report(lp, lp_lib.NORMAL, ref msg);
+                    }
+                    else
+                    {
+                        msg = "Start at infeasible basis\n";
+                        objReport.report(lp, lp_lib.NORMAL, ref msg);
+                    }
+                }
+
+                /* Now do the simplex magic */
+                if (((lp.simplex_strategy & lp_lib.SIMPLEX_Phase1_DUAL) == 0) || ((LpCls.MIP_count(lp) > 0) && (lp.total_iter == 0) && objLpCls.is_presolve(lp, lp_lib.PRESOLVE_REDUCEMIP)))
+                {
+                    if (lost_feas_state == null && primalfeasible != null && ((lp.simplex_strategy & lp_lib.SIMPLEX_Phase2_DUAL) > 0))
+                    {
+                        lp.spx_status = lp_lib.SWITCH_TO_DUAL;
+                    }
+                    else
+                    {
+                        primloop(lp, primalfeasible, 0.0);
+                    }
+                    if (lp.spx_status == lp_lib.SWITCH_TO_DUAL)
+                    {
+                        dualloop(lp, true, null, 0.0);
+                    }
+                }
+                else
+                {
+                    if (lost_feas_state == null && primalfeasible != null && ((lp.simplex_strategy & lp_lib.SIMPLEX_Phase2_PRIMAL) > 0))
+                    {
+                        lp.spx_status = lp_lib.SWITCH_TO_PRIMAL;
+                    }
+                    else
+                    {
+                        dualloop(lp, dualfeasible, infeasibles, dualoffset);
+                    }
+                    if (lp.spx_status == lp_lib.SWITCH_TO_PRIMAL)
+                    {
+                        primloop(lp, true, 0.0);
+                    }
+                }
+                /* Check for simplex outcomes that always involve breaking out of the loop;
+   this includes optimality, unboundedness, pure infeasibility (i.e. not
+   loss of feasibility), numerical failure and perturbation-based degeneracy
+   handling */
+                i = lp.spx_status;
+                primalfeasible = (bool)(i == lp_lib.OPTIMAL);
+                if (primalfeasible || (i == lp_lib.UNBOUNDED))
+                {
+                    break;
+                }
+                else if (((i == lp_lib.INFEASIBLE) && objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_INFEASIBLE)) || ((i == lp_lib.LOSTFEAS) && objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_LOSTFEAS)) || ((i == lp_lib.NUMFAILURE) && objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_NUMFAILURE)) || ((i == lp_lib.DEGENERATE) && objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_STALLING)))
+                {
+                    /* Check if we should not loop here, but do perturbations */
+                    if ((lp.bb_level <= 1) || objLpCls.is_anti_degen(lp, lp_lib.ANTIDEGEN_DURINGBB))
+                    {
+                        break;
+                    }
+
+                    /* Assume that accuracy during B&B is high and that infeasibility is "real" */
+#if AssumeHighAccuracyInBB
+	  if ((lp.bb_level > 1) && (i == INFEASIBLE))
+	  {
+		break;
+	  }
+#endif
+                }
+
+                /* Check for outcomes that may involve trying another simplex loop */
+                if (lp.spx_status == lp_lib.SINGULAR_BASIS)
+                {
+                    lost_feas_state = false;
+                    singular_count++;
+                    if (singular_count >= lp_lib.DEF_MAXSINGULARITIES)
+                    {
+                        msg = "spx_run: Failure due to too many singular bases.\n";
+                        objReport.report(lp, lp_lib.IMPORTANT, ref msg);
+                        lp.spx_status = lp_lib.NUMFAILURE;
+                        break;
+                    }
+                    if (lp.spx_trace || (lp.verbose > lp_lib.DETAILED))
+                    {
+                        msg = "spx_run: Singular basis; attempting to recover.\n";
+                       objReport.report(lp, lp_lib.NORMAL, ref msg);
+                    }
+                    lp.spx_status = lp_lib.RUNNING;
+                    /* Singular pivots are simply skipped by the inversion, leaving a row's
+                       slack variable in the basis instead of the singular user variable. */
+                }
+                else
+                {
+                    lost_feas_state = (bool)(lp.spx_status == lp_lib.LOSTFEAS);
+#if false
+// /* Optionally handle loss of numerical accuracy as loss of feasibility,
+//    but only attempt a single loop to try to recover from this. */
+//      lost_feas_state |= (MYBOOL) ((lp->spx_status == NUMFAILURE) && (lost_feas_count < 1));
+#endif
+                    if (lost_feas_state)
+                    {
+                        lost_feas_count++;
+                        if (lost_feas_count < lp_lib.DEF_MAXSINGULARITIES)
+                        {
+                            msg = "spx_run: Recover lost feasibility at iter  %10.0f.\n";
+                            objReport.report(lp, lp_lib.DETAILED, ref msg, (double)LpCls.get_total_iter(lp));
+                            lp.spx_status = lp_lib.RUNNING;
+                        }
+                        else
+                        {
+                            msg = "spx_run: Lost feasibility %d times - iter %10.0f and %9.0f nodes.\n";
+                            objReport.report(lp, lp_lib.IMPORTANT, ref msg, lost_feas_count, (double)LpCls.get_total_iter(lp), (double)lp.bb_totalnodes);
+                            lp.spx_status = lp_lib.NUMFAILURE;
+                        }
+                    }
+                }
+            }
+
+            /* Update iteration tallies before returning */
+            lp.total_iter += lp.current_iter;
+            lp.current_iter = 0;
+            lp.total_bswap += lp.current_bswap;
+            lp.current_bswap = 0;
+            //NOT REQUIRED
+            //FREE(infeasibles);
+
+            return (lp.spx_status);
         }
         public static int spx_solve(lprec lp)
         {

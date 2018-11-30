@@ -2779,7 +2779,7 @@ namespace ZS.Math.Optimization
         }
 
         /* This routine recomputes the basic variables using the full inverse */
-        internal static void recompute_solution(lprec lp, bool shiftbounds)
+        internal new static void recompute_solution(lprec lp, bool shiftbounds)
         {
             /* Compute RHS = b - A(n)*x(n) */
             initialize_solution(lp, shiftbounds);
@@ -5863,5 +5863,11 @@ internal static class StringFunctions
                 return ((bool)(lp.upbo[varnr] - lp.lowbo[varnr] < lprec.epsvalue));
             }
         }
+
+        internal new bool is_presolve(lprec lp, int testmask)
+        {
+            return ((bool)((lp.do_presolve == testmask) || ((lp.do_presolve & testmask) != 0)));
+        }
+
     }
 }
