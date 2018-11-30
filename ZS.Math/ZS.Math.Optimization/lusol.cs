@@ -10,7 +10,7 @@ namespace ZS.Math.Optimization
     /* ------------------------------------------------------------------------- */
     public delegate void LUSOLlogfunc(object lp, object userhandle, string buf);
 
-    
+
 
 
     public class lusol
@@ -19,7 +19,6 @@ namespace ZS.Math.Optimization
         internal static Action<object> LUSOL_FREE = delegate (object obj) { obj = null; };
 
         public const int LUSOL_RP_SMARTRATIO = 0;
-        public const int LUSOL_IP_ROWCOUNT_L0 = 32;
         public const int LUSOL_AUTOORDER = 2;
         public const int LUSOL_IP_ACCELERATION = 7;
         public const int LUSOL_BASEORDER = 0;
@@ -29,21 +28,117 @@ namespace ZS.Math.Optimization
 
         //public const int LUSOL_RP_SMARTRATIO = 0;
         public const int ZERO = 0;
-        public const int LUSOL_IP_FTRANCOUNT = 30;
         public const int LUSOL_ACCELERATE_U = 8;
-        public const int LUSOL_IP_RANK_U = 16;
-        public const int LUSOL_IP_NONZEROS_U = 24;
         public const int LUSOL_INFORM_LUSINGULAR = 1;
         public const int LUSOL_RP_RESIDUAL_U = 20;
 
         public const int LUSOL_INFORM_LUSUCCESS = 0;
+        public const int LUSOL_INFORM_ADIMERR = 3;
+        public const int LUSOL_INFORM_ADUPLICATE = 4;
+        public const int LUSOL_INFORM_ANEEDMEM = 7;  /* Set lena >= luparm[LUSOL_IP_MINIMUMLENA] */
+        public const int LUSOL_INFORM_FATALERR = 8;
+        public const int LUSOL_INFORM_NOPIVOT = 9;  /* No diagonal pivot found with TSP or TDP. */
+
+        /* luparm INPUT parameters: */
+        public const int LUSOL_IP_PRINTLEVEL = 2;
+        public const int LUSOL_IP_SCALAR_NZA = 4;
+        public const int LUSOL_IP_PIVOTTYPE = 6;
+        public const int LUSOL_IP_KEEPLU = 8;
 
         /* luparm OUTPUT parameters: */
-        public const int LUSOL_IP_SINGULARITIES = 11;
+        public const int LUSOL_IP_INFORM = 10;
+public const int LUSOL_IP_SINGULARITIES = 11;
+public const int LUSOL_IP_SINGULARINDEX = 12;
+public const int LUSOL_IP_MINIMUMLENA = 13;
+public const int LUSOL_IP_MAXLEN = 14;
+public const int LUSOL_IP_UPDATECOUNT = 15;
+public const int LUSOL_IP_RANK_U = 16;
+public const int LUSOL_IP_COLCOUNT_DENSE1 = 17;
+public const int LUSOL_IP_COLCOUNT_DENSE2 = 18;
+public const int LUSOL_IP_COLINDEX_DUMIN = 19;
+public const int LUSOL_IP_COLCOUNT_L0 = 20;
+public const int LUSOL_IP_NONZEROS_L0 = 21;
+public const int LUSOL_IP_NONZEROS_U0 = 22;
+public const int LUSOL_IP_NONZEROS_L = 23;
+public const int LUSOL_IP_NONZEROS_U = 24;
+public const int LUSOL_IP_NONZEROS_ROW = 25;
+public const int LUSOL_IP_COMPRESSIONS_LU = 26;
+public const int LUSOL_IP_MARKOWITZ_MERIT = 27;
+public const int LUSOL_IP_TRIANGROWS_U = 28;
+public const int LUSOL_IP_TRIANGROWS_L = 29;
+public const int LUSOL_IP_FTRANCOUNT = 30;
+public const int LUSOL_IP_BTRANCOUNT = 31;
+public const int LUSOL_IP_ROWCOUNT_L0 = 32;
+        public const int LUSOL_IP_LASTITEM = LUSOL_IP_ROWCOUNT_L0;
+
+        /* parmlu INPUT parameters: */
+        public const int LUSOL_RP_FACTORMAX_Lij = 1;
+        public const int LUSOL_RP_UPDATEMAX_Lij = 2;
+        public const int LUSOL_RP_ZEROTOLERANCE = 3;
+
+        /* parmlu OUPUT parameters: */
+        public const int LUSOL_RP_MAXELEM_A = 10;
+        public const int LUSOL_RP_MAXMULT_L = 11;
+        public const int LUSOL_RP_MAXELEM_U = 12;
+        public const int LUSOL_RP_MAXELEM_DIAGU = 13;
+        public const int LUSOL_RP_MINELEM_DIAGU = 14;
+        public const int LUSOL_RP_MAXELEM_TCP = 15;
+        public const int LUSOL_RP_GROWTHRATE = 16;
+
+        /* Parameter/option defines                                                  */
+        /* ------------------------------------------------------------------------- */
+
+        public const int LUSOL_MSG_SINGULARITY = 0;
+        public const int LUSOL_MSG_STATISTICS = 10;
+
+        public const int LUSOL_PIVMOD_NOCHANGE = -2;  /* Don't change active pivoting model */
+        public const int LUSOL_PIVMOD_DEFAULT = -1;  /* Set pivoting model to default */
+        public const int LUSOL_PIVMOD_TPP = 0;  /* Threshold Partial   pivoting (normal) */
+        public const int LUSOL_PIVMOD_TRP = 1;  /* Threshold Rook      pivoting */
+        public const int LUSOL_PIVMOD_TCP = 2;  /* Threshold Complete  pivoting */
+        public const int LUSOL_PIVMOD_TSP = 3;  /* Threshold Symmetric pivoting */
+        public const int LUSOL_PIVMOD_MAX = LUSOL_PIVMOD_TSP;
+
+        public const int LUSOL_PIVTOL_NOCHANGE = 0;
+        public const int LUSOL_PIVTOL_BAGGY = 1;
+        public const int LUSOL_PIVTOL_LOOSE = 2;
+        public const int LUSOL_PIVTOL_NORMAL = 3;
+        public const int LUSOL_PIVTOL_SLIM = 4;
+        public const int LUSOL_PIVTOL_TIGHT = 5;
+        public const int LUSOL_PIVTOL_SUPER = 6;
+        public const int LUSOL_PIVTOL_CORSET = 7;
+        public const int LUSOL_PIVTOL_MAX = LUSOL_PIVTOL_CORSET;
+
+
+        public const int LUSOL_PIVTOL_DEFAULT = LUSOL_PIVTOL_SLIM;
+
+        /* General constants and data type definitions                               */
+        /* ------------------------------------------------------------------------- */
+        public const int LUSOL_ARRAYOFFSET = 1;
+
+        /* User-settable default parameter values                                    */
+        /* ------------------------------------------------------------------------- */
+        public const double LUSOL_SMALLNUM = 1.0e-20;  /* IAEE doubles have precision 2.22e-16 */
 
         internal static int LUSOL_getSingularity(LUSOLrec LUSOL, int singitem)
         {
-            throw new NotImplementedException();
+            if ((singitem > LUSOL.luparm[LUSOL_IP_SINGULARITIES]) || (singitem < 0))
+            {
+                singitem = -1;
+            }
+            else if (singitem == 0)
+            {
+                singitem = LUSOL.luparm[LUSOL_IP_SINGULARITIES];
+            }
+            else if (singitem > 1)
+            {
+                singitem = LUSOL.isingular[singitem];
+            }
+            else
+            {
+                singitem = LUSOL.luparm[LUSOL_IP_SINGULARINDEX];
+            }
+            return (singitem);
         }
 
         private void LUSOL_free(LUSOLrec LUSOL)
@@ -68,7 +163,7 @@ namespace ZS.Math.Optimization
             LUSOL_FREE(LUSOL);
         }
 
-        internal void LUSOL_matfree(LUSOLmat[] mat)
+        internal static void LUSOL_matfree(LUSOLmat[] mat)
         {
             if ((mat == null) || (mat[0] == null))
             {
@@ -142,14 +237,284 @@ namespace ZS.Math.Optimization
         }
         */
 
+        internal static int LUSOL_tightenpivot(LUSOLrec LUSOL)
+        {
+#if false
+//  REAL newvalue;
+#endif
+
+            /* Give up tightening if we are already less than limit and we cannot change strategy */
+            if ((double)commonlib.MIN(LUSOL.parmlu[LUSOL_RP_FACTORMAX_Lij], LUSOL.parmlu[LUSOL_RP_UPDATEMAX_Lij]) < 1.1)
+            {
+                if (LUSOL.luparm[LUSOL_IP_PIVOTTYPE] >= LUSOL_PIVMOD_TRP)
+                {
+                    return 0;
+                }
+                LUSOL_setpivotmodel(LUSOL, LUSOL.luparm[LUSOL_IP_PIVOTTYPE] + 1, LUSOL_PIVTOL_DEFAULT + 1);
+                return (2);
+            }
+
+            /* Otherwise tighten according to defined schedule */
+#if false
+//  newvalue = sqrt(LUSOL->parmlu[LUSOL_RP_FACTORMAX_Lij]);
+//  LUSOL->parmlu[LUSOL_RP_FACTORMAX_Lij] = newvalue;
+//  SETMIN(LUSOL->parmlu[LUSOL_RP_UPDATEMAX_Lij], newvalue);
+#elif false
+//  newvalue = sqrt(LUSOL->parmlu[LUSOL_RP_FACTORMAX_Lij]);
+//  LUSOL->parmlu[LUSOL_RP_FACTORMAX_Lij] = newvalue;
+//  LUSOL->parmlu[LUSOL_RP_UPDATEMAX_Lij] = 1.0 + (newvalue - 1.0) / 2;
+#else
+            LUSOL.parmlu[LUSOL_RP_FACTORMAX_Lij] = 1.0 + LUSOL.parmlu[LUSOL_RP_FACTORMAX_Lij] / 3.0;
+            LUSOL.parmlu[LUSOL_RP_UPDATEMAX_Lij] = 1.0 + LUSOL.parmlu[LUSOL_RP_UPDATEMAX_Lij] / 3.0;
+#endif
+            return (1);
+
+        }
+
+        private static void LUSOL_setpivotmodel(LUSOLrec LUSOL, int pivotmodel, int initlevel)
+        {
+            double newFM;
+            double newUM;
+
+            /* Set pivotmodel if specified */
+            if (pivotmodel > LUSOL_PIVMOD_NOCHANGE)
+            {
+                if ((pivotmodel <= LUSOL_PIVMOD_DEFAULT) || (pivotmodel > LUSOL_PIVMOD_MAX))
+                {
+                    pivotmodel = LUSOL_PIVMOD_TPP;
+                }
+                LUSOL.luparm[LUSOL_IP_PIVOTTYPE] = pivotmodel;
+            }
+
+            /* Check if we need bother about changing tolerances */
+            if ((initlevel <= LUSOL_PIVTOL_NOCHANGE) || (initlevel > LUSOL_PIVTOL_MAX))
+            {
+                return;
+            }
+
+            /* Set default pivot tolerances
+               (note that UPDATEMAX should always be <= FACTORMAX) */
+            if (initlevel == LUSOL_PIVTOL_BAGGY)
+            { // Extra-loose pivot thresholds
+                newFM = 500.0;
+                newUM = newFM / 20;
+            }
+            else if (initlevel == LUSOL_PIVTOL_LOOSE)
+            { // Moderately tight pivot tolerances
+                newFM = 100.0;
+                newUM = newFM / 10;
+            }
+            else if (initlevel == LUSOL_PIVTOL_NORMAL)
+            { // Standard pivot tolerances
+                newFM = 28.0;
+                newUM = newFM / 4;
+            }
+            else if (initlevel == LUSOL_PIVTOL_SLIM)
+            { // Better accuracy pivot tolerances
+                newFM = 10.0;
+                newUM = newFM / 2;
+            }
+            else if (initlevel == LUSOL_PIVTOL_TIGHT)
+            { // Enhanced accuracy pivot tolerances
+                newFM = 5.0;
+                newUM = newFM / 2;
+            }
+            else if (initlevel == LUSOL_PIVTOL_SUPER)
+            { // Very tight pivot tolerances for extra accuracy
+                newFM = 2.5;
+                newUM = 1.99;
+            }
+            else
+            { // Extremely tight pivot tolerances for extra accuracy
+                newFM = 1.99;
+                newUM = newFM / 1.49;
+            }
+
+            /* Set the tolerances */
+            LUSOL.parmlu[LUSOL_RP_FACTORMAX_Lij] = newFM;
+            LUSOL.parmlu[LUSOL_RP_UPDATEMAX_Lij] = newUM;
+
+        }
+
+        //C++ TO C# CONVERTER NOTE: This was formerly a static local variable declaration (not allowed in C#):
+        internal static string[] LUSOL_pivotLabel_pivotText = { "TPP", "TRP", "TCP", "TSP" };
+        internal static string LUSOL_pivotLabel(LUSOLrec LUSOL)
+        {
+            //C++ TO C# CONVERTER NOTE: This static local variable declaration (not allowed in C#) has been moved just prior to the method:
+            //  static char *pivotText[LUSOL_PIVMOD_MAX+1] = {"TPP", "TRP", "TCP", "TSP"};
+            return (LUSOL_pivotLabel_pivotText[LUSOL.luparm[LUSOL_IP_PIVOTTYPE]]);
+        }
+
+        internal static void LUSOL_clear(LUSOLrec LUSOL, bool nzonly)
+        {
+            int len;
+
+            LUSOL.nelem = 0;
+            if (!nzonly)
+            {
+
+                /* lena arrays */
+                len = LUSOL.lena + LUSOL_ARRAYOFFSET;
+                /*NOT REQUIRED
+                MEMCLEAR(LUSOL.a, len);
+                MEMCLEAR(LUSOL.indc, len);
+                MEMCLEAR(LUSOL.indr, len);
+                */
+
+                /* maxm arrays */
+                len = LUSOL.maxm + LUSOL_ARRAYOFFSET;
+            
+                /*NOT REQUIRED
+                MEMCLEAR(LUSOL.lenr, len);
+                MEMCLEAR(LUSOL.ip, len);
+                MEMCLEAR(LUSOL.iqloc, len);
+                MEMCLEAR(LUSOL.ipinv, len);
+                MEMCLEAR(LUSOL.locr, len);
+                */
+#if !ClassicHamaxR
+                //C++ TO C# CONVERTER TODO TASK: Statements that are interrupted by preprocessor statements are not converted by C++ to C# Converter:
+                //if ((LUSOL.amaxr != null)) { }
+            
+    
+#if AlwaysSeparateHamaxR
+//C++ TO C# CONVERTER TODO TASK: Statements that are interrupted by preprocessor statements are not converted by C++ to C# Converter:
+	   && (LUSOL.luparm[LUSOL_IP_PIVOTTYPE] == LUSOL_PIVMOD_TRP)
+#endif
+	 //)
+/*NOT REQUIRED
+  MEMCLEAR(LUSOL.amaxr, len);
+  */
+                
+#endif
+
+                /* maxn arrays */
+                len = LUSOL.maxn + LUSOL_ARRAYOFFSET;
+                /*NOT REQUIRED
+                MEMCLEAR(LUSOL.lenc, len);
+                MEMCLEAR(LUSOL.iq, len);
+                MEMCLEAR(LUSOL.iploc, len);
+                MEMCLEAR(LUSOL.iqinv, len);
+                MEMCLEAR(LUSOL.locc, len);
+                MEMCLEAR(LUSOL.w, len);
+                
+
+                if (LUSOL.luparm[LUSOL_IP_PIVOTTYPE] == LUSOL_PIVMOD_TCP)
+                {
+                    MEMCLEAR(LUSOL.Ha, len);
+                    MEMCLEAR(LUSOL.Hj, len);
+                    MEMCLEAR(LUSOL.Hk, len);
+                }
+#if !ClassicdiagU
+                if (LUSOL.luparm[LUSOL_IP_KEEPLU] == 0)
+                {
+                    MEMCLEAR(LUSOL.diagU, len);
+                }
+#endif
+*/
+            }
+
+        }
+
+        internal static int LUSOL_loadColumn(LUSOLrec LUSOL, int[][] iA, int jA, double[] Aij, int nzcount, int offset1)
+        {
+            int i;
+            int ii;
+            int nz;
+            int k;
+
+            nz = LUSOL.nelem;
+            i = nz + nzcount;
+            if (i > (LUSOL.lena / LUSOL.luparm[LUSOL_IP_SCALAR_NZA]) && !LUSOL_realloc_a(LUSOL, i * LUSOL.luparm[LUSOL_IP_SCALAR_NZA]))
+            {
+                return (-1);
+            }
+
+            k = 0;
+            for (ii = 1; ii <= nzcount; ii++)
+            {
+                i = ii + offset1;
+                if (Aij[i] == 0)
+                {
+                    continue;
+                }
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                if (iA[i][0] <= 0 || iA[i][0] > LUSOL.m || jA <= 0 || jA > LUSOL.n)
+                {
+                    LUSOL_report(LUSOL, 0, "Variable index outside of set bounds (r:%d/%d, c:%d/%d)\n", iA[i], LUSOL.m, jA, LUSOL.n);
+                    continue;
+                }
+                k++;
+                nz++;
+                LUSOL.a[nz] = Aij[i];
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                LUSOL.indc[nz] = iA[i][0];
+                LUSOL.indr[nz] = jA;
+            }
+            LUSOL.nelem = nz;
+            return (k);
+        }
+
+        internal static char relationChar(double left, double right)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void LUSOL_report(LUSOLrec LUSOL, int msglevel, string format, params object[] LegacyParamArray)
+        {
+            /*
+            va_list ap;
+            if (LUSOL == null)
+            {
+                
+                va_start(ap, format);
+                vfprintf(stderr, format, ap);
+                va_end(ap);
+                
+             }
+        
+            else if (msglevel >= 0)
+            {
+                if (LUSOL.writelog != null)
+                {
+                    string buff = new string(new char[255]);
+
+                    va_start(ap, format);
+                    vsprintf(buff, format, ap);
+                    va_end(ap);
+                    LUSOL.writelog(LUSOL, LUSOL.loghandle, buff);
+                }
+                if (LUSOL.outstream != null)
+                {
+                    va_start(ap, format);
+                    vfprintf(LUSOL.outstream, format, ap);
+                    va_end(ap);
+                    fflush(LUSOL.outstream);
+                }
+            }
+            */
+            throw new NotImplementedException();
+        }
+
+        internal static bool LUSOL_realloc_a(LUSOLrec LUSOL, int newsize)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static int LUSOL_factorize(LUSOLrec LUSOL)
+        {
+            int inform = 0;
+
+            lusol1.LU1FAC(LUSOL, ref inform);
+            return (inform);
+        }
     }
 
     /* The main LUSOL data record */
-    /* ------------------------------------------------------------------------- */
+                /* ------------------------------------------------------------------------- */
     public class LUSOLrec
     {
-        private const int LUSOL_IP_ROWCOUNT_L0 = 32;
-        private const int LUSOL_IP_LASTITEM = LUSOL_IP_ROWCOUNT_L0;
         private const int LUSOL_RP_RESIDUAL_U = 20;
         private const int LUSOL_RP_LASTITEM = LUSOL_RP_RESIDUAL_U;
 
@@ -165,33 +530,34 @@ namespace ZS.Math.Optimization
 
         /* Arrays of length lena+1 */
         public int lena;
-        public int nelem;
-        public int indc;
-        public int indr;
-        public double a;
+        public int[] nelem;
+        public int[] indc;
+        public int[] indr;
+        public double[] a;
 
         /* Arrays of length maxm+1 (row storage) */
         public int maxm;
         public int m;
-        public int lenr;
+        public int[] lenr;
         public int[] ip;
-        public int iqloc;
-        public int ipinv;
-        public int locr;
+        public int[] iqloc;
+        public int[] ipinv;
+        public int[] locr;
 
         /* Arrays of length maxn+1 (column storage) */
         public int maxn;
         public int n;
-        public int lenc;
-        public int iq;
-        public int iploc;
+        public int[] lenc;
+        public int[] iq;
+        public int[] iploc;
         public int[] iqinv;
-        public int locc;
+        public int[] locc;
         public double[] w;
         public double vLU6L;
 
         /* List of singular columns, with dynamic size allocation */
-        public int isingular;
+        //changed to int[] on 30/11/18
+        public int[] isingular;
 
         /* Extra arrays of length n for TCP and keepLU == FALSE */
         public double Ha;
@@ -200,7 +566,7 @@ namespace ZS.Math.Optimization
         public int Hk;
 
         /* Extra arrays of length m for TRP*/
-        public double amaxr;
+        public double? amaxr;
         public LUSOLmat[] L0;
         public LUSOLmat[] U;
 
@@ -216,5 +582,7 @@ namespace ZS.Math.Optimization
         double a;
         int lenx, indr, indc, indx;
     }
+
+    
 }
 

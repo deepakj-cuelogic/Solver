@@ -186,7 +186,7 @@ namespace ZS.Math.Optimization
                         msg = "mempool_obtainVector: Invalid %s existing vector selected\n";
                         lp.report(lp, lp_lib.SEVERE, ref msg, (ie < 0 ? "too small" : "occupied"));
                         lp.spx_status = lp_lib.NOMEMORY;
-                        lp.bb_break = 1;
+                        lp.bb_break = true;
                         return (newmem);
                     }
                     ///#endif
@@ -395,7 +395,7 @@ namespace ZS.Math.Optimization
         }
 
         /* Doubly linked list routines */
-        internal static int createLink(int size, LLrec[] linkmap, ref byte usedpos)
+        internal static int createLink(int size, LLrec linkmap, ref bool? usedpos)
         {
             throw new NotImplementedException();
         }

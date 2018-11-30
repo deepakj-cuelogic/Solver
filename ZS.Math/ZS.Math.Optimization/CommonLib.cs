@@ -166,11 +166,11 @@ namespace ZS.Math.Optimization
             focusPos = (beginPos + endPos) / 2;
             //NOTED ISSUE
             //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
-            beginAttrib = CMP_ATTRIBUTES(beginPos);
+            beginAttrib = (((string)attributes) + ((double)beginPos) * (double)recsize);    // CMP_ATTRIBUTES(beginPos);
             //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
-            focusAttrib = CMP_ATTRIBUTES(focusPos);
+            focusAttrib = (((string)attributes) + ((double)focusPos) * (double)recsize);    //CMP_ATTRIBUTES(focusPos);
             //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
-            endAttrib = CMP_ATTRIBUTES(endPos);
+            endAttrib = (((string)attributes) + ((double)endPos) * (double)recsize);  // CMP_ATTRIBUTES(endPos);
 
             compare = 0;
             while (endPos - beginPos > LINEARSEARCH)
@@ -192,19 +192,19 @@ namespace ZS.Math.Optimization
                     {
                         beginPos = focusPos + 1;
                         //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
-                        beginAttrib = CMP_ATTRIBUTES(beginPos);
+                        beginAttrib = (((string)attributes) + ((double)beginPos) * (double)recsize);    //CMP_ATTRIBUTES(beginPos);
                         focusPos = (beginPos + endPos) / 2;
                         //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
-                        focusAttrib = CMP_ATTRIBUTES(focusPos);
+                        focusAttrib = (((string)attributes) + ((double)focusPos) * (double)recsize);    // CMP_ATTRIBUTES(focusPos);
                     }
                     else if (compare > 0)
                     {
                         endPos = focusPos - 1;
                         //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
-                        endAttrib = CMP_ATTRIBUTES(endPos);
+                        endAttrib = (((string)attributes) + ((double)endPos) * (double)recsize);  // CMP_ATTRIBUTES(endPos);
                         //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
                         focusPos = (beginPos + endPos) / 2;
-                        focusAttrib = CMP_ATTRIBUTES(focusPos);
+                        focusAttrib = (((string)attributes) + ((double)focusPos) * (double)recsize);    // CMP_ATTRIBUTES(focusPos);
                     }
                     else
                     {
@@ -220,7 +220,7 @@ namespace ZS.Math.Optimization
 
                 /* Do traditional indexed access */
                 //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
-                focusAttrib = CMP_ATTRIBUTES(beginPos);
+                focusAttrib = (((string)attributes) + ((double)beginPos) * (double)recsize);    // CMP_ATTRIBUTES(beginPos);
                 if (beginPos == endPos)
                 {
                     compare = findCompare(target, focusAttrib) * order;
@@ -231,7 +231,7 @@ namespace ZS.Math.Optimization
                     {
                         beginPos++;
                         //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
-                        focusAttrib = CMP_ATTRIBUTES(beginPos);
+                        focusAttrib = (((string)attributes) + ((double)beginPos) * (double)recsize);    // CMP_ATTRIBUTES(beginPos);
                     }
                 }
             }
@@ -454,7 +454,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        private static int sortByINT(ref int item, ref int weight, int size, int offset, byte unique)
+        internal static int sortByINT(ref int item, ref int weight, int size, int offset, byte unique)
         {
             throw new NotImplementedException();
         }

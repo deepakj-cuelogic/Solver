@@ -62,6 +62,7 @@
     <Compile Include="LpSos.cs" />
     <Compile Include="LpUtils.cs" />
     <Compile Include="lusol.cs" />
+    <Compile Include="lusol1.cs" />
     <Compile Include="lusol6a.cs" />
     <Compile Include="lusol6l0.cs" />
     <Compile Include="lusol6u.cs" />

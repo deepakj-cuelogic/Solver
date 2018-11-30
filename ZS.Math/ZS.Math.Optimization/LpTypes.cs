@@ -42,7 +42,7 @@ namespace ZS.Math.Optimization
 
         public static Func<lprec, int, double> my_lowbo = (lp, varnr) => (0.0);
 
-        internal static string RESULTVALUEMASK = "%18.12g";
+        
 
         /* Library load status values */
         internal const int LIB_LOADED = 0;

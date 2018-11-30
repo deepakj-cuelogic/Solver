@@ -2169,7 +2169,7 @@ namespace ZS.Math.Optimization
             return (status);
         }
 
-        internal new int set_basisvar(lprec lp, int basisPos, int enteringCol)
+        internal static new int set_basisvar(lprec lp, int basisPos, int enteringCol)
         {
             int leavingCol;
             string msg;
@@ -5862,6 +5862,20 @@ internal static class StringFunctions
             {
                 return ((bool)(lp.upbo[varnr] - lp.lowbo[varnr] < lprec.epsvalue));
             }
+        }
+
+        internal new static int get_basiscolumn(lprec lp, int j, int rn, double bj)
+        /* This routine returns sparse vectors for all basis
+           columns, including the OF dummy (index 0) and slack columns.
+           NOTE that the index usage is nonstandard for lp_solve, since
+           the array offset is 1, not 0. */
+        {
+            throw new NotImplementedException();
+        }
+
+        public new bool is_presolve(lprec lp, int testmask)
+        {
+            return ((bool)((lp.do_presolve == testmask) || ((lp.do_presolve & testmask) != 0)));
         }
     }
 }

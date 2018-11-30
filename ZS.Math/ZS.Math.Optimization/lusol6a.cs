@@ -8,6 +8,11 @@ namespace ZS.Math.Optimization
 {
     public class lusol6a
     {
+        internal static void LU6CHK(LUSOLrec LUSOL, int MODE, int LENA2, ref int INFORM)
+        {
+            throw new NotImplementedException();
+        }
+
         internal void LU6SOL(LUSOLrec LUSOL, int MODE, double[] V, double[] W, int[] NZidx, ref int INFORM)
         {
             if (MODE == commonlib.LUSOL_SOLVE_Lv_v)

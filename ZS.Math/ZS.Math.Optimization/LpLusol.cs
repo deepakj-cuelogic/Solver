@@ -8,7 +8,7 @@ namespace ZS.Math.Optimization
 {
     public class lp_LUSOL
     {
-        
+
 
         public const int LU_START_SIZE = 10000; // Start size of LU; realloc'ed if needed
         public const int DEF_MAXPIVOT = 250; // Maximum number of pivots before refactorization
@@ -31,7 +31,7 @@ namespace ZS.Math.Optimization
             /* Do the LUSOL btran */
             //NOTED ISSUE
             double[] b = new double[1];
-            b[0] = pcol[0] - Convert.ToDouble(objLpBFP1.bfp_rowoffset(lp));
+            b[0] = pcol[0] - Convert.ToDouble(LpBFP1.bfp_rowoffset(lp));
             i = objlusol.LUSOL_btran(lu.LUSOL, b, nzidx);
             if (i != commonlib.LUSOL_INFORM_LUSUCCESS)
             {
@@ -76,7 +76,7 @@ namespace ZS.Math.Optimization
             //LUSOL_FREE(LUSOL);
         }
 
-        
+
 
         // MUST MODIFY 
         internal void bfp_free(lprec lp)    //BFP_CALLMODEL
@@ -125,7 +125,7 @@ namespace ZS.Math.Optimization
 
             /* Check if the refactorization frequency is low;
                tighten pivot thresholds if appropriate */
-            inform = lp.bfp_pivotcount(lp);
+            inform = LpBFP1.bfp_pivotcount(lp);
             if (final == null && !lp.invB.force_refact && !lp.is_action(lp.spx_action, lp_lib.ACTION_TIMEDREINVERT) && (inform > 5) && (inform < 0.25 * lp.bfp_pivotmax(lp)))
             {
                 bfp_LUSOLtighten(lp);
@@ -265,13 +265,165 @@ namespace ZS.Math.Optimization
 
         private static void bfp_LUSOLtighten(lprec lp)
         {
-            throw new NotImplementedException();
+            int infolevel = lp_lib.DETAILED;
+            string msg = "";
+
+            switch (lusol.LUSOL_tightenpivot(lp.invB.LUSOL))
+            {
+                case 0:
+                    msg = "bfp_factorize: Very hard numerics, but cannot tighten LUSOL thresholds further.\n";
+                    lp.report(lp, infolevel, ref msg);
+                    break;
+                case 1:
+                    msg = "bfp_factorize: Frequent refact pivot count %d at iter %.0f; tightened thresholds.\n";
+                    lp.report(lp, infolevel, ref msg, lp.invB.num_pivots, (double)lp.get_total_iter(lp));
+                    break;
+                default:
+                    msg = "bfp_factorize: LUSOL switched to %s pivoting model to enhance stability.\n";
+                    lp.report(lp, infolevel, ref msg, lusol.LUSOL_pivotLabel(lp.invB.LUSOL));
+                    break;
+            }
+
         }
 
         /* LOCAL HELPER ROUTINE */
         //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
         //changed from 'ref int rownum' to 'ref int[][] rownum'; need to check at run time
         private static int bfp_LUSOLfactorize(lprec lp, ref bool? usedpos, ref int[][] rownum, ref int? singular)
+        {
+            int i;
+            int j;
+            int nz;
+            int deltarows = LpBFP1.bfp_rowoffset(lp);
+            INVrec invB = lp.invB;
+
+            /* Handle normal, presumed nonsingular case */
+            if (singular == null)
+            {
+
+                /* Optionally do a symbolic minimum degree ordering;
+                   not that slack variables should not be processed */
+                /*#define UsePreprocessMDO*/
+#if UsePreprocessMDO
+	int[] mdo;
+	mdo = LpBFP1.bfp_createMDO(lp, usedpos, lp.rows, 1);
+	if (mdo != null)
+	{
+	  for (i = 1; i <= lp.rows; i++)
+	  {
+		LpCls.set_basisvar(lp, i, mdo[i]);
+	  }
+	  FREE(mdo);
+	}
+#endif
+
+                /* Reset the factorization engine */
+                lusol.LUSOL_clear(invB.LUSOL, true);
+
+                /* Add the basis columns in the original order */
+                for (i = 1; i <= invB.dimcount; i++)
+                {
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //changed from 'rownum' to 'rownum[0][0]'; need to check at run time
+                    nz = LpCls.get_basiscolumn(lp, i, rownum[0][0], invB.value);
+                    lusol.LUSOL_loadColumn(invB.LUSOL, rownum, i, invB.value, nz, 0);
+                    if ((i > deltarows) && (lp.var_basic[i - deltarows] > lp.rows))
+                    {
+                        lp.invB.user_colcount++;
+                    }
+                }
+
+                /* Factorize */
+                i = lusol.LUSOL_factorize(invB.LUSOL);
+            }
+
+            /* Handle case where a column may be singular */
+            else
+            {
+                LLrec map = null;
+
+                /* Reset the factorization engine */
+                i = bfp_LUSOLidentity(lp, rownum);
+
+                usedpos = null;
+                /* Build map of available columns */
+                nz = lp_utils.createLink(lp.rows, map, ref usedpos);
+                for (i = 1; i <= lp.rows; i++)
+                {
+                    if (lp.var_basic[i] <= lp.rows)
+                    {
+                        lp_utils.removeLink(map, i);
+                    }
+                }
+
+                /* Rebuild the basis, column by column, while skipping slack columns */
+                j = lp_utils.firstActiveLink(map);
+                for (i = 1; i <= lp.rows; i++)
+                {
+                    if (lp.var_basic[i] <= lp.rows)
+                    {
+                        continue;
+                    }
+                    nz = bfp_LUSOLsetcolumn(lp, j + deltarows, lp.var_basic[i]);
+                    if (nz == lusol.LUSOL_INFORM_LUSUCCESS)
+                    {
+                        lp.invB.user_colcount++;
+                    }
+                    else
+                    {
+                        nz = bfp_LUSOLsetcolumn(lp, j + deltarows, i);
+                        lp.set_basisvar(lp, i, i);
+                    }
+                    j = lp_utils.nextActiveLink(map, j);
+                }
+
+                /* Sort the basis list */
+                /*NOT REQUIRED
+                MEMCOPY(rownum, lp.var_basic, lp.rows + 1);
+                */
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //changed from 'rownum' to 'rownum[0][0]'; need to check at run time
+                commonlib.sortByINT(ref lp.var_basic[0], ref rownum[0][0], lp.rows, 1, 1);
+            }
+            return (i);
+        }
+
+        /* LOCAL HELPER ROUTINE - Replace a basis column with corresponding slack */
+        private static int bfp_LUSOLsetcolumn(lprec lp, int posnr, int colnr)
+        {
+            throw new NotImplementedException();
+        }
+
+            /* LOCAL HELPER ROUTINE - force the basis to be the identity matrix */
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            // changed from 'int rownum' to 'int[][] rownum'
+            static int bfp_LUSOLidentity(lprec lp, int[][] rownum)
+        {
+            int i;
+            int nz;
+            INVrec invB = lp.invB;
+
+            /* Reset the factorization engine */
+            lusol.LUSOL_clear(invB.LUSOL, true);
+
+            /* Add the basis columns */
+            lp.invB.set_Bidentity = 1;
+            for (i = 1; i <= invB.dimcount; i++)
+            {
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                // changed from 'rownum' to 'rownum[0][0]'
+                nz = LpCls.get_basiscolumn(lp, i, rownum[0][0], invB.value);
+                lusol.LUSOL_loadColumn(invB.LUSOL, rownum, i, invB.value, nz, 0);
+            }
+            lp.invB.set_Bidentity = 0;
+
+            /* Factorize */
+            i = lusol.LUSOL_factorize(invB.LUSOL);
+
+            return (i);
+        }
+
+        internal bool LUSOL_tightenpivot(LUSOLrec LUSOL)
         {
             throw new NotImplementedException();
         }

@@ -2456,7 +2456,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public int get_presolveloops(lprec lp)
         { throw new NotImplementedException(); }
-        public byte is_presolve(lprec lp, int testmask)
+        public bool is_presolve(lprec lp, int testmask)
         { throw new NotImplementedException(); }
 
         public int get_orig_index(lprec lp, int lp_index)
@@ -2988,7 +2988,7 @@ throw new NotImplementedException(); }
 
         public int get_basisOF(lprec lp, int[] coltarget, double[] crow, int[] colno)
         { throw new NotImplementedException(); }
-        public int get_basiscolumn(lprec lp, int j, int[] rn, double[] bj)
+        private int get_basiscolumn(lprec lp, int j, int rn, double bj)
         { throw new NotImplementedException(); }
         public int obtain_column(lprec lp, int varin, ref double pcol, ref int nzlist, ref int maxabs)
         { throw new NotImplementedException(); }
