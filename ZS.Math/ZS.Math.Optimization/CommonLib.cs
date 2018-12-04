@@ -506,12 +506,58 @@ namespace ZS.Math.Optimization
 
         }
 
-        private static double timeNow()
+        internal static double timeNow()
         {
-            throw new NotImplementedException();
+            #if INTEGERTIME
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+  return ((double)time(null));
+#elif CLOCKTIME
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+  return ((double)clock() / CLOCKS_PER_SEC);
+#elif PosixTime
+  private timespec t = new timespec();
+#if false
+//  clock_gettime(CLOCK_REALTIME, &t);
+//  return( (double) t.tv_sec + (double) t.tv_nsec/1.0e9 );
+#else
+  private static double timeBase;
+
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+  clock_gettime(CLOCK_MONOTONIC, &t);
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+  if (timeBase == 0)
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+	timeBase = clockNow() - ((double) t.tv_sec + (double) t.tv_nsec / 1.0e9);
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+  return (timeBase + (double) t.tv_sec + (double) t.tv_nsec / 1.0e9);
+#endif
+#elif EnhTime
+  private static LARGE_INTEGER freq = new LARGE_INTEGER();
+  private static double timeBase;
+  private LARGE_INTEGER now = new LARGE_INTEGER();
+
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+  QueryPerformanceCounter(&now);
+//C++ TO C# CONVERTER TODO TASK: The following method format was not recognized, possibly due to an unrecognized macro:
+  if (timeBase == 0)
+  {
+	QueryPerformanceFrequency(freq);
+	timeBase = clockNow() - (double) now.QuadPart / (double) freq.QuadPart;
+  }
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+  return (timeBase + (double) now.QuadPart / (double) freq.QuadPart);
+#else
+        private timeb buf = new timeb();
+
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+  ftime(&buf);
+//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+  return ((double)buf.time + ((double) buf.millitm) / 1000.0);
+#endif
+
         }
 
-        private static void blockWriteBOOL(FILE output, ref string label, ref byte myvector, int first, int last, byte asRaw)
+    private static void blockWriteBOOL(FILE output, ref string label, ref byte myvector, int first, int last, byte asRaw)
         {
             throw new NotImplementedException();
         }

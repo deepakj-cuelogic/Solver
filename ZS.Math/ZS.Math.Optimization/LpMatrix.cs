@@ -172,8 +172,17 @@ namespace ZS.Math.Optimization
         internal static Func<int, double> COL_MAT_VALUE = (item) => (mat.col_mat_value[item]);
 
 
+        /* //ORIGINAL CODE: /*#define COL_MAT_MOVE(to,from,rec) MEMMOVE(&COL_MAT_COLNR(to),&COL_MAT_COLNR(from),rec); \
+                                   MEMMOVE(&COL_MAT_ROWNR(to),&COL_MAT_ROWNR(from),rec); \
+                                   MEMMOVE(&COL_MAT_VALUE(to),&COL_MAT_VALUE(from),rec) */
 
-
+        internal static Action<int, int, int> COL_MAT_MOVE = delegate (int to, int from, int rec)
+        {
+            //NOTED ISSUE: NEED TO CHECK ON 05/12/2018
+            MEMMOVE(COL_MAT_COLNR(to), COL_MAT_COLNR(from), rec);
+            MEMMOVE(COL_MAT_ROWNR(to), COL_MAT_ROWNR(from), rec);
+            MEMMOVE(COL_MAT_VALUE(to), COL_MAT_VALUE(from), rec);
+        };
         //ORIGINAL CODE: #define ROW_MAT_VALUE(item)       COL_MAT_VALUE(mat->row_mat[item])
         static Func<int, double> ROW_MAT_VALUE = (item) => COL_MAT_VALUE(mat.row_mat[item]);
 
@@ -1188,7 +1197,166 @@ namespace ZS.Math.Optimization
         static double mat_getitem(MATrec mat, int row, int column) { throw new NotImplementedException(); }
         static byte mat_setitem(MATrec mat, int row, int column, double value) { throw new NotImplementedException(); }
         static byte mat_additem(MATrec mat, int row, int column, double delta) { throw new NotImplementedException(); }
-        static byte mat_setvalue(MATrec mat, int Row, int Column, double Value, byte doscale) { throw new NotImplementedException(); }
+        internal static bool mat_setvalue(MATrec mat, int Row, int Column, double Value, bool doscale)
+        {
+            int elmnr = 0;
+            int lastelm;
+            int i;
+            int RowA = Row;
+            int ColumnA = Column;
+            bool isA;
+            LpCls objLpCls = new LpCls();
+
+            /* This function is inefficient if used to add new matrix entries in
+               other places than at the end of the matrix. OK for replacing existing
+               a non-zero value with another non-zero value */
+            isA = (bool)(mat == mat.lp.matA);
+            if (mat.is_roworder)
+            {
+                lp_utils.swapINT(ref Row, ref Column);
+            }
+
+            /* Set small numbers to zero */
+            if (System.Math.Abs(Value) < mat.epsvalue)
+            {
+                Value = 0;
+            }
+#if DoMatrixRounding
+  else
+  {
+	Value = roundToPrecision(Value, mat.epsvalue);
+  }
+#endif
+
+            /* Check if we need to update column space */
+            if (Column > mat.columns)
+            {
+                if (isA)
+                {
+                    LpCls.inc_col_space(mat.lp, ColumnA - mat.columns);
+                }
+                else
+                {
+                    inc_matcol_space(mat, Column - mat.columns);
+                }
+            }
+
+            /* Find out if we already have such an entry, or return insertion point */
+            i = mat_findins(mat, Row, Column, elmnr, 0);
+            if (i == -1)
+            {
+                return (0);
+            }
+
+            if (isA)
+            {
+                LpCls.set_action(ref mat.lp.spx_action, lp_lib.ACTION_REBASE | lp_lib.ACTION_RECOMPUTE | lp_lib.ACTION_REINVERT);
+            }
+
+            if (i >= 0)
+            {
+                /* there is an existing entry */
+                if (System.Math.Abs(Value) > mat.epsvalue)
+                { // we replace it by something non-zero
+                    if (isA)
+                    {
+                        Value = lp_types.my_chsign(objLpCls.is_chsign(mat.lp, RowA), Value);
+                        if (doscale && mat.lp.scaling_used)
+                        {
+                            Value = lp_scale.scaled_mat(mat.lp, Value, RowA, ColumnA);
+                        }
+                    }
+                    //NEED TO CHECK AT RUNTIME.
+                    //ERROR: Left hand side of an assingment must be variable property or index, Whereas COL_MAT_VALUE is Func
+                    //ORIGINAL LINE: COL_MAT_VALUE(elmnr) = Value;
+                    //BELOW IS THE TENTATIVE SOLUTION
+                    Value = COL_MAT_VALUE(elmnr);
+                }
+                else
+                { // setting existing non-zero entry to zero. Remove the entry
+                  /* This might remove an entire column, or leave just a bound. No
+                      nice solution for that yet */
+
+                    /* Shift up tail end of the matrix */
+                    lastelm = mat_nonzeros(mat);
+#if false
+//      for(i = elmnr; i < lastelm ; i++) {
+//        COL_MAT_COPY(i, i + 1);
+//      }
+#else
+                    lastelm -= elmnr;
+                    COL_MAT_MOVE(elmnr, elmnr + 1, lastelm);
+#endif
+                    for (i = Column; i <= mat.columns; i++)
+                    {
+                        //Added first array as [0] default, need to check at runtime.
+                        mat.col_end[0][i]--;
+                    }
+
+                    mat.row_end_valid = false;
+                }
+            }
+            else if (System.Math.Abs(Value) > mat.epsvalue)
+            {
+                /* no existing entry. make new one only if not nearly zero */
+                /* check if more space is needed for matrix */
+                if (!inc_mat_space(mat, 1))
+                {
+                    return (0);
+                }
+
+                if (Column > mat.columns)
+                {
+                    i = mat.columns + 1;
+                    if (isA)
+                    {
+                        LpCls.shift_coldata(mat.lp, i, ColumnA - mat.columns, null);
+                    }
+                    else
+                    {
+                        mat_shiftcols(mat, ref i, Column - mat.columns, null);
+                    }
+                }
+
+                /* Shift down tail end of the matrix by one */
+                lastelm = mat_nonzeros(mat);
+#if ONE
+	for (i = lastelm; i > elmnr ; i--)
+	{
+	  COL_MAT_COPY(i, i - 1);
+	}
+#else
+                lastelm -= elmnr - 1;
+                COL_MAT_MOVE(elmnr + 1, elmnr, lastelm);
+#endif
+
+                /* Set new element */
+                if (isA)
+                {
+                    Value = lp_types.my_chsign(objLpCls.is_chsign(mat.lp, RowA), Value);
+                    if (doscale)
+                    {
+                        Value = lp_scale.scaled_mat(mat.lp, Value, RowA, ColumnA);
+                    }
+                }
+                _SET_MAT_ijA(elmnr, Row, Convert.ToInt32(Column), Convert.ToInt32(Value));
+
+                /* Update column indexes */
+                for (i = Column; i <= mat.columns; i++)
+                {
+                    //Added first array [0] default, need to check at runtime.
+                    mat.col_end[0][i]++;
+                }
+
+                mat.row_end_valid = false;
+            }
+
+            if (isA && (mat.lp.var_is_free != null) && (mat.lp.var_is_free[ColumnA] > 0))
+            {
+                return (mat_setvalue(mat, RowA, Convert.ToInt32(mat.lp.var_is_free[ColumnA]), -Value, doscale));
+            }
+            return (true);
+        }
         internal static int mat_nonzeros(MATrec mat)
         {
             //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18

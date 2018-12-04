@@ -7,12 +7,12 @@ namespace ZS.Math.Optimization
     /* Partial pricing block data */
     public class partialrec
     {
-        lprec lp;
+        internal lprec lp;
         internal int blockcount;         /* ## The number of logical blocks or stages in the model */
         internal int blocknow;           /* The currently active block */
         internal int[] blockend;         /* Array of column indeces giving the start of each block */
-        int[] blockpos;         /* Array of column indeces giving the start scan position */
-        byte isrow;
+        internal int[] blockpos;         /* Array of column indeces giving the start scan position */
+        internal bool isrow;
     }
 
 
@@ -405,7 +405,7 @@ namespace ZS.Math.Optimization
         public double drow; // sum+1: Reduced costs of the last simplex
         //ORIGINAL LINE: int *nzdrow;
         public int[] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
-        public double? duals; // rows_alloc+1 : The dual variables of the last LP
+        public double[] duals; // rows_alloc+1 : The dual variables of the last LP
         public double full_duals; // sum_alloc+1: Final duals array expanded for deleted variables
         public double? dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
                                    of the last LP */
@@ -577,7 +577,7 @@ namespace ZS.Math.Optimization
         internal int bb_PseudoUpdates;   /* Maximum number of updates for pseudo-costs */
         internal int bb_strongbranches;  /* The number of strong B&B branches performed */
         internal int is_strongbranch;    /* Are we currently in a strong branch mode? */
-        int bb_improvements;    /* The number of discrete B&B objective improvement steps */
+        internal int bb_improvements;    /* The number of discrete B&B objective improvement steps */
 
         /* Solver working variables */
         internal double rhsmax;             /* The maximum |value| of the rhs vector at any iteration */
@@ -591,16 +591,16 @@ namespace ZS.Math.Optimization
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// </summary>
         internal bool bb_break;           /* Solver working variable; signals break of the B&B */
-        internal byte wasPreprocessed;    /* The solve preprocessing was performed */
+        internal bool wasPreprocessed;    /* The solve preprocessing was performed */
         internal bool wasPresolved;       /* The solve presolver was invoked */
         int INTfuture2;
 
         /* Lagragean solver storage and parameters */
         internal MATrec matL;
-        double[] lag_rhs;           /* Array of Lagrangean rhs vector */
-        int[] lag_con_type;      /* Array of GT, LT or EQ */
-        double[] lambda;            /* Lambda values (Lagrangean multipliers) */
-        double lag_bound;          /* The Lagrangian lower OF bound */
+        internal double[] lag_rhs;           /* Array of Lagrangean rhs vector */
+        internal int[] lag_con_type;      /* Array of GT, LT or EQ */
+        internal double[] lambda;            /* Lambda values (Lagrangean multipliers) */
+        internal double lag_bound;          /* The Lagrangian lower OF bound */
         internal double lag_accept;         /* The Lagrangian convergence criterion */
 
         /* Solver thresholds */
@@ -638,11 +638,11 @@ namespace ZS.Math.Optimization
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// </summary>
         internal int bb_level;           /* Solver B&B working variable (recursion depth) */
-        int bb_maxlevel;        /* The deepest B&B level of the last solution */
+        internal int bb_maxlevel;        /* The deepest B&B level of the last solution */
         //changed on 28/11/18 (D)
         internal int bb_limitlevel;      /* The maximum B&B level allowed */
         internal long bb_totalnodes;      /* Total number of nodes processed in B&B */
-        int bb_solutionlevel;   /* The B&B level of the last / best solution */
+        internal int bb_solutionlevel;   /* The B&B level of the last / best solution */
         int bb_cutpoolsize;     /* Size of the B&B cut pool */
         int bb_cutpoolused;     /* Currently used cut pool */
         int bb_constraintOF;    /* General purpose B&B parameter (typically for testing) */
@@ -1471,6 +1471,8 @@ namespace ZS.Math.Optimization
         public const int PRESOLVE_DUALS = 524288;
         public const int PRESOLVE_SENSDUALS = 1048576;
 
+        public const int PRESOLVE_LASTMASKMODE = (PRESOLVE_DUALS - 1);
+
         /* Basis crash options */
         public const int CRASH_NONE = 0;
         public const int CRASH_NONBASICBOUNDS = 1;
@@ -2141,7 +2143,51 @@ namespace ZS.Math.Optimization
         /* Fill in element (Row,Column) of the matrix
             Row in [0..Rows] and Column in [1..Columns] */
         public double get_mat(lprec lp, int rownr, int colnr)
-        { throw new NotImplementedException(); }
+        {
+            double value;
+            int elmnr;
+            int colnr1 = colnr;
+            int rownr1 = rownr;
+            string msg = "";
+
+            if ((rownr < 0) || (rownr > lp.rows))
+            {
+                msg = "get_mat: Row %d out of range";
+                lp.report(lp, IMPORTANT, ref msg, rownr);
+                return (0);
+            }
+            if ((colnr < 1) || (colnr > lp.columns))
+            {
+                msg = "get_mat: Column %d out of range";
+                lp.report(lp, IMPORTANT, ref msg, colnr);
+                return (0);
+            }
+            if (rownr == 0)
+            {
+                value = lp.orig_obj[colnr];
+                value = lp_types.my_chsign(is_chsign(lp, rownr), value);
+                value = lp_scale.unscaled_mat(lp, value, rownr, colnr);
+            }
+            else
+            {
+                if (lp.matA.is_roworder)
+                {
+                    lp_utils.swapINT(ref colnr1, ref rownr1);
+                }
+                elmnr = lp_matrix.mat_findelm(lp.matA, rownr1, colnr1);
+                if (elmnr >= 0)
+                {
+                    MATrec mat = lp.matA;
+                    value = lp_types.my_chsign(is_chsign(lp, rownr), lp_matrix.COL_MAT_VALUE(elmnr));
+                    value = lp_scale.unscaled_mat(lp, value, rownr, colnr);
+                }
+                else
+                {
+                    value = 0;
+                }
+            }
+            return (value);
+        }
         public double get_mat_byindex(lprec lp, int matindex, byte isrow, byte adjustsign)
         { throw new NotImplementedException(); }
         public int get_nonzeros(lprec lp)

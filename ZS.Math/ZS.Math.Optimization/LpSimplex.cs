@@ -2206,17 +2206,212 @@ RetryRow:
 
             return (lp.spx_status);
         }
+
+        public static lprec make_lag(lprec lpserver)
+        {
+            int i;
+            lprec hlp;
+            bool ret;
+            double[] duals;
+            LpCls objLpCls = new LpCls();
+
+            /* Create a Lagrangean solver instance */
+            hlp = objLpCls.make_lp(0, lpserver.columns);
+
+            if (hlp != null)
+            {
+
+                /* First create and core variable data */
+                objLpCls.set_sense(hlp, LpCls.is_maxim(lpserver));
+                hlp.lag_bound = lpserver.bb_limitOF;
+                for (i = 1; i <= lpserver.columns; i++)
+                {
+                    objLpCls.set_mat(hlp, 0, i, objLpCls.get_mat(lpserver, 0, i));
+                    if (objLpCls.is_binary(lpserver, i))
+                    {
+                        objLpCls.set_binary(hlp, i, true);
+                    }
+                    else
+                    {
+                        objLpCls.set_int(hlp, i, LpCls.is_int(lpserver, i));
+                        objLpCls.set_bounds(hlp, i, objLpCls.get_lowbo(lpserver, i), objLpCls.get_upbo(lpserver, i));
+                    }
+                }
+                /* Then fill data for the Lagrangean constraints */
+                hlp.matL = lpserver.matA;
+                LpCls.inc_lag_space(hlp, lpserver.rows, true);
+                ret = LpCls.get_ptr_sensitivity_rhs(hlp, duals, null, null);
+                for (i = 1; i <= lpserver.rows; i++)
+                {
+                    hlp.lag_con_type[i] = objLpCls.get_constr_type(lpserver, i);
+                    hlp.lag_rhs[i] = lpserver.orig_rhs[i];
+                    hlp.lambda[i] = (ret) ? duals[i - 1] : 0.0;
+                }
+            }
+
+            return (hlp);
+        }
+
         public static int spx_solve(lprec lp)
         {
-            throw new NotImplementedException();
+
+            int status;
+            bool iprocessed = new bool();
+
+            lp.total_iter = 0;
+            lp.total_bswap = 0;
+            lp.perturb_count = 0;
+            lp.bb_maxlevel = 1;
+            lp.bb_totalnodes = 0;
+            lp.bb_improvements = 0;
+            lp.bb_strongbranches = 0;
+            lp.is_strongbranch = 0;
+            lp.bb_level = 0;
+            lp.bb_solutionlevel = 0;
+            lp.best_solution[0] = lp_types.my_chsign(LpCls.is_maxim(lp), lp.infinite);
+            if (lp.invB != null)
+            {
+                lp.bfp_restart(lp);
+            }
+
+            lp.spx_status = lp_presolve.presolve(lp);
+            if (lp.spx_status == lp_lib.PRESOLVED)
+            {
+                status = lp.spx_status;
+                //NOTED ISSUE
+                goto Reconstruct;
+            }
+            else if (lp.spx_status != lp_lib.RUNNING)
+            {
+                goto Leave;
+            }
+
+            iprocessed = !lp.wasPreprocessed;
+            if (!preprocess(lp) || userabort(lp, -1))
+            {
+                goto Leave;
+            }
+
+            if (mat_validate(lp.matA))
+            {
+
+                /* Do standard initializations */
+                lp.solutioncount = 0;
+                lp.real_solution = lp.infinite;
+                set_action(lp.spx_action, ACTION_REBASE | ACTION_REINVERT);
+                lp.bb_break = 0;
+
+                /* Do the call to the real underlying solver (note that
+                   run_BB is replaceable with any compatible MIP solver) */
+                status = run_BB(lp);
+
+                /* Restore modified problem */
+                if (iprocessed != null)
+                {
+                    postprocess(lp);
+                }
+
+            /* Restore data related to presolve (mainly a placeholder as of v5.1) */
+            Reconstruct:
+                if (!postsolve(lp, status))
+                {
+                    report(lp, SEVERE, "spx_solve: Failure during postsolve.\n");
+                }
+
+                goto Leave;
+            }
+
+            /* If we get here, mat_validate(lp) failed. */
+            if (lp.bb_trace || lp.spx_trace)
+            {
+                report(lp, CRITICAL, "spx_solve: The current LP seems to be invalid\n");
+            }
+            lp.spx_status = NUMFAILURE;
+
+        Leave:
+            lp.timeend = timeNow();
+
+            if ((lp.lag_status != RUNNING) && (lp.invB != null))
+            {
+                int itemp;
+                REAL test = new REAL();
+
+                itemp = lp.bfp_nonzeros(lp, 1);
+                test = 100;
+                if (lp.total_iter > 0)
+                {
+                    test *= (REAL)lp.total_bswap / lp.total_iter;
+                }
+                report(lp, NORMAL, "\n ");
+                report(lp, NORMAL, "MEMO: lp_solve version %d.%d.%d.%d for %d bit OS, with %d bit REAL variables.\n", MAJORVERSION, MINORVERSION, RELEASE, BUILD, 8 * sizeof(object), 8 * sizeof(REAL));
+                report(lp, NORMAL, "      In the total iteration count %.0f, %.0f (%.1f%%) were bound flips.\n", (double)lp.total_iter, (double)lp.total_bswap, test);
+                report(lp, NORMAL, "      There were %d refactorizations, %d triggered by time and %d by density.\n", lp.bfp_refactcount(lp, BFP_STAT_REFACT_TOTAL), lp.bfp_refactcount(lp, BFP_STAT_REFACT_TIMED), lp.bfp_refactcount(lp, BFP_STAT_REFACT_DENSE));
+                report(lp, NORMAL, "       ... on average %.1f major pivots per refactorization.\n", get_refactfrequency(lp, 1));
+                report(lp, NORMAL, "      The largest [%s] fact(B) had %d NZ entries, %.1fx largest basis.\n", lp.bfp_name(), itemp, lp.bfp_efficiency(lp));
+                if (lp.perturb_count > 0)
+                {
+                    report(lp, NORMAL, "      The bounds were relaxed via perturbations %d times.\n", lp.perturb_count);
+                }
+                if (MIP_count(lp) > 0)
+                {
+                    if (lp.bb_solutionlevel > 0)
+                    {
+                        report(lp, NORMAL, "      The maximum B&B level was %d, %.1fx MIP order, %d at the optimal solution.\n", lp.bb_maxlevel, (double)lp.bb_maxlevel / (MIP_count(lp) + lp.int_vars), lp.bb_solutionlevel);
+                    }
+                    else
+                    {
+                        report(lp, NORMAL, "      The maximum B&B level was %d, %.1fx MIP order, with %.0f nodes explored.\n", lp.bb_maxlevel, (double)lp.bb_maxlevel / (MIP_count(lp) + lp.int_vars), (double)get_total_nodes(lp));
+                    }
+                    if (GUB_count(lp) > 0)
+                    {
+                        report(lp, NORMAL, "      %d general upper-bounded (GUB) structures were employed during B&B.\n", GUB_count(lp));
+                    }
+                }
+                report(lp, NORMAL, "      The constraint matrix inf-norm is %g, with a dynamic range of %g.\n", lp.matA.infnorm, lp.matA.dynrange);
+                report(lp, NORMAL, "      Time to load data was %.3f seconds, presolve used %.3f seconds,\n", lp.timestart - lp.timecreate, lp.timepresolved - lp.timestart);
+                report(lp, NORMAL, "       ... %.3f seconds in simplex solver, in total %.3f seconds.\n", lp.timeend - lp.timepresolved, lp.timeend - lp.timecreate);
+            }
+            return (lp.spx_status);
         }
+
         public static int lag_solve(lprec lp, double start_bound, int num_iter)
         {
             throw new NotImplementedException();
         }
+
         public static int heuristics(lprec lp, int mode)
         {
-            throw new NotImplementedException();
+            lprec hlp;
+            int status = lp_lib.PROCFAIL;
+            LpCls objLpCls = new LpCls();
+
+            if (lp.bb_level > 1)
+            {
+                return (status);
+            }
+
+            status = lp_lib.RUNNING;
+            lp.bb_limitOF = lp_types.my_chsign(LpCls.is_maxim(lp), -lp.infinite);
+            if (false && (lp.int_vars > 0))
+            {
+
+                /* 1. Copy the problem into a new relaxed instance, extracting Lagrangean constraints */
+                hlp = make_lag(lp);
+
+                /* 2. Run the Lagrangean relaxation */
+                status = objLpCls.solve(hlp);
+
+                /* 3. Copy the key results (bound) into the original problem */
+                lp.bb_heuristicOF = Convert.ToDouble(hlp.best_solution[0]);
+
+                /* 4. Delete the helper heuristic */
+                hlp.matL = null;
+                LpCls.delete_lp(hlp);
+            }
+
+            lp.timeheuristic = commonlib.timeNow();
+            return (status);
+
         }
 
         internal static int lin_solve(lprec lp)

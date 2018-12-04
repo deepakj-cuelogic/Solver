@@ -2460,5 +2460,155 @@ namespace ZS.Math.Optimization
                 return (multi.used);
             }
         }
+
+        /* Support routines for block detection and partial pricing */
+        internal static int partial_findBlocks(lprec lp, bool autodefine, bool isrow)
+        {
+            int i;
+            int jj;
+            int n;
+            int nb;
+            int ne;
+            int items;
+            double hold;
+            double biggest;
+            double[] sum = null;
+            MATrec mat = lp.matA;
+            partialrec blockdata;
+            LpCls objLpCls = new LpCls();
+
+            if (!lp_matrix.mat_validate(mat))
+            {
+                return (1);
+            }
+
+            blockdata = (partialrec)commonlib.IF(isrow, lp.rowblocks, lp.colblocks);
+            items =  (int)commonlib.IF(isrow, lp.rows, lp.columns);
+
+            //NOT REQUIRED
+            //lp_utils.allocREAL(lp, sum, items + 1, 0);
+
+            /* Loop over items and compute the average column index for each */
+            sum[0] = 0;
+            for (i = 1; i <= items; i++)
+            {
+                n = 0;
+                if (isrow)
+                {
+                    nb = Convert.ToInt32(mat.row_end[i - 1]);
+                    ne = Convert.ToInt32(mat.row_end[i]);
+                }
+                else
+                {
+                    nb = Convert.ToInt32(mat.col_end[i - 1]);
+                    ne = Convert.ToInt32(mat.col_end[i]);
+                }
+                n = ne - nb;
+                sum[i] = 0;
+                if (n > 0)
+                {
+                    if (isrow)
+                    {
+                        for (jj = nb; jj < ne; jj++)
+                        {
+                            sum[i] += lp_matrix.ROW_MAT_COLNR(jj);
+                        }
+                    }
+                    else
+                    {
+                        for (jj = nb; jj < ne; jj++)
+                        {
+                            sum[i] += lp_matrix.COL_MAT_ROWNR(jj);
+                        }
+                    }
+                    sum[i] /= n;
+                }
+                else
+                {
+                    sum[i] = sum[i - 1];
+                }
+            }
+
+            /* Loop over items again, find largest difference and make monotone */
+            hold = 0;
+            biggest = 0;
+            for (i = 2; i <= items; i++)
+            {
+                hold = sum[i] - sum[i - 1];
+                if (hold > 0)
+                {
+                    if (hold > biggest)
+                    {
+                        biggest = hold;
+                    }
+                }
+                else
+                {
+                    hold = 0;
+                }
+                sum[i - 1] = hold;
+            }
+
+            /* Loop over items again and find differences exceeding threshold;
+               the discriminatory power of this routine depends strongly on the
+               magnitude of the scaling factor - from empirical evidence > 0.9 */
+            biggest = commonlib.MAX(1, 0.9 * biggest);
+            n = 0;
+            nb = 0;
+            ne = 0;
+            for (i = 1; i < items; i++)
+            {
+                if (sum[i] > biggest)
+                {
+                    ne += i - nb; // Compute sum of index gaps between maxima
+                    nb = i;
+                    n++; // Increment count
+                }
+            }
+
+            /* Clean up */
+            //NOT REQUIRED
+            //FREE(sum);
+
+            /* Require that the maxima are spread "nicely" across the columns,
+               otherwise return that there is only one monolithic block.
+               (This is probably an area for improvement in the logic!) */
+            if (n > 0)
+            {
+                ne /= n; // Average index gap between maxima
+                i = (int)commonlib.IF(isrow, lp.columns, lp.rows);
+                nb = i / ne; // Another estimated block count
+                if (System.Math.Abs(nb - n) > 2) // Probably Ok to require equality (nb==n)
+                {
+                    n = 1;
+                }
+                else if (autodefine) // Generate row/column break-indeces for partial pricing
+                {
+                    int? Parameter = 0;
+                   objLpCls.set_partialprice(lp, nb, ref Parameter, isrow);
+                }
+            }
+            else
+            {
+                n = 1;
+            }
+
+            return (n);
+        }
+
+        /* Partial pricing management routines */
+        internal static partialrec partial_createBlocks(lprec lp, bool isrow)
+        {
+            partialrec blockdata;
+
+            blockdata = new partialrec();
+            blockdata.lp = lp;
+            blockdata.blockcount = 1;
+            blockdata.blocknow = 1;
+            blockdata.isrow = isrow;
+
+            return (blockdata);
+        }
+
     }
 }
