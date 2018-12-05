@@ -2407,7 +2407,7 @@ namespace ZS.Math.Optimization
             }
             else
             {
-                varin = get_basisOF(lp, null, pcol, nzlist);
+                varin = get_basisOF(lp, null, pcol[0], nzlist);
             }
 
             return (varin);
@@ -4727,7 +4727,7 @@ internal static class StringFunctions
         }
 
         //Changed By: CS Date:28/11/2018
-        internal static bool performiteration(lprec lp, int rownr, int varin, double theta, bool primal, bool allowminit, ref double?[] prow, ref int nzprow, ref double?[] pcol, ref int nzpcol, ref int boundswaps)
+        internal static bool performiteration(lprec lp, int rownr, int varin, double theta, bool primal, bool allowminit, ref double[] prow, ref int nzprow, ref double?[] pcol, ref int nzpcol, ref int boundswaps)
         {
             int varout;
             double pivot;
@@ -4831,8 +4831,7 @@ internal static class StringFunctions
                 }
 
                 /* Update the RHS / basic variable values and set revised thetas */
-                //NOTED ISSUE
-                pivot = lp.bfp_pivotRHS(lp, 1, ref hold);
+                pivot = lp.bfp_pivotRHS(lp, 1, ref hold[0]);
                 deltatheta = LpPrice.multi_enteringtheta(lp.longsteps);
                 theta = deltatheta;
 
@@ -4889,7 +4888,7 @@ internal static class StringFunctions
             {
 
                 /* Update the active pricer for the current pivot */
-                LpPricePSE.updatePricer(lp, rownr, varin, lp.bfp_pivotvector(lp), ref prow, ref nzprow);
+                LpPricePSE.updatePricer(lp, rownr, varin, lp.bfp_pivotvector(lp), ref prow[0], ref nzprow);
 
                 /* Update the current basic variable values */
                 double Para = 0;
@@ -4915,7 +4914,7 @@ internal static class StringFunctions
                 lp_types.my_roundzero(lp.rhs[rownr], epsmargin);
 
                 /* Update basis indeces */
-                varout = objLpCls.set_basisvar(lp, rownr, varin);
+                varout = LpCls.set_basisvar(lp, rownr, varin);
 
                 /* Finalize the update in preparation for next major iteration */
                 lp.bfp_finishupdate(lp, Convert.ToByte(enteringFromUB));
@@ -5060,7 +5059,7 @@ internal static class StringFunctions
             bool localINT = (bool)(nzdvalues == null);
             LpCls objLpCls = new LpCls();
 
-            if (objLpCls.is_action(lp.spx_action, ACTION_REBASE) || objLpCls.is_action(lp.spx_action, ACTION_REINVERT) || !lp.basis_valid)
+            if (LpCls.is_action(lp.spx_action, ACTION_REBASE) || LpCls.is_action(lp.spx_action, ACTION_REINVERT) || !lp.basis_valid)
             {
                 return (g);
             }
@@ -5877,5 +5876,442 @@ internal static class StringFunctions
         {
             return ((bool)((lp.do_presolve == testmask) || ((lp.do_presolve & testmask) != 0)));
         }
+
+        internal new bool set_mat(lprec lp, int rownr, int colnr, double value)
+        {
+            string msg = "";
+            if ((rownr < 0) || (rownr > lp.rows))
+            {
+                msg = "set_mat: Row %d out of range\n";
+                lp.report(lp, IMPORTANT, ref msg, rownr);
+                return (false);
+            }
+            if ((colnr < 1) || (colnr > lp.columns))
+            {
+                msg = "set_mat: Column %d out of range\n";
+                lp.report(lp, IMPORTANT, ref msg, colnr);
+                return (false);
+            }
+
+#if DoMatrixRounding
+  if (rownr == 0)
+  {
+	value = roundToPrecision(value, lp.matA.epsvalue);
+  }
+#endif
+            value = lp_scale.scaled_mat(lp, value, rownr, colnr);
+            if (rownr == 0)
+            {
+                lp.orig_obj[colnr] = lp_types.my_chsign(is_chsign(lp, rownr), value);
+                return (true);
+            }
+            else
+            {
+                return (lp_matrix.mat_setvalue(lp.matA, rownr, colnr, value, false));
+            }
+        }
+
+        internal new double get_upbo(lprec lp, int colnr)
+        {
+            double value;
+
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "get_upbo: Column %d out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return (0);
+            }
+
+            value = lp.orig_upbo[lp.rows + colnr];
+            value = lp_scale.unscaled_value(lp, value, lp.rows + colnr);
+            return (value);
+        }
+
+        internal static bool inc_lag_space(lprec lp, int deltarows, bool ignoreMAT)
+        {
+            int newsize;
+
+            if (deltarows > 0)
+            {
+
+                newsize = get_Lrows(lp) + deltarows;
+
+                //NOT REQUIRED
+                /* Reallocate arrays */
+                /*if (!allocREAL(lp, lp.lag_rhs, newsize + 1, AUTOMATIC) || !allocREAL(lp, lp.lambda, newsize + 1, AUTOMATIC) || !allocINT(lp, lp.lag_con_type, newsize + 1, AUTOMATIC))
+                {
+                    return (0);
+                }*/
+
+                /* Reallocate the matrix (note that the row scalars are stored at index 0) */
+                if (!ignoreMAT)
+                {
+                    if (lp.matL == null)
+                    {
+                        lp.matL = lp_matrix.mat_create(lp, newsize, lp.columns, lprec.epsvalue);
+                    }
+                    else
+                    {
+                        lp_matrix.inc_matrow_space(lp.matL, deltarows);
+                    }
+                }
+                lp.matL.rows += deltarows;
+
+            }
+            /* Handle column count expansion as special case */
+            else if (!ignoreMAT)
+            {
+                lp_matrix.inc_matcol_space(lp.matL, lp.columns_alloc - lp.matL.columns_alloc + 1);
+            }
+
+
+            return (true);
+        }
+
+        internal new bool get_ptr_sensitivity_rhs(lprec lp, double[][] duals, double[][] dualsfrom, double[][] dualstill)
+        {
+            string msg = "";
+            if (!lp.basis_valid)
+            {
+                msg = "get_ptr_sensitivity_rhs: Not a valid basis\n";
+                report(lp, CRITICAL, ref msg);
+                return (false);
+            }
+
+            if (duals != null)
+            {
+                if (lp.duals == null)
+                {
+                    if ((MIP_count(lp) > 0) && (lp.bb_totalnodes > 0))
+                    {
+                        msg = "get_ptr_sensitivity_rhs: Sensitivity unknown\n";
+                        report(lp, CRITICAL, ref msg);
+                        return (false);
+                    }
+                    if (!construct_duals(lp))
+                    {
+                        return (false);
+                    }
+                }
+                duals[0][0] = Convert.ToDouble(lp.duals[0] + 1);
+            }
+
+            if ((dualsfrom != null) || (dualstill != null))
+            {
+                if ((lp.dualsfrom == null) || (lp.dualstill == null))
+                {
+                    if ((MIP_count(lp) > 0) && (lp.bb_totalnodes > 0))
+                    {
+                        msg = "get_ptr_sensitivity_rhs: Sensitivity unknown\n";
+                        report(lp, CRITICAL, ref msg);
+                        return (false);
+                    }
+                    construct_sensitivity_duals(lp);
+                    if ((lp.dualsfrom == null) || (lp.dualstill == null))
+                    {
+                        return (false);
+                    }
+                }
+                if (dualsfrom != null)
+                {
+                    dualsfrom[0][0] = Convert.ToDouble(lp.dualsfrom + 1);
+                }
+                if (dualstill != null)
+                {
+                    dualstill[0][0] = Convert.ToDouble(lp.dualstill + 1);
+                }
+            }
+            return (true);
+        }
+
+        internal new static bool construct_duals(lprec lp)
+        {
+            int i;
+            int n;
+            //ORIGINAL LINE: int *coltarget;
+            int coltarget = 0;
+            string memVector = "";
+            double scale0;
+            double value;
+            double dualOF;
+            LpCls objLpCls = new LpCls();
+
+            if (lp.duals != null)
+            {
+                //NOT REQUIRED
+               // free_duals(lp);
+            }
+
+            //ORIGINAL LINE: if (is_action(lp.spx_action, ACTION_REBASE) || is_action(lp.spx_action, ACTION_REINVERT) || (!lp.basis_valid) || !allocREAL(lp, (lp.duals), lp.sum + 1, AUTOMATIC))
+            if (is_action(lp.spx_action, ACTION_REBASE) || is_action(lp.spx_action, ACTION_REINVERT) || (!lp.basis_valid))
+            {
+                return (false);
+            }
+
+            /* Initialize */
+            /// <summary> FIX_133d8fd1-d4bf-4e73-ac14-1bb037ba574f 29/11/18
+            /// PREVIOUS: coltarget = (int)mempool_obtainVector(lp.workarrays, lp.columns + 1, sizeof(int));
+            /// ERROR IN PREVIOUS: Cannot convert type 'string' to 'int'
+            /// FIX 1: 
+            /// </summary>
+            int id = 0;
+            bool res = int.TryParse(lp_utils.mempool_obtainVector(lp.workarrays, lp.columns + 1, sizeof(int)), out id);
+            if (res)
+            {
+                if (!lp_matrix.get_colIndexA(lp, SCAN_USERVARS + USE_NONBASICVARS, coltarget, false))
+                {
+                    memVector = coltarget.ToString();
+                    lp_utils.mempool_releaseVector(lp.workarrays, ref memVector, 0);
+                    return (false);
+                }
+            }
+            else
+                throw new Exception("lp_utils.mempool_obtainVector");
+
+            //coltarget = (int)mempool_obtainVector(lp.workarrays, lp.columns + 1, sizeof(int));
+            int? Parameter1 = null;
+            int Parameter2 = 0;
+            memVector = coltarget.ToString();
+            lp_matrix.bsolve(lp, 0, ref lp.duals, ref Parameter1, lp.epsmachine * DOUBLEROUND, 1.0);
+            lp_matrix.prod_xA(lp, ref coltarget, ref lp.duals[0], ref Parameter2, lp.epsmachine, 1.0, ref lp.duals[0], ref Parameter2, lp_matrix.MAT_ROUNDDEFAULT | lp_matrix.MAT_ROUNDRC);
+            lp_utils.mempool_releaseVector(lp.workarrays, ref memVector, 0);
+
+
+            /* The (Lagrangean) dual values are the reduced costs of the primal slacks;
+               when the slack is at its upper bound, change the sign. */
+            n = lp.rows;
+            for (i = 1; i <= n; i++)
+            {
+                if (lp.is_basic[i])
+                {
+                    lp.duals[i] = 0;
+                }
+                /* Added a test if variable is different from 0 because sometime you get -0 and this
+                   is different from 0 on for example INTEL processors (ie 0 != -0 on INTEL !) PN */
+                else if ((objLpCls.is_chsign(lp, 0) == objLpCls.is_chsign(lp, i)) && lp.duals[i]!=0)
+                {
+                    lp.duals[i] = lp_types.my_flipsign(lp.duals[i]);
+                }
+            }
+            if (is_maxim(lp))
+            {
+                n = lp.sum;
+                for (i = lp.rows + 1; i <= n; i++)
+                {
+                    lp.duals[i] = lp_types.my_flipsign(lp.duals[i]);
+                }
+            }
+
+            /* If we presolved, then reconstruct the duals */
+            n = lp.presolve_undo.orig_sum;
+            //ORIGINAL LINE: if (((lp.do_presolve & PRESOLVE_LASTMASKMODE) != PRESOLVE_NONE) && allocREAL(lp, (lp.full_duals), n + 1, 1))
+            if (((lp.do_presolve & PRESOLVE_LASTMASKMODE) != PRESOLVE_NONE))
+            {
+                int ix;
+                int ii = lp.presolve_undo.orig_rows;
+
+                n = lp.sum;
+                for (ix = 1; ix <= n; ix++)
+                {
+                    i = lp.presolve_undo.var_to_orig[ix];
+                    if (ix > lp.rows)
+                    {
+                        i += ii;
+                    }
+#if Paranoia
+	  /* Check for index out of range due to presolve */
+	  if (i > lp.presolve_undo.orig_sum)
+	  {
+		report(lp, SEVERE, "construct_duals: Invalid presolve variable mapping found\n");
+	  }
+#endif
+                    lp.full_duals[i] = lp.duals[ix];
+                }
+                lp_presolve.presolve_rebuildUndo(lp, 0);
+            }
+
+            /* Calculate the dual OF and do scaling adjustments to the duals */
+            if (lp.scaling_used)
+            {
+                scale0 = lp.scalars[0];
+            }
+            else
+            {
+                scale0 = 1;
+            }
+            dualOF = lp_types.my_chsign(is_maxim(lp), lp.orig_rhs[0]) / scale0;
+            for (i = 1; i <= lp.sum; i++)
+            {
+                value = lp_scale.scaled_value(lp, lp.duals[i] / scale0, i);
+                lp_types.my_roundzero(value, lprec.epsprimal);
+                lp.duals[i] = value;
+                if (i <= lp.rows)
+                {
+                    dualOF += value * lp.solution[i];
+                }
+            }
+
+#if false
+// /* See if we can make use of the dual OF;
+//    note that we do not currently adjust properly for presolve */
+//  if(lp->rows == lp->presolve_undo->orig_rows)
+//  if(MIP_count(lp) > 0) {
+//    if(is_maxim(lp)) {
+//      SETMIN(lp->bb_limitOF, dualOF);
+//    }
+//    else {
+//      SETMAX(lp->bb_limitOF, dualOF);
+//    }
+//  }
+//  else if(fabs(my_reldiff(dualOF, lp->solution[0])) > lp->epssolution)
+//    report(lp, IMPORTANT, "calculate_duals: Check for possible suboptimal solution!\n");
+#endif
+
+            return (true);
+        } // construct_duals
+
+        internal new int get_constr_type(lprec lp, int rownr)
+        {
+            if ((rownr < 0) || (rownr > lp.rows))
+            {
+                string msg = "get_constr_type: Row %d out of range\n";
+                report(lp, IMPORTANT, ref msg, rownr);
+                return (-1);
+            }
+            return (lp.row_type[rownr]);
+        }
+
+        internal bool set_partialprice(lprec lp, int blockcount, ref int? blockstart, bool isrow)
+        {
+            int ne;
+            int i;
+            int items;
+            //ORIGINAL LINE: partialrec[] blockdata;
+            partialrec blockdata = new partialrec();
+
+            /* Determine partial target (rows or columns) */
+            if (isrow)
+            {
+                blockdata = (lp.rowblocks);
+            }
+            else
+            {
+                blockdata = (lp.colblocks);
+            }
+
+            /* See if we are resetting partial blocks */
+            ne = 0;
+            items = (int)commonlib.IF(isrow, lp.rows, lp.columns);
+            if (blockcount == 1)
+            {
+                //NOT REQUIRED
+                //partial_freeBlocks(blockdata);
+            }
+
+            /* Set a default block count if this was not specified */
+            else if (blockcount <= 0)
+            {
+                blockstart = null;
+                if (items < DEF_PARTIALBLOCKS * DEF_PARTIALBLOCKS)
+                {
+                    blockcount = items / DEF_PARTIALBLOCKS + 1;
+                }
+                else
+                {
+                    blockcount = DEF_PARTIALBLOCKS;
+                }
+                ne = items / blockcount;
+                if (ne * blockcount < items)
+                {
+                    ne++;
+                }
+            }
+
+            /* Fill partial block arrays;
+               Note: These will be modified during preprocess to reflect
+                     presolved columns and the handling of slack variables. */
+            if (blockcount > 1)
+            {
+                bool isNew = (bool)(blockdata == null);
+
+                /* Provide for extra block with slack variables in the column mode */
+                i = 0;
+                if (!isrow)
+                {
+                    i++;
+                }
+
+                /* (Re)-allocate memory */
+                if (isNew != null)
+                {
+                    blockdata = LpPrice.partial_createBlocks(lp, isrow);
+                }
+
+                //NOT REQUIRED
+                //allocINT(lp, (blockdata.blockend), blockcount + i + 1, AUTOMATIC);
+                //allocINT(lp, (blockdata.blockpos), blockcount + i + 1, AUTOMATIC);
+
+                /* Copy the user-provided block start positions */
+                if (blockstart != null)
+                {
+                    //NOT REQUIRED
+                    //MEMCOPY(blockdata.blockend + i, blockstart, blockcount + i + 1);
+                    if (!isrow)
+                    {
+                        blockcount++;
+                        blockdata.blockend[0] = 1;
+                        for (i = 1; i < blockcount; i++)
+                        {
+                            blockdata.blockend[i] += lp.rows;
+                        }
+                    }
+                }
+
+                /* Fill the block ending positions if they were not specified */
+                else
+                {
+                    blockdata.blockend[0] = 1;
+                    blockdata.blockpos[0] = 1;
+                    if (ne == 0)
+                    {
+                        ne = items / blockcount;
+                        /* Increase the block size if we have a fractional value */
+                        while (ne * blockcount < items)
+                        {
+                            ne++;
+                        }
+                    }
+                    i = 1;
+                    if (!isrow)
+                    {
+                        blockdata.blockend[i] = blockdata.blockend[i - 1] + lp.rows;
+                        blockcount++;
+                        i++;
+                        items += lp.rows;
+                    }
+                    for (; i < blockcount; i++)
+                    {
+                        blockdata.blockend[i] = blockdata.blockend[i - 1] + ne;
+                    }
+
+                    /* Let the last block handle the "residual" */
+                    blockdata.blockend[blockcount] = items + 1;
+                }
+
+                /* Fill starting positions (used in multiple partial pricing) */
+                for (i = 1; i <= blockcount; i++)
+                {
+                    blockdata.blockpos[i] = blockdata.blockend[i - 1];
+                }
+
+            }
+
+            /* Update block count */
+            blockdata.blockcount = blockcount;
+
+
+            return (true);
+        } // set_partialprice
+
     }
 }

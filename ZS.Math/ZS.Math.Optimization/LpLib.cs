@@ -406,7 +406,7 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: int *nzdrow;
         public int[] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
         public double[] duals; // rows_alloc+1 : The dual variables of the last LP
-        public double full_duals; // sum_alloc+1: Final duals array expanded for deleted variables
+        public double[] full_duals; // sum_alloc+1: Final duals array expanded for deleted variables
         public double? dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
                                    of the last LP */
         public double? dualstill; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
