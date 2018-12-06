@@ -2257,6 +2257,7 @@ RetryRow:
 
             int status;
             bool iprocessed = new bool();
+            LpCls objLpCls = new LpCls();
 
             lp.total_iter = 0;
             lp.total_bswap = 0;
@@ -2287,18 +2288,18 @@ RetryRow:
             }
 
             iprocessed = !lp.wasPreprocessed;
-            if (!preprocess(lp) || userabort(lp, -1))
+            if (!objLpCls.preprocess(lp) || objLpCls.userabort(lp, -1))
             {
                 goto Leave;
             }
 
-            if (mat_validate(lp.matA))
+            if (lp_matrix.mat_validate(lp.matA))
             {
 
                 /* Do standard initializations */
                 lp.solutioncount = 0;
                 lp.real_solution = lp.infinite;
-                set_action(lp.spx_action, ACTION_REBASE | ACTION_REINVERT);
+                LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REBASE | lp_lib.ACTION_REINVERT);
                 lp.bb_break = 0;
 
                 /* Do the call to the real underlying solver (note that
