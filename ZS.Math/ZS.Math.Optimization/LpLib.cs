@@ -402,9 +402,9 @@ namespace ZS.Math.Optimization
         public double full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
         public double[] edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
 
-        public double drow; // sum+1: Reduced costs of the last simplex
+        public double[][] drow; // sum+1: Reduced costs of the last simplex
         //ORIGINAL LINE: int *nzdrow;
-        public int[] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
+        public int[][] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
         public double[] duals; // rows_alloc+1 : The dual variables of the last LP
         public double[] full_duals; // sum_alloc+1: Final duals array expanded for deleted variables
         public double? dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
@@ -648,8 +648,8 @@ namespace ZS.Math.Optimization
         int bb_constraintOF;    /* General purpose B&B parameter (typically for testing) */
         internal int[] bb_cuttype;        /* The type of the currently used cuts */
         internal int[] bb_varactive;      /* The B&B state of the variable; 0 means inactive */
-        DeltaVrec bb_upperchange;    /* Changes to upper bounds during the B&B phase */
-        DeltaVrec bb_lowerchange;    /* Changes to lower bounds during the B&B phase */
+        internal DeltaVrec bb_upperchange;    /* Changes to upper bounds during the B&B phase */
+        internal DeltaVrec bb_lowerchange;    /* Changes to lower bounds during the B&B phase */
 
         internal double bb_deltaOF;         /* Minimum OF step value; computed at beginning of solve() */
 
@@ -666,7 +666,7 @@ namespace ZS.Math.Optimization
         internal workarraysrec workarrays;
 
         /* MIP parameters */
-        double epsint;             /* Margin of error in determining if a float value is integer */
+        internal double epsint;             /* Margin of error in determining if a float value is integer */
         internal double mip_absgap;         /* Absolute MIP gap */
         internal double mip_relgap;         /* Relative MIP gap */
 
@@ -2979,7 +2979,24 @@ throw new NotImplementedException(); }
 
         /* Scaling utilities */
         public double scaled_floor(lprec lp, int colnr, double value, double epsscale)
-        { throw new NotImplementedException(); }
+        {
+
+            value = System.Math.Floor(value);
+            if (value != 0)
+            {
+                if (lp.columns_scaled && is_integerscaling(lp))
+                {
+                    value = lp_scale.scaled_value(lp, value, colnr);
+                    if (epsscale != 0)
+                    {
+                        value += epsscale * lp.epsmachine;
+                    }
+                    /*      value += epsscale*lp->epsprimal; */
+                    /*    value = restoreINT(value, lp->epsint); */
+                }
+            }
+            return (value);
+        }
         public double scaled_ceil(lprec lp, int colnr, double value, double epsscale)
         { throw new NotImplementedException(); }
 

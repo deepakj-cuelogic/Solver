@@ -84,7 +84,7 @@ namespace ZS.Math.Optimization
             */
             throw new NotImplementedException();
         }
-        internal static byte allocREAL(lprec lp, double[][] ptr, int size, byte clear)
+        internal static bool allocREAL(lprec lp, double[][] ptr, int size, byte clear)
         {
             throw new NotImplementedException();
         }
@@ -351,7 +351,7 @@ namespace ZS.Math.Optimization
 
         }
 
-        private static double modf(double v, double vmod)
+        internal static double modf(double v, double vmod)
         {
             string input_decimal_number = (v + vmod).ToString();
             string decimal_places = "";

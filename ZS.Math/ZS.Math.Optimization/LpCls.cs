@@ -6348,5 +6348,658 @@ internal static class StringFunctions
             return (true);
         } // set_partialprice
 
+        internal new bool preprocess(lprec lp)
+        {
+            int i;
+            int j;
+            int k;
+            bool ok = true;
+            //ORIGINAL LINE: int *new_index = null;
+            int? new_index = null;
+            double hold;
+            //ORIGINAL LINE: double *new_column = null;
+            double? new_column = null;
+            bool scaled;
+            bool primal1;
+            bool primal2;
+            string msg = "";
+            int? Parameter1 = null;
+            LpCls objLpCls = new LpCls();
+
+            /* do not process if already preprocessed */
+            if (lp.wasPreprocessed)
+            {
+                return (Convert.ToInt32(ok));
+            }
+
+            /* Write model statistics and optionally initialize partial pricing structures */
+            if (lp.lag_status != RUNNING)
+            {
+                bool doPP = new bool();
+
+                /* Extract the user-specified simplex strategy choices */
+                primal1 = Convert.ToBoolean((lp.simplex_strategy & SIMPLEX_Phase1_PRIMAL));
+                primal2 = Convert.ToBoolean((lp.simplex_strategy & SIMPLEX_Phase2_PRIMAL));
+
+                /* Initialize partial pricing structures */
+                doPP = is_piv_mode(lp, PRICE_PARTIAL | PRICE_AUTOPARTIAL);
+                /*    doPP &= (bool) (lp->columns / 2 > lp->rows); */
+                if (doPP != null)
+                {
+                    i = LpPrice.partial_findBlocks(lp, false, false);
+                    if (i < 4)
+                    {
+                        i = (int)(5 * System.Math.Log((double)lp.columns / lp.rows));
+                    }
+                    msg = "The model is %s to have %d column blocks/stages.\n";
+                    report(lp, NORMAL, ref msg, (i > 1 ? "estimated" : "set"), i);
+                    set_partialprice(lp, i, ref Parameter1, false);
+                }
+                /*    doPP &= (bool) (lp->rows / 4 > lp->columns); */
+                if (doPP != null)
+                {
+                    i = LpPrice.partial_findBlocks(lp, false, true);
+                    if (i < 4)
+                    {
+                        i = (int)(5 * System.Math.Log((double)lp.rows / lp.columns));
+                    }
+                    msg = "The model is %s to have %d row blocks/stages.\n";
+                    report(lp, NORMAL, ref msg, (i > 1 ? "estimated" : "set"), i);
+                    set_partialprice(lp, i, ref Parameter1, true);
+                }
+
+                /* Check for presence of valid pricing blocks if partial pricing
+                  is defined, but not autopartial is not set */
+                if (doPP == null && is_piv_mode(lp, PRICE_PARTIAL))
+                {
+                    if ((lp.rowblocks == null) || (lp.colblocks == null))
+                    {
+                        msg = "Ignoring partial pricing, since block structures are not defined.\n";
+                        report(lp, IMPORTANT, ref msg);
+                        clear_action(ref lp.piv_strategy, PRICE_PARTIAL);
+                    }
+                }
+
+                /* Initialize multiple pricing block divisor */
+#if false
+//    if(primal1 || primal2)
+//      lp->piv_strategy |= PRICE_MULTIPLE | PRICE_AUTOMULTIPLE;
+#endif
+                if (is_piv_mode(lp, PRICE_MULTIPLE) && (primal1 || primal2))
+                {
+                    doPP = is_piv_mode(lp, PRICE_AUTOMULTIPLE);
+                    if (doPP != null)
+                    {
+                        i = (int)(2.5 * System.Math.Log((double)lp.sum));
+                        commonlib.SETMAX(i, 1);
+                        set_multiprice(lp, i);
+                    }
+                    if (lp.multiblockdiv > 1)
+                    {
+                        msg = "Using %d-candidate primal simplex multiple pricing block.\n";
+                        report(lp, NORMAL, ref msg, lp.columns / lp.multiblockdiv);
+                    }
+                }
+                else
+                {
+                    set_multiprice(lp, 1);
+                }
+
+                msg = "Using %s simplex for phase 1 and %s simplex for phase 2.\n";
+                //ORIGINAL LINE: report(lp, NORMAL, ref msg, lp_types.my_if(primal1, "PRIMAL", "DUAL"), my_if(primal2, "PRIMAL", "DUAL"));
+                //Solution: Currently parameters after ref msg are ignored, need to check at runtime
+                report(lp, NORMAL, ref msg);
+                i = get_piv_rule(lp);
+                if ((i == PRICER_STEEPESTEDGE) && is_piv_mode(lp, PRICE_PRIMALFALLBACK))
+                {
+                    msg = "The pricing strategy is set to '%s' for the dual and '%s' for the primal.\n";
+                    report(lp, NORMAL, ref msg, get_str_piv_rule(i), get_str_piv_rule(i - 1));
+                }
+                else
+                {
+                    msg = "The primal and dual simplex pricing strategy set to '%s'.\n";
+                    report(lp, NORMAL, ref msg, get_str_piv_rule(i));
+                }
+                msg = " \n";
+                report(lp, NORMAL, ref msg);
+            }
+
+            /* Compute a minimum step improvement step requirement */
+            pre_MIPOBJ(lp);
+
+            /* First create extra columns for FR variables or flip MI variables */
+            for (j = 1; j <= lp.columns; j++)
+            {
+
+#if Paranoia
+	if ((lp.rows != lp.matA.rows) || (lp.columns != lp.matA.columns))
+	{
+	  report(lp, SEVERE, "preprocess: Inconsistent variable counts found\n");
+	}
+#endif
+
+                /* First handle sign-flipping of variables:
+                    1) ... with a finite upper bound and a negative Inf-bound (since basis variables are lower-bounded)
+                    2) ... with bound assymetry within negrange limits (for stability reasons) */
+                i = lp.rows + j;
+                hold = lp.orig_upbo[i];
+                /*
+                    if((hold <= 0) || (!is_infinite(lp, lp->negrange) &&
+                                       (hold < -lp->negrange) &&
+                                       (lp->orig_lowbo[i] <= lp->negrange)) ) {
+                */
+
+                //C++ TO C# CONVERTER NOTE: The following #define macro was replaced in-line:
+                //ORIGINAL LINE: #define fullybounded FALSE
+                if (((hold < lp.infinite) && lp_types.my_infinite(lp, lp.orig_lowbo[i])) || (!false && !lp_types.my_infinite(lp, lp.negrange) && (hold < -lp.negrange) && (lp.orig_lowbo[i] <= lp.negrange)))
+                {
+                    /* Delete split sibling variable if one existed from before */
+                    if ((lp.var_is_free != null) && (lp.var_is_free[j] > 0))
+                    {
+                        del_column(lp, (int)lp.var_is_free[j]);
+                    }
+                    /* Negate the column / flip to the positive range */
+                    lp_matrix.mat_multcol(lp.matA, j, -1, true);
+                    if (lp.var_is_free == null)
+                    {
+                        if (!lp_utils.allocINT(lp, (int)lp.var_is_free, commonlib.MAX(lp.columns, lp.columns_alloc) + 1, 1))
+                        {
+                            return (0);
+                        }
+                    }
+                    lp.var_is_free[j] = -j; // Indicator UB and LB are switched, with no helper variable added
+                    lp.orig_upbo[i] = lp_types.my_flipsign(lp.orig_lowbo[i]);
+                    lp.orig_lowbo[i] = lp_types.my_flipsign(hold);
+                    /* Check for presence of negative ranged SC variable */
+                    if (lp.sc_lobound[j] > 0)
+                    {
+                        lp.sc_lobound[j] = lp.orig_lowbo[i];
+                        lp.orig_lowbo[i] = 0;
+                    }
+                }
+                /* Then deal with -+, full-range/FREE variables by creating a helper variable */
+                else if ((lp.orig_lowbo[i] <= lp.negrange) && (hold >= -lp.negrange))
+                {
+                    if (lp.var_is_free == null)
+                    {
+                        if (!lp_utils.allocINT(lp, (int)lp.var_is_free, commonlib.MAX(lp.columns, lp.columns_alloc) + 1, 1))
+                        {
+                            return (0);
+                        }
+                    }
+                    if (lp.var_is_free[j] <= 0)
+                    { // If this variable wasn't split yet ...
+                        if (lp_SOS.SOS_is_member(lp.SOS, 0, i - lp.rows))
+                        { // Added
+                            msg = "preprocess: Converted negative bound for SOS variable %d to zero";
+                            report(lp, IMPORTANT, ref msg, i - lp.rows);
+                            lp.orig_lowbo[i] = 0;
+                            continue;
+                        }
+                        if (new_column == null)
+                        {
+                            if (!lp_utils.allocREAL(lp, new_column, lp.rows + 1, 0) || !lp_utils.allocINT(lp, new_index, lp.rows + 1, 0))
+                            {
+                                ok = 0;
+                                break;
+                            }
+                        }
+                        /* Avoid precision loss by turning off unscaling and rescaling */
+                        /* in get_column and add_column operations; also make sure that */
+                        /* full scaling information is preserved */
+                        scaled = lp.scaling_used;
+                        lp.scaling_used = false;
+                        k = get_columnex(lp, j, ref new_column, ref new_index);
+                        if (!add_columnex(lp, k, ref new_column, ref new_index))
+                        {
+                            ok = 0;
+                            break;
+                        }
+                        lp_matrix.mat_multcol(lp.matA, lp.columns, -1, 1);
+                        if (scaled)
+                        {
+                            lp.scalars[lp.rows + lp.columns] = lp.scalars[i];
+                        }
+                        lp.scaling_used = (bool)scaled;
+                        /* Only create name if we are not clearing a pre-used item, since this
+                           variable could have been deleted by presolve but the name is required
+                           for solution reconstruction. */
+                        if (lp.names_used && (lp.col_name[j] == null))
+                        {
+                            string fieldn = new string(new char[50]);
+
+                            fieldn = string.Format("__AntiBodyOf({0:D})__", j);
+                            if (!set_col_name(lp, lp.columns, ref fieldn))
+                            {
+                                /*          if (!set_col_name(lp, lp->columns, get_col_name(lp, j))) { */
+                                ok = 0;
+                                break;
+                            }
+                        }
+                        /* Set (positive) index to the original column's split / helper and back */
+                        lp.var_is_free[j] = lp.columns;
+                    }
+                    lp.orig_upbo[lp.rows + (int)lp.var_is_free[j]] = lp_types.my_flipsign(lp.orig_lowbo[i]);
+                    lp.orig_lowbo[i] = 0;
+
+                    /* Negative index indicates x is split var and -var_is_free[x] is index of orig var */
+                    lp.var_is_free[(int)lp.var_is_free[j]] = -j;
+                    lp.var_type[(int)lp.var_is_free[j]] = lp.var_type[j];
+                }
+                /* Check for positive ranged SC variables */
+                else if (lp.sc_lobound[j] > 0)
+                {
+                    lp.sc_lobound[j] = lp.orig_lowbo[i];
+                    lp.orig_lowbo[i] = 0;
+                }
+
+                /* Tally integer variables in SOS'es */
+                if (lp_SOS.SOS_is_member(lp.SOS, 0, j) && is_int(lp, j))
+                {
+                    lp.sos_ints++;
+                }
+            }
+            
+            //NOT REQUIRED
+            //FREE(new_column);
+            //FREE(new_index);
+
+            /* Fill lists of GUB constraints, if appropriate */
+            if ((LpCls.MIP_count(lp) > 0) && is_bb_mode(lp, NODE_GUBMODE) && (identify_GUB(lp, lp_types.AUTOMATIC) > 0))
+            {
+                prepare_GUB(lp);
+            }
+
+            /* (Re)allocate reduced cost arrays */
+            ok = lp_utils.allocREAL(lp, (lp.drow), lp.sum + 1, lp_types.AUTOMATIC) && lp_utils.allocINT(lp, (lp.nzdrow), lp.sum + 1, lp_types.AUTOMATIC);
+            if (ok)
+            {
+                lp.nzdrow[0][0] = 0;
+            }
+
+            /* Minimize memory usage */
+            memopt_lp(lp, 0, 0, 0);
+
+            lp.wasPreprocessed = true;
+
+            return (Convert.ToInt32(ok));
+
+        }
+
+        /* Pre- and post processing functions, i.a. splitting free variables */
+        internal static bool pre_MIPOBJ(lprec lp)
+        {
+#if MIPboundWithOF
+  if (MIP_count(lp) > 0)
+  {
+	int i = 1;
+	while ((i <= lp.rows) && !mat_equalRows(lp.matA, 0, i) && !is_constr_type(lp, i, EQ))
+	{
+	  i++;
+	}
+	if (i <= lp.rows)
+	{
+	  lp.constraintOF = i;
+	}
+  }
+#endif
+            lp.bb_deltaOF = MIP_stepOF(lp);
+            return (true);
+        }
+
+        internal double MIP_stepOF(lprec lp)
+        /* This function tries to find a non-zero minimum improvement
+           if the OF contains all integer variables (logic only applies if we are
+           looking for a single solution, not possibly several equal-valued ones). */
+        {
+            bool OFgcd;
+            int colnr;
+            int rownr;
+            int n;
+            int ib;
+            int ie;
+            int pluscount=0;
+            int intcount=0;
+            int intval=0;
+            int maxndec=0;
+            double value = 0;
+            double valOF;
+            double divOF=0;
+            double valGCD=0;
+            MATrec mat = lp.matA;
+
+            if ((lp.int_vars > 0) && (lp.solutionlimit == 1) && lp_matrix.mat_validate(mat))
+            {
+
+                /* Get statistics for integer OF variables and compute base stepsize */
+                n = row_intstats(lp, 0, 0, ref maxndec, ref pluscount, ref intcount, ref intval, ref valGCD, ref divOF);
+                if ((n == 0) || (maxndec < 0))
+                {
+                    return (value);
+                }
+                OFgcd = (bool)(intval > 0);
+                if (OFgcd)
+                {
+                    value = valGCD;
+                }
+
+                /* Check non-ints in the OF to see if we can get more info */
+                if (n - intcount > 0)
+                {
+                    int nrv = n - intcount; // Number of real variables in the objective
+                    int niv = 0; // Number of real variables identified as integer
+                    int nrows = lp.rows;
+
+                    /* See if we have equality constraints */
+                    for (ib = 1; ib <= nrows; ib++)
+                    {
+                        if (is_constr_type(lp, ib, EQ))
+                        {
+                            break;
+                        }
+                    }
+
+                    /* If so, there may be a chance to find an improved stepsize */
+                    if (ib < nrows)
+                    {
+                        for (colnr = 1; colnr <= lp.columns; colnr++)
+                        {
+
+                            /* Go directly to the next variable if this is an integer or
+                              there is no row candidate to explore for hidden bounds for
+                              real-valued variables (limit scan to one row/no recursion) */
+                            if ((lp.orig_obj[colnr] == 0) || is_int(lp, colnr))
+                            {
+                                continue;
+                            }
+
+                            /* Scan equality constraints */
+                            ib = Convert.ToInt32(mat.col_end[colnr - 1]);
+                            ie = Convert.ToInt32(mat.col_end[colnr]);
+                            while (ib < ie)
+                            {
+                                if (is_constr_type(lp, (rownr = lp_matrix.COL_MAT_ROWNR(ib)), EQ))
+                                {
+
+                                    /* Get "child" row statistics, but break out if we don't
+                                      find enough information, i.e. no integers with coefficients of proper type */
+                                    n = row_intstats(lp, rownr, colnr, ref maxndec, ref pluscount, ref intcount, ref intval, ref valGCD, ref divOF);
+                                    if ((intval < n - 1) || (maxndec < 0))
+                                    {
+                                        value = 0;
+                                        break;
+                                    }
+                                    niv++;
+
+                                    /* We can update */
+                                    valOF = lp_scale.unscaled_mat(lp, lp.orig_obj[colnr], 0, colnr);
+                                    valOF = System.Math.Abs(valOF * (valGCD / divOF));
+                                    if (OFgcd)
+                                    {
+                                       commonlib.SETMIN(value, valOF);
+                                    }
+                                    else
+                                    {
+                                        OFgcd = true;
+                                        value = valOF;
+                                    }
+                                }
+                                ib++;
+                            }
+
+                            /* No point in continuing scan if we failed in current column */
+                            if (value == 0)
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    /* Check if we found information for any real-valued variable;
+                       if not, then we must set the improvement delta to 0 */
+                    if (nrv > niv)
+                    {
+                        value = 0;
+                    }
+                }
+            }
+            return (value);
+        }
+
+        private static int row_intstats(lprec lp, int rownr, int pivcolnr, ref int maxndec, ref int plucount, ref int intcount, ref int intval, ref double valGCD, ref double pivcolval)
+        {
+            int jb;
+            int je;
+            int jj;
+            int nn = 0;
+            int multA = 0;
+            int multB = 0;
+            int intGCD = 0;
+            double rowval;
+            double inthold =0;
+            double intfrac = 0;
+            MATrec mat = lp.matA;
+            LpCls objLpCls = new LpCls();
+
+            /* Do we have a valid matrix? */
+            if (lp_matrix.mat_validate(mat))
+            {
+
+                /* Get smallest fractional row value */
+                maxndec = row_decimals(lp, rownr, Convert.ToBoolean(lp_types.AUTOMATIC), ref intfrac);
+
+                /* Get OF row starting and ending positions, as well as the first column index */
+                if (rownr == 0)
+                {
+                    jb = 1;
+                    je = lp.columns + 1;
+                }
+                else
+                {
+                    jb = Convert.ToInt32(mat.row_end[rownr - 1]);
+                    je = Convert.ToInt32(mat.row_end[rownr]);
+                }
+                nn = je - jb;
+                pivcolval = 1.0;
+                plucount = 0;
+                intcount = 0;
+                intval = 0;
+                for (; jb < je; jb++)
+                {
+
+                    if (rownr == 0)
+                    {
+                        if (lp.orig_obj[jb] == 0)
+                        {
+                            nn--;
+                            continue;
+                        }
+                        jj = jb;
+                    }
+                    else
+                    {
+                        jj = lp_matrix.ROW_MAT_COLNR(jb);
+                    }
+
+                    /* Pick up the value of the pivot column and continue */
+                    if (jj == pivcolnr)
+                    {
+                        if (rownr == 0)
+                        {
+                            pivcolval = lp_scale.unscaled_mat(lp, lp.orig_obj[jb], 0, jb);
+                        }
+                        else
+                        {
+                            pivcolval = objLpCls.get_mat_byindex(lp, jb, 1, 0);
+                        }
+                        continue;
+                    }
+                    if (!is_int(lp, jj))
+                    {
+                        continue;
+                    }
+
+                    /* Update the count of integer columns */
+                    intcount++;
+
+                    /* Update the count of positive parameter values */
+                    if (rownr == 0)
+                    {
+                        rowval = lp_scale.unscaled_mat(lp, lp.orig_obj[jb], 0, jb);
+                    }
+                    else
+                    {
+                        rowval = objLpCls.get_mat_byindex(lp, jb, 1, 0);
+                    }
+                    if (rowval > 0)
+                    {
+                        plucount++;
+                    }
+
+                    /* Check if the parameter value is integer and update the row's GCD */
+                    rowval = System.Math.Abs(rowval) * intfrac;
+                    rowval += rowval * lp.epsmachine;
+                    rowval = lp_utils.modf(rowval, inthold);
+                    if (rowval < lprec.epsprimal)
+                    {
+                        intval++;
+                        if (intval == 1)
+                        {
+                            intGCD = (int)inthold;
+                        }
+                        else
+                        {
+                            intGCD = commonlib.gcd(intGCD, (int)inthold, ref multA, ref multB);
+                        }
+                    }
+                }
+                valGCD = intGCD;
+                valGCD /= intfrac;
+            }
+
+            return (nn);
+        }
+
+        /* Find the smallest fractional value in a given row of the OF/constraint matrix */
+        internal static int row_decimals(lprec lp, int rownr, bool intsonly, ref double intscalar)
+        {
+            int basi;
+            int i;
+            int j;
+            int ncols = lp.columns;
+            double f;
+            double epsvalue = lprec.epsprimal;
+            LpCls objLpCls = new LpCls();
+
+            basi = 0;
+            for (j = 1; j <= ncols; j++)
+            {
+                if (intsonly && !is_int(lp, j))
+                {
+                    if (intsonly == true)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                f = System.Math.Abs(objLpCls.get_mat(lp, rownr, j));
+                /* f = fmod(f, 1); */
+                f -= System.Math.Floor(f + epsvalue);
+                /*
+                    if(f <= epsvalue)
+                      continue;
+                    g = f;
+                */
+                for (i = 0; (i <= MAX_FRACSCALE) && (f > epsvalue); i++)
+                {
+                    f *= 10;
+                    /* g = fmod(f, 1); */
+                    f -= System.Math.Floor(f + epsvalue);
+                }
+                if (i > MAX_FRACSCALE)
+                {
+                    /* i = MAX_FRACSCALE */
+                    break;
+                }
+               commonlib.SETMAX(basi, i);
+            }
+            if (j > ncols)
+            {
+                intscalar = System.Math.Pow(10.0, basi);
+            }
+            else
+            {
+                basi = -1;
+                intscalar = 1;
+            }
+            return (basi);
+        }
+
+        internal double get_mat_byindex(lprec lp, int matindex, bool isrow, bool adjustsign)
+        /* Note that this function does not adjust for sign-changed GT constraints! */
+        {
+            //ORIGINAL LINE: int *rownr, *colnr;
+            int[] rownr = null;
+            //ORIGINAL LINE: int *colnr;
+            int[] colnr = null;
+            //ORIGINAL LINE: double *value, result;
+            double[][] value = null;
+            double result;
+
+            lp_matrix.mat_get_data(lp, matindex, isrow, rownr, colnr, value);
+            if (adjustsign)
+            {
+                result = value[0][0] * (double)(is_chsign(lp, Convert.ToInt32(rownr)) ? -1 : 1);
+            }
+            else
+            {
+                result = value[0][0];
+            }
+            if (lp.scaling_used)
+            {
+                return (lp_scale.unscaled_mat(lp, result, rownr[0], colnr[0]));
+            }
+            else
+            {
+                return (result);
+            }
+        }
+
+        internal new bool is_bb_mode(lprec lp, int bb_mask)
+        {
+            return ((bool)((lp.bb_rule & bb_mask) > 0));
+        }
+
+        internal new static double scaled_ceil(lprec lp, int colnr, double value, double epsscale)
+        {
+            LpCls objLpCls = new LpCls();
+            value = System.Math.Ceiling(value);
+            if (value != 0)
+            {
+                if (lp.columns_scaled && objLpCls.is_integerscaling(lp))
+                {
+                    value = lp_scale.scaled_value(lp, value, colnr);
+                    if (epsscale != 0)
+                    {
+                        value -= epsscale * lp.epsmachine;
+                    }
+                    /*      value -= epsscale*lp->epsprimal; */
+                    /*    value = restoreINT(value, lp->epsint); */
+                }
+            }
+            return (value);
+        }
+
+        internal new bool is_integerscaling(lprec lp)
+        {
+            return (is_scalemode(lp, SCALE_INTEGERS));
+        }
+        internal new bool is_scalemode(lprec lp, int testmask)
+        {
+            return ((bool)((lp.scalemode & testmask) != 0));
+        }
     }
 }

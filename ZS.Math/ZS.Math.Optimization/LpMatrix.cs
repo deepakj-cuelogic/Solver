@@ -969,7 +969,65 @@ namespace ZS.Math.Optimization
             //set second [] as 0 for now for both; need to check at run time
             return (mat.col_end[mat.columns][0] - mat.col_end[mat.columns - 1][0]);
         }
-        static byte mat_get_data(lprec lp, int matindex, byte isrow, int[] rownr, int[] colnr, double[][] value) { throw new NotImplementedException(); }
+        internal static byte mat_get_data(lprec lp, int matindex, bool isrow, int[] rownr, int[] colnr, double[][] value)
+        {
+            MATrec mat = lp.matA;
+
+#if MatrixRowAccess == RAM_Index
+            if (isrow)
+            {
+                matindex = mat.row_mat[matindex];
+            }
+            if (rownr != null)
+            {
+                rownr[0] = COL_MAT_ROWNR(matindex);
+            }
+            if (colnr != null)
+            {
+                colnr[0] = COL_MAT_COLNR(matindex);
+            }
+            if (value != null)
+            {
+                //first added as [0], need to check at runtime
+                value[0][0] = COL_MAT_VALUE(matindex);
+            }
+
+#else
+  if (isrow)
+  {
+	if (rownr != null)
+	{
+	  rownr[0] = ROW_MAT_ROWNR(matindex);
+	}
+	if (colnr != null)
+	{
+	  colnr[0] = ROW_MAT_COLNR(matindex);
+	}
+	if (value != null)
+	{
+	  value[0] = ROW_MAT_VALUE(matindex);
+	}
+  }
+  else
+  {
+	if (rownr != null)
+	{
+	  rownr[0] = COL_MAT_ROWNR(matindex);
+	}
+	if (colnr != null)
+	{
+	  colnr[0] = COL_MAT_COLNR(matindex);
+	}
+	if (value != null)
+	{
+	  value[0] = COL_MAT_VALUE(matindex);
+	}
+  }
+
+#endif
+
+            return (1);
+        }
         static byte mat_set_rowmap(MATrec mat, int row_mat_index, int rownr, int colnr, int col_mat_index) { throw new NotImplementedException(); }
         static byte mat_indexrange(MATrec mat, int index, byte isrow, int startpos, int endpos) { throw new NotImplementedException(); }
         internal static bool mat_validate(MATrec mat)
@@ -2114,9 +2172,84 @@ namespace ZS.Math.Optimization
         }
 
         /* Change-tracking routines (primarily for B&B and presolve) */
-        static DeltaVrec createUndoLadder(lprec lp, int levelitems, int maxlevels) { throw new NotImplementedException(); }
-        static int incrementUndoLadder(DeltaVrec DV) { throw new NotImplementedException(); }
-        static byte modifyUndoLadder(DeltaVrec DV, int itemno, double[] target, double newvalue) { throw new NotImplementedException(); }
+        internal static DeltaVrec createUndoLadder(lprec lp, int levelitems, int maxlevels)
+        {
+
+            DeltaVrec hold;
+
+            hold = new DeltaVrec();
+            hold.lp = lp;
+            hold.activelevel = 0;
+            hold.tracker = mat_create(lp, levelitems, 0, 0.0);
+            inc_matcol_space(hold.tracker, maxlevels);
+            return (hold);
+        }
+        internal static int incrementUndoLadder(DeltaVrec DV)
+        {
+            DV.activelevel++;
+            inc_matcol_space(DV.tracker, 1);
+            mat_shiftcols(DV.tracker, ref (DV.activelevel), 1, null);
+            DV.tracker.columns++;
+            return (DV.activelevel);
+        }
+        internal static bool modifyUndoLadder(DeltaVrec DV, int itemno, double[] target, double newvalue)
+        {
+            bool status;
+            int varindex = itemno;
+            double oldvalue = target[itemno];
+
+#if !UseMilpSlacksRCF
+            varindex -= DV.lp.rows;
+#endif
+            status = mat_appendvalue(DV.tracker, varindex, oldvalue);
+            target[itemno] = newvalue;
+            return (status);
+        }
+
+        internal static bool mat_appendvalue(MATrec mat, int Row, double Value)
+        {
+            //ORIGINAL LINE: int *elmnr, Column = mat->columns;
+            int elmnr;
+            int Column = mat.columns;
+
+            /* Set small numbers to zero */
+            if (System.Math.Abs(Value) < mat.epsvalue)
+            {
+                Value = 0;
+            }
+#if DoMatrixRounding
+  else
+  {
+	Value = roundToPrecision(Value, mat.epsvalue);
+  }
+#endif
+
+            /* Check if more space is needed for matrix */
+            if (!inc_mat_space(mat, 1))
+            {
+                return (false);
+            }
+
+#if Paranoia
+  /* Check valid indeces */
+  if ((Row < 0) || (Row > mat.rows))
+  {
+	report(mat.lp, SEVERE, "mat_appendvalue: Invalid row index %d specified\n", Row);
+	return (0);
+  }
+#endif
+
+            /* Get insertion point and set value */
+            elmnr = mat.col_end[0][0] + Column;
+            _SET_MAT_ijA(elmnr, Row, Column, Convert.ToInt32(Value));
+
+            /* Update column count */
+            elmnr++;
+            mat.row_end_valid = false;
+
+            return (true);
+        }
+
         static int countsUndoLadder(DeltaVrec DV) { throw new NotImplementedException(); }
         static int restoreUndoLadder(DeltaVrec DV, double[] target) { throw new NotImplementedException(); }
         static int decrementUndoLadder(DeltaVrec DV) { throw new NotImplementedException(); }

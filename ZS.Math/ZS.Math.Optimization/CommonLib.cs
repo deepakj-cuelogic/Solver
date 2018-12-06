@@ -134,9 +134,101 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        private static int gcd(int a, int b, ref int c, ref int d)
+        internal static int gcd(int a, int b, ref int c, ref int d)
         {
-            throw new NotImplementedException();
+            /* Return the greatest common divisor of a and b, or -1 if it is
+               not defined. Return through the pointer arguments the integers
+               such that gcd(a,b) = c*a + b*d. */
+
+            long q = new long();
+            long r = new long();
+            long t = new long();
+            int cret =0;
+            int dret =0;
+            int C = 0;
+            int D = 0;
+            int rval;
+            int sgn_a = 1;
+            int sgn_b = 1;
+            int swap = 0;
+
+            if ((a == 0) || (b == 0))
+            {
+                return (-1);
+            }
+
+            /* Use local multiplier instances, if necessary */
+            if (c == null)
+            {
+                c = cret;
+            }
+            if (d == null)
+            {
+                d = dret;
+            }
+
+            /* Normalize so that 0 < a <= b */
+            if (a < 0)
+            {
+                //ORIGINAL LINE: a = -a;
+                a = (-a);
+                sgn_a = -1;
+            }
+            if (b < 0)
+            {
+                //ORIGINAL LINE: b = -b;
+                b = (-b);
+                sgn_b = -1;
+            }
+            if (b < a)
+            {
+                //ORIGINAL LINE: t = b;
+                t=(b);
+                //ORIGINAL LINE: b = a;
+                b= (a);
+                //ORIGINAL LINE: a = t;
+                a=((int)t);
+                swap = 1;
+            }
+
+            /* Now a <= b and both >= 1. */
+            //ORIGINAL LINE: q = b/a;
+            q = (b / a);
+            
+            //ORIGINAL LINE: r = b - a *q;
+            r = (b - a * q);
+            if (r == 0)
+            {
+                if (swap != 0)
+                {
+                    d = 1;
+                    c = 0;
+                }
+                else
+                {
+                    c = 1;
+                    d = 0;
+                }
+                c = sgn_a * c;
+                d = sgn_b * d;
+                return ((int)a);
+            }
+
+            rval = gcd(a, (int)r, ref C, ref D);
+            if (swap != 0)
+            {
+                d = (int)(C - D * q);
+                c = D;
+            }
+            else
+            {
+                d = D;
+                c = (int)(C - D * q);
+            }
+            c = sgn_a * c;
+            d = sgn_b * d;
+            return (rval);
+
         }
 
         private static int findIndex(int target, ref int attributes, int count, int offset)
