@@ -674,7 +674,7 @@ namespace ZS.Math.Optimization
                                 ///</summary>
                                 else if (string.Compare(field1.ToString(), "BV") == 0)
                                 { // binary variable
-                                    objLpCls.set_binary(lp, @var, 1);
+                                    objLpCls.set_binary(lp, @var, true);
                                 }
                                 ///<summary> FIX_284fccea-201d-4c7c-b59c-c873fa7b45aa
                                 /// changed from 'field1' to 'field1.ToString()' on 15/11/18

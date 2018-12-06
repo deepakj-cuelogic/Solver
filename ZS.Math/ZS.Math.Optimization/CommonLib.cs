@@ -577,7 +577,7 @@ namespace ZS.Math.Optimization
 //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
   return (timeBase + (double) now.QuadPart / (double) freq.QuadPart);
 #else
-        private timeb buf = new timeb();
+        timeb buf = new timeb();
 
 //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
   ftime(&buf);

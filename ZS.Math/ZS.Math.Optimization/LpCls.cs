@@ -48,7 +48,7 @@ namespace ZS.Math.Optimization
                 lp.spx_status = USERABORT;
                 if (lp.bb_level > 0)
                 {
-                    lp.bb_break = 1;
+                    lp.bb_break = true;
                 }
             }
             if ((message > 0) && (lp.usermessage != null) && ((lp.msgmask & message) != 0))
@@ -272,7 +272,7 @@ namespace ZS.Math.Optimization
             lp.lag_status = lp_lib.NOTRUN;
 
             lp.workarrays = lp_utils.mempool_create(lp);
-            lp.wasPreprocessed = 0;
+            lp.wasPreprocessed = false;
             lp.wasPresolved = false;
             lp_presolve.presolve_createUndo(lp);
 
@@ -2406,9 +2406,7 @@ namespace ZS.Math.Optimization
                 varin = singleton_column(lp, varin, ref pcol, ref nzlist, value, ref maxabs);
             }
             else
-            {
-                varin = get_basisOF(lp, null, pcol[0], nzlist);
-            }
+                varin = get_basisOF(lp, null, pcol, nzlist);
 
             return (varin);
         }
@@ -2989,7 +2987,7 @@ namespace ZS.Math.Optimization
             }
 
             /* Do final pass to get the maximum value */
-            i = myblas.idamax(lp.rows, ref lp.rhs, 1);
+            i = myblas.idamax(lp.rows, ref lp.rhs[0], 1);
             lp.rhsmax = System.Math.Abs(lp.rhs[i]);
 
             // FIX_f704961d-fce1-40f9-82dd-f53b69d68636 26/11/18

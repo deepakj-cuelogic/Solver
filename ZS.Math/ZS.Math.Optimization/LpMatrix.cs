@@ -179,9 +179,11 @@ namespace ZS.Math.Optimization
         internal static Action<int, int, int> COL_MAT_MOVE = delegate (int to, int from, int rec)
         {
             //NOTED ISSUE: NEED TO CHECK ON 05/12/2018
+            /*NOT REQUIRED
             MEMMOVE(COL_MAT_COLNR(to), COL_MAT_COLNR(from), rec);
             MEMMOVE(COL_MAT_ROWNR(to), COL_MAT_ROWNR(from), rec);
             MEMMOVE(COL_MAT_VALUE(to), COL_MAT_VALUE(from), rec);
+            */
         };
         //ORIGINAL CODE: #define ROW_MAT_VALUE(item)       COL_MAT_VALUE(mat->row_mat[item])
         static Func<int, double> ROW_MAT_VALUE = (item) => COL_MAT_VALUE(mat.row_mat[item]);
@@ -949,13 +951,13 @@ namespace ZS.Math.Optimization
                 }
 
                 /* Fill dense Lagrangean constraints */
-                if (objLpCls.get_Lrows(lp) > 0)
+                if (LpCls.get_Lrows(lp) > 0)
                 {
                     ///NOTED ISSUE
                     //double? (column != null) ? Convert.ToDouble(column[0]) : 0 + Convert.ToDouble(mat.rows)
                     double?[] ccn = new double?[1];
                     ccn[0] = ((mat.rows != null) ? Convert.ToDouble(mat.rows) : 0) + ((column != null) ? Convert.ToDouble(column[0]) : 0);
-                    mat_appendcol(lp.matL, objLpCls.get_Lrows(lp), ccn, null, mult, checkrowmode);
+                    mat_appendcol(lp.matL, LpCls.get_Lrows(lp), ccn, null, mult, checkrowmode);
                 }
             }
 
@@ -1187,7 +1189,7 @@ namespace ZS.Math.Optimization
                 {
                     mat.lp.orig_obj[col_nr] *= mult;
                 }
-                if (objLpCls.get_Lrows(mat.lp) > 0)
+                if (LpCls.get_Lrows(mat.lp) > 0)
                 {
                     mat_multcol(mat.lp.matL, col_nr, mult, DoObj);
                 }
@@ -1245,7 +1247,7 @@ namespace ZS.Math.Optimization
             i = mat_findins(mat, Row, Column, elmnr, 0);
             if (i == -1)
             {
-                return (0);
+                return false;
             }
 
             if (isA)
@@ -1302,7 +1304,7 @@ namespace ZS.Math.Optimization
                 /* check if more space is needed for matrix */
                 if (!inc_mat_space(mat, 1))
                 {
-                    return (0);
+                    return false;
                 }
 
                 if (Column > mat.columns)
@@ -2028,7 +2030,7 @@ namespace ZS.Math.Optimization
                 /// pcol is of type double?[]
                 /// type required for method is double[]
                 /// </summary>  
-                objLpCls.obtain_column(lp, varin, ref pcol, ref nzidx, ref Para);
+                LpCls.obtain_column(lp, varin, ref pcol, ref nzidx, ref Para);
             }
 
             /* Solve, adjusted for objective function scalar */

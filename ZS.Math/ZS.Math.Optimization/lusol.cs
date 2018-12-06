@@ -45,6 +45,7 @@ namespace ZS.Math.Optimization
         public const int LUSOL_IP_SCALAR_NZA = 4;
         public const int LUSOL_IP_PIVOTTYPE = 6;
         public const int LUSOL_IP_KEEPLU = 8;
+        public const int LUSOL_IP_SINGULARLISTSIZE = 9;
 
         /* luparm OUTPUT parameters: */
         public const int LUSOL_IP_INFORM = 10;
@@ -134,12 +135,63 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
 
         internal static bool LUSOL_addSingularity(LUSOLrec LUSOL, int singcol, ref int inform)
         {
-            throw new NotImplementedException();
+            int NSING = LUSOL.luparm[LUSOL_IP_SINGULARITIES];
+            int ASING = LUSOL.luparm[LUSOL_IP_SINGULARLISTSIZE];
+
+            /* Check if we need to allocated list memory to store multiple singularities */
+            if ((NSING > 0) && (NSING >= ASING))
+            {
+
+                /* Increase list in "reasonable" steps */
+                ASING += (int)(10.0 * (System.Math.Log10((double)LUSOL.m) + 1.0));
+                /*NOT REQUIRED
+                LUSOL.isingular = (int)lusol.LUSOL_REALLOC(LUSOL.isingular, sizeof(LUSOL.isingular) * (ASING + 1));
+                */
+                if (LUSOL.isingular == null)
+                {
+                    LUSOL.luparm[lusol.LUSOL_IP_SINGULARLISTSIZE] = 0;
+                    inform = lusol.LUSOL_INFORM_NOMEMLEFT;
+                    return false;
+                }
+                LUSOL.luparm[lusol.LUSOL_IP_SINGULARLISTSIZE] = ASING;
+
+                /* Transfer the first singularity if the list was just created */
+                if (NSING == 1)
+                {
+                    LUSOL.isingular[NSING] = LUSOL.luparm[LUSOL_IP_SINGULARINDEX];
+                }
+            }
+
+            /* Update singularity count and store its index */
+            NSING++;
+            if (NSING > 1)
+            {
+                LUSOL.isingular[0] = NSING;
+                LUSOL.isingular[NSING] = singcol;
+            }
+            LUSOL.luparm[LUSOL_IP_SINGULARITIES] = NSING;
+
+            /* Mimic old logic by keeping the last singularity stored */
+            LUSOL.luparm[LUSOL_IP_SINGULARINDEX] = singcol;
+
+            return true;
         }
 
         internal static char relationChar(double left, double right)
         {
-            throw new NotImplementedException();
+            if (left > right)
+            {
+                return ('>');
+            }
+            else if (left == right)
+            {
+                return ('=');
+            }
+            else
+            {
+                return ('<');
+            }
+
         }
 
         internal static int LUSOL_getSingularity(LUSOLrec LUSOL, int singitem)
@@ -550,7 +602,43 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
 
         internal static bool LUSOL_expand_a(LUSOLrec LUSOL, ref int delta_lena, ref int right_shift)
         {
-            throw new NotImplementedException();
+#if StaticMemAlloc
+  return (0);
+#else
+            int LENA;
+            int NFREE;
+            int LFREE;
+
+            /* Add expansion factor to avoid having to resize too often/too much;
+               (exponential formula suggested by Michael A. Saunders) */
+            LENA = LUSOL.lena;
+            delta_lena = (int)commonlib.DELTA_SIZE(delta_lena, LENA);
+
+            /* Expand it! */
+            if ((delta_lena <= 0) || !LUSOL_realloc_a(LUSOL, LENA + (delta_lena)))
+            {
+                return false;
+            }
+
+            /* Make sure we return the actual memory increase of a */
+            delta_lena = LUSOL.lena - LENA;
+
+            /* Shift the used memory area to the right */
+            LFREE = right_shift;
+            NFREE = LFREE + delta_lena;
+            LENA -= LFREE - 1;
+            /*NOT REQUIRED
+            MEMMOVE(LUSOL.a + NFREE, LUSOL.a + LFREE, LENA);
+            MEMMOVE(LUSOL.indr + NFREE, LUSOL.indr + LFREE, LENA);
+            MEMMOVE(LUSOL.indc + NFREE, LUSOL.indc + LFREE, LENA);
+            */
+
+            /* Also return the new starting position for the used memory area of a */
+            right_shift = NFREE;
+
+            LUSOL.expanded_a++;
+            return true;
+#endif
         }
 
     }

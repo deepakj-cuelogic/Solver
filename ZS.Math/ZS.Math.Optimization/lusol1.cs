@@ -1070,7 +1070,18 @@ namespace ZS.Math.Optimization
 #if UseTimer
 	timer("start", eltime);
 #endif
-                LU1GAU(LUSOL, MELIM, NSPARE, SMALL, LPIVC1, LPIVC2, ref LFIRST, LPIVR2, LFREE, MINFRE, ILAST, ref JLAST, ref LROW, ref LCOL, ref LU, ref NFILL, LUSOL.iqloc[0], LUSOL.a[0] + LL1 - lusol.LUSOL_ARRAYOFFSET, LUSOL.indc[0] + LL1 - lusol.LUSOL_ARRAYOFFSET, LUSOL.a[0] + LU1 - lusol.LUSOL_ARRAYOFFSET, LUSOL.indr[0] + LL1 - lusol.LUSOL_ARRAYOFFSET, LUSOL.indr[0] + LU1 - lusol.LUSOL_ARRAYOFFSET);
+                double[] AL = null;
+                AL[0]= LUSOL.a[0] + Convert.ToDouble(LL1) - lusol.LUSOL_ARRAYOFFSET;
+                int[] MARKL = null;
+                MARKL[0] = LUSOL.indc[0] + LL1 - lusol.LUSOL_ARRAYOFFSET;
+                double[] AU = null;
+                AU[0] = LUSOL.a[0] + LU1 - lusol.LUSOL_ARRAYOFFSET;
+                int[] IFILL = null;
+                IFILL[0] = LUSOL.indr[0] + LL1 - lusol.LUSOL_ARRAYOFFSET;
+                int[] JFILL = null;
+                JFILL[0] = LUSOL.indr[0] + LU1 - lusol.LUSOL_ARRAYOFFSET;
+
+                LU1GAU(LUSOL, MELIM, NSPARE, SMALL, LPIVC1, LPIVC2, ref LFIRST, LPIVR2, LFREE, MINFRE, ILAST, ref JLAST, ref LROW, ref LCOL, ref LU, ref NFILL, LUSOL.iqloc, AL, MARKL, AU, IFILL, JFILL);
 #if UseTimer
 	timer("finish", eltime);
 #endif
@@ -1119,7 +1130,9 @@ namespace ZS.Math.Optimization
                     }
                     /*            Move rows that have pending fill-in to end of the row file.
                                   Then insert the fill-in. */
-                    LU1PEN(LUSOL, NSPARE, ref ILAST, LPIVC1, LPIVC2, LPIVR1, LPIVR2, ref LROW, LUSOL.indr[0] + LL1 - lusol.LUSOL_ARRAYOFFSET, LUSOL.indr[0] + LU1 - lusol.LUSOL_ARRAYOFFSET);
+                    IFILL[0] = LUSOL.indr[0] + LL1 - lusol.LUSOL_ARRAYOFFSET;
+                    JFILL[0] = LUSOL.indr[0] + LU1 - lusol.LUSOL_ARRAYOFFSET;
+                    LU1PEN(LUSOL, NSPARE, ref ILAST, LPIVC1, LPIVC2, LPIVR1, LPIVR2, ref LROW, IFILL, JFILL);
                 }
                 /*         ===============================================================
                            Restore the saved values of  iqloc.
@@ -1153,8 +1166,14 @@ namespace ZS.Math.Optimization
                            nzchng is found in both calls to lu1pq2, but we use it only
                            after the second.
                            =============================================================== */
-                LU1PQ2(LUSOL, NCOLD, ref NZCHNG, LUSOL.indr[0] + LPIVR - lusol.LUSOL_ARRAYOFFSET, LUSOL.indc[0] + LU1 - lusol.LUSOL_ARRAYOFFSET, LUSOL.lenc, LUSOL.iqloc, LUSOL.iq, LUSOL.iqinv);
-                LU1PQ2(LUSOL, NROWD, ref NZCHNG, LUSOL.indc[0] + LPIVC - lusol.LUSOL_ARRAYOFFSET, LUSOL.indc[0] + LSAVE - lusol.LUSOL_ARRAYOFFSET, LUSOL.lenr, LUSOL.iploc, LUSOL.ip, LUSOL.ipinv);
+                int[] IND = null;
+                IND[0] = LUSOL.indr[0] + LPIVR - lusol.LUSOL_ARRAYOFFSET;
+                int[] LENOLD = null;
+                LENOLD[0] = LUSOL.indc[0] + LU1 - lusol.LUSOL_ARRAYOFFSET;
+                LU1PQ2(LUSOL, NCOLD, ref NZCHNG, IND, LENOLD, LUSOL.lenc, LUSOL.iqloc, LUSOL.iq, LUSOL.iqinv);
+                IND[0] = LUSOL.indc[0] + LPIVC - lusol.LUSOL_ARRAYOFFSET;
+                LENOLD[0] = LUSOL.indc[0] + LSAVE - lusol.LUSOL_ARRAYOFFSET;
+                LU1PQ2(LUSOL, NROWD, ref NZCHNG, IND, LENOLD, LUSOL.lenr, LUSOL.iploc, LUSOL.ip, LUSOL.ipinv);
                 NZLEFT += NZCHNG;
 
                 /*         ===============================================================
@@ -1248,7 +1267,9 @@ namespace ZS.Math.Optimization
 #if UseTimer
 	timer("start", 17);
 #endif
-                    LU1FUL(LUSOL, LEND, LU1, TPP, MLEFT, NLEFT, NRANK, NROWU, ref LENL, ref LENU, ref NSING, KEEPLU, SMALL, LUSOL.a[0] + LD - lusol.LUSOL_ARRAYOFFSET, LUSOL.locr);
+                    double[] D = null;
+                    D[0] = LUSOL.iq[0] + NROWU - lusol.LUSOL_ARRAYOFFSET;
+                    LU1FUL(LUSOL, LEND, LU1, TPP, MLEFT, NLEFT, NRANK, NROWU, ref LENL, ref LENU, ref NSING, KEEPLU, SMALL, D, LUSOL.locr);
                     /* ***     21 Dec 1994: Bug in next line.
                        ***     nrank  = nrank - nsing */
                     NRANK = MINMN - NSING;
@@ -2375,17 +2396,536 @@ namespace ZS.Math.Optimization
    ================================================================== */
         private static void LU1MRP(LUSOLrec LUSOL, int MAXMN, double LTOL, int MAXCOL, int MAXROW, ref int IBEST, ref int JBEST, ref int MBEST, double[] AMAXR)
         {
-            throw new NotImplementedException();
+            int I;
+            int J;
+            int KBEST;
+            int LC;
+            int LC1;
+            int LC2;
+            int LEN1;
+            int LP;
+            int LP1;
+            int LP2;
+            int LQ;
+            int LQ1;
+            int LQ2;
+            int LR;
+            int LR1;
+            int LR2;
+            int MERIT;
+            int NCOL;
+            int NROW;
+            int NZ;
+            int NZ1;
+            double ABEST;
+            double AIJ;
+            double AMAX;
+            double ATOLI;
+            double ATOLJ;
+
+            /*      ------------------------------------------------------------------
+                    Search cols of length nz = 1, then rows of length nz = 1,
+                    then   cols of length nz = 2, then rows of length nz = 2, etc.
+                    ------------------------------------------------------------------ */
+            ABEST = 0;
+            IBEST = 0;
+            KBEST = MAXMN + 1;
+            MBEST = -1;
+            NCOL = 0;
+            NROW = 0;
+            NZ1 = 0;
+
+            for (NZ = 1; NZ <= MAXMN; NZ++)
+            {
+                /*         nz1    = nz - 1
+                           if (mbest .le. nz1**2) go to 900 */
+                if (KBEST <= NZ1)
+                {
+                    goto x900;
+                }
+                if (IBEST > 0)
+                {
+                    if (NCOL >= MAXCOL)
+                    {
+                        goto x200;
+                    }
+                }
+                if (NZ > LUSOL.m)
+                {
+                    goto x200;
+                }
+                /*         ---------------------------------------------------------------
+                           Search the set of columns of length  nz.
+                           --------------------------------------------------------------- */
+                LQ1 = LUSOL.iqloc[NZ];
+                LQ2 = LUSOL.n;
+                if (NZ < LUSOL.m)
+                {
+                    LQ2 = LUSOL.iqloc[NZ + 1] - 1;
+                }
+                for (LQ = LQ1; LQ <= LQ2; LQ++)
+                {
+                    NCOL = NCOL + 1;
+                    J = LUSOL.iq[LQ];
+                    LC1 = LUSOL.locc[J];
+                    LC2 = LC1 + NZ1;
+                    AMAX = System.Math.Abs(LUSOL.a[LC1]);
+                    /*      Min size of pivots in col j */
+                    ATOLJ = AMAX / LTOL;
+                    /*            Test all aijs in this column. */
+                    for (LC = LC1; LC <= LC2; LC++)
+                    {
+                        I = LUSOL.indc[LC];
+                        LEN1 = LUSOL.lenr[I] - 1;
+                        /*               merit  = nz1 * len1
+                                         if (merit .gt. mbest) continue; */
+                        if (LEN1 > KBEST)
+                        {
+                            continue;
+                        }
+                        /*               aij  has a promising merit.
+                                         Apply the Threshold Rook Pivoting stability test.
+                                         First we require aij to be sufficiently large
+                                         compared to other nonzeros in column j.
+                                         Then  we require aij to be sufficiently large
+                                         compared to other nonzeros in row    i. */
+                        AIJ = System.Math.Abs(LUSOL.a[LC]);
+                        if (AIJ < ATOLJ)
+                        {
+                            continue;
+                        }
+                        if (AIJ * LTOL < AMAXR[I])
+                        {
+                            continue;
+                        }
+                        /*               aij  is big enough. */
+                        MERIT = NZ1 * LEN1;
+                        if (MERIT == MBEST)
+                        {
+                            /*                  Break ties.
+                                                (Initializing mbest < 0 prevents getting here if
+                                                nothing has been found yet.) */
+                            if (ABEST >= AIJ)
+                            {
+                                continue;
+                            }
+                        }
+                        /*               aij  is the best pivot so far. */
+                        IBEST = I;
+                        JBEST = J;
+                        KBEST = LEN1;
+                        MBEST = MERIT;
+                        ABEST = AIJ;
+                        if (NZ == 1)
+                        {
+                            goto x900;
+                        }
+                    }
+                    /*            Finished with that column. */
+                    if (IBEST > 0)
+                    {
+                        if (NCOL >= MAXCOL)
+                        {
+                            goto x200;
+                        }
+                    }
+                }
+                /*         ---------------------------------------------------------------
+                           Search the set of rows of length  nz.
+                           --------------------------------------------------------------- */
+                x200:
+                /*    if (mbest .le. nz*nz1) go to 900 */
+                if (KBEST <= NZ)
+                {
+                    goto x900;
+                }
+                if (IBEST > 0)
+                {
+                    if (NROW >= MAXROW)
+                    {
+                        goto x290;
+                    }
+                }
+                if (NZ > LUSOL.n)
+                {
+                    goto x290;
+                }
+                LP1 = LUSOL.iploc[NZ];
+                LP2 = LUSOL.m;
+                if (NZ < LUSOL.n)
+                {
+                    LP2 = LUSOL.iploc[NZ + 1] - 1;
+                }
+                for (LP = LP1; LP <= LP2; LP++)
+                {
+                    NROW = NROW + 1;
+                    I = LUSOL.ip[LP];
+                    LR1 = LUSOL.locr[I];
+                    LR2 = LR1 + NZ1;
+                    /*      Min size of pivots in row i */
+                    ATOLI = AMAXR[I] / LTOL;
+                    for (LR = LR1; LR <= LR2; LR++)
+                    {
+                        J = LUSOL.indr[LR];
+                        LEN1 = LUSOL.lenc[J] - 1;
+                        /*               merit  = nz1 * len1
+                                         if (merit .gt. mbest) continue; */
+                        if (LEN1 > KBEST)
+                        {
+                            continue;
+                        }
+                        /*               aij  has a promising merit.
+                                         Find where  aij  is in column j. */
+                        LC1 = LUSOL.locc[J];
+                        LC2 = LC1 + LEN1;
+                        AMAX = System.Math.Abs(LUSOL.a[LC1]);
+                        for (LC = LC1; LC <= LC2; LC++)
+                        {
+                            if (LUSOL.indc[LC] == I)
+                            {
+                                break;
+                            }
+                        }
+                        /*               Apply the Threshold Rook Pivoting stability test.
+                                         First we require aij to be sufficiently large
+                                         compared to other nonzeros in row    i.
+                                         Then  we require aij to be sufficiently large
+                                         compared to other nonzeros in column j. */
+                        AIJ = System.Math.Abs(LUSOL.a[LC]);
+                        if (AIJ < ATOLI)
+                        {
+                            continue;
+                        }
+                        if (AIJ * LTOL < AMAX)
+                        {
+                            continue;
+                        }
+                        /*               aij  is big enough. */
+                        MERIT = NZ1 * LEN1;
+                        if (MERIT == MBEST)
+                        {
+                            /*                  Break ties as before.
+                                                (Initializing mbest < 0 prevents getting here if
+                                                nothing has been found yet.) */
+                            if (ABEST >= AIJ)
+                            {
+                                continue;
+                            }
+                        }
+                        /*               aij  is the best pivot so far. */
+                        IBEST = I;
+                        JBEST = J;
+                        KBEST = LEN1;
+                        MBEST = MERIT;
+                        ABEST = AIJ;
+                        if (NZ == 1)
+                        {
+                            goto x900;
+                        }
+                    }
+                    /*            Finished with that row. */
+                    if (IBEST > 0)
+                    {
+                        if (NROW >= MAXROW)
+                        {
+                            goto x290;
+                        }
+                    }
+                }
+                /*         See if it's time to quit. */
+                x290:
+                if (IBEST > 0)
+                {
+                    if (NROW >= MAXROW && NCOL >= MAXCOL)
+                    {
+                        goto x900;
+                    }
+                }
+                /*         Press on with next nz. */
+                NZ1 = NZ;
+                if (IBEST > 0)
+                {
+                    KBEST = MBEST / NZ1;
+                }
+            }
+            x900:
+            ;
         }
 
+        /* ==================================================================
+   lu1mSP  is intended for symmetric matrices that are either
+   definite or quasi-definite.
+   lu1mSP  uses a Markowitz criterion to select a pivot element for
+   the next stage of a sparse LU factorization of a symmetric matrix,
+   subject to a Threshold Symmetric Pivoting stability criterion
+   (TSP) restricted to diagonal elements to preserve symmetry.
+   This bounds the elements of L and U and should have rank-revealing
+   properties analogous to Threshold Rook Pivoting for unsymmetric
+   matrices.
+   ------------------------------------------------------------------
+   14 Dec 2002: First version of lu1mSP derived from lu1mRP.
+                There is no safeguard to ensure that A is symmetric.
+   14 Dec 2002: Current version of lu1mSP.
+   ================================================================== */
         private static void LU1MSP(LUSOLrec LUSOL, int MAXMN, double LTOL, int MAXCOL, ref int IBEST, ref int JBEST, ref int MBEST)
         {
-            throw new NotImplementedException();
+            int I;
+            int J;
+            int KBEST;
+            int LC;
+            int LC1;
+            int LC2;
+            int LQ;
+            int LQ1;
+            int LQ2;
+            int MERIT;
+            int NCOL;
+            int NZ;
+            int NZ1;
+            double ABEST;
+            double AIJ;
+            double AMAX;
+            double ATOLJ;
+
+            /*      ------------------------------------------------------------------
+                    Search cols of length nz = 1, then cols of length nz = 2, etc.
+                    ------------------------------------------------------------------ */
+            ABEST = 0;
+            IBEST = 0;
+            MBEST = -1;
+            KBEST = MAXMN + 1;
+            NCOL = 0;
+            NZ1 = 0;
+            for (NZ = 1; NZ <= MAXMN; NZ++)
+            {
+                /*         nz1    = nz - 1
+                           if (mbest .le. nz1**2) go to 900 */
+                if (KBEST <= NZ1)
+                {
+                    goto x900;
+                }
+                if (IBEST > 0)
+                {
+                    if (NCOL >= MAXCOL)
+                    {
+                        goto x200;
+                    }
+                }
+                if (NZ > LUSOL.m)
+                {
+                    goto x200;
+                }
+                /*         ---------------------------------------------------------------
+                           Search the set of columns of length  nz.
+                           --------------------------------------------------------------- */
+                LQ1 = LUSOL.iqloc[NZ];
+                LQ2 = LUSOL.n;
+                if (NZ < LUSOL.m)
+                {
+                    LQ2 = LUSOL.iqloc[NZ + 1] - 1;
+                }
+                for (LQ = LQ1; LQ <= LQ2; LQ++)
+                {
+                    NCOL++;
+                    J = LUSOL.iq[LQ];
+                    LC1 = LUSOL.locc[J];
+                    LC2 = LC1 + NZ1;
+                    AMAX = System.Math.Abs(LUSOL.a[LC1]);
+                    /*      Min size of pivots in col j */
+                    ATOLJ = AMAX / LTOL;
+                    /*            Test all aijs in this column.
+                                  Ignore everything except the diagonal. */
+                    for (LC = LC1; LC <= LC2; LC++)
+                    {
+                        I = LUSOL.indc[LC];
+                        /*      Skip off-diagonals. */
+                        if (I != J)
+                        {
+                            continue;
+                        }
+                        /*               merit  = nz1 * nz1
+                                         if (merit .gt. mbest) continue; */
+                        if (NZ1 > KBEST)
+                        {
+                            continue;
+                        }
+                        /*               aij  has a promising merit.
+                                         Apply the Threshold Partial Pivoting stability test
+                                         (which is equivalent to Threshold Rook Pivoting for
+                                         symmetric matrices).
+                                         We require aij to be sufficiently large
+                                         compared to other nonzeros in column j. */
+                        AIJ = System.Math.Abs(LUSOL.a[LC]);
+                        if (AIJ < ATOLJ)
+                        {
+                            continue;
+                        }
+                        /*               aij  is big enough. */
+                        MERIT = NZ1 * NZ1;
+                        if (MERIT == MBEST)
+                        {
+                            /*                  Break ties.
+                                                (Initializing mbest < 0 prevents getting here if
+                                                nothing has been found yet.) */
+                            if (ABEST >= AIJ)
+                            {
+                                continue;
+                            }
+                        }
+                        /*               aij  is the best pivot so far. */
+                        IBEST = I;
+                        JBEST = J;
+                        KBEST = NZ1;
+                        MBEST = MERIT;
+                        ABEST = AIJ;
+                        if (NZ == 1)
+                        {
+                            goto x900;
+                        }
+                    }
+                    /*            Finished with that column. */
+                    if (IBEST > 0)
+                    {
+                        if (NCOL >= MAXCOL)
+                        {
+                            goto x200;
+                        }
+                    }
+                }
+                /*         See if it's time to quit. */
+                x200:
+                if (IBEST > 0)
+                {
+                    if (NCOL >= MAXCOL)
+                    {
+                        goto x900;
+                    }
+                }
+                /*         Press on with next nz. */
+                NZ1 = NZ;
+                if (IBEST > 0)
+                {
+                    KBEST = MBEST / NZ1;
+                }
+            }
+            x900:
+            ;
         }
 
+        /* ==================================================================
+   lu1rec
+   ------------------------------------------------------------------
+   On exit:
+   ltop         is the length of useful entries in ind(*), a(*).
+   ind(ltop+1)  is "i" such that len(i), loc(i) belong to the last
+                item in ind(*), a(*).
+   ------------------------------------------------------------------
+   00 Jun 1983: Original version of lu1rec followed John Reid's
+                compression routine in LA05.  It recovered
+                space in ind(*) and optionally a(*)
+                by eliminating entries with ind(l) = 0.
+                The elements of ind(*) could not be negative.
+                If len(i) was positive, entry i contained
+                that many elements, starting at  loc(i).
+                Otherwise, entry i was eliminated.
+   23 Mar 2001: Realised we could have len(i) = 0 in rare cases!
+                (Mostly during TCP when the pivot row contains
+                a column of length 1 that couldn't be a pivot.)
+                Revised storage scheme to
+                   keep        entries with       ind(l) >  0,
+                   squeeze out entries with -n <= ind(l) <= 0,
+                and to allow len(i) = 0.
+                Empty items are moved to the end of the compressed
+                ind(*) and/or a(*) arrays are given one empty space.
+                Items with len(i) < 0 are still eliminated.
+   27 Mar 2001: Decided to use only ind(l) > 0 and = 0 in lu1fad.
+                Still have to keep entries with len(i) = 0.
+   ================================================================== */
         private static void LU1REC(LUSOLrec LUSOL, int N, bool REALS, ref int LTOP, int[] IND, int[] LEN, int[] LOC)
         {
-            throw new NotImplementedException();
+            int NEMPTY;
+            int I;
+            int LENI;
+            int L;
+            int LEND;
+            int K;
+            int KLAST;
+            int ILAST;
+            int LPRINT;
+
+            NEMPTY = 0;
+            for (I = 1; I <= N; I++)
+            {
+                LENI = LEN[I];
+                if (LENI > 0)
+                {
+                    L = (LOC[I] + LENI) - 1;
+                    LEN[I] = IND[L];
+                    IND[L] = -(N + I);
+                }
+                else if (LENI == 0)
+                {
+                    NEMPTY++;
+                }
+            }
+            K = 0;
+            /*      Previous k */
+            KLAST = 0;
+            /*      Last entry moved. */
+            ILAST = 0;
+            LEND = LTOP;
+            for (L = 1; L <= LEND; L++)
+            {
+                I = IND[L];
+                if (I > 0)
+                {
+                    K++;
+                    IND[K] = I;
+                    if (REALS)
+                    {
+                        LUSOL.a[K] = LUSOL.a[L];
+                    }
+                }
+                else if (I < -N)
+                {
+                    /*            This is the end of entry  i. */
+                    I = -(N + I);
+                    ILAST = I;
+                    K++;
+                    IND[K] = LEN[I];
+                    if (REALS)
+                    {
+                        LUSOL.a[K] = LUSOL.a[L];
+                    }
+                    LOC[I] = KLAST + 1;
+                    LEN[I] = K - KLAST;
+                    KLAST = K;
+                }
+            }
+            /*      Move any empty items to the end, adding 1 free entry for each. */
+            if (NEMPTY > 0)
+            {
+                for (I = 1; I <= N; I++)
+                {
+                    if (LEN[I] == 0)
+                    {
+                        K++;
+                        LOC[I] = K;
+                        IND[K] = 0;
+                        ILAST = I;
+                    }
+                }
+            }
+            LPRINT = LUSOL.luparm[lusol.LUSOL_IP_PRINTLEVEL];
+            if (LPRINT >= lusol.LUSOL_MSG_PIVOT)
+            {
+                lusol.LUSOL_report(LUSOL, 0, "lu1rec.  File compressed from %d to %d\n", LTOP, K, REALS, NEMPTY);
+            }
+            /*      ncp */
+            LUSOL.luparm[lusol.LUSOL_IP_COMPRESSIONS_LU]++;
+            /*      Return ilast in ind(ltop + 1). */
+            LTOP = K;
+            IND[(LTOP) + 1] = ILAST;
         }
 
         private static void HDELETE(double[] HA, int[] HJ, int[] HK, ref int N, int K, ref int HOPS)
@@ -2393,30 +2933,719 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
 
-        private static void LU1GAU(LUSOLrec LUSOL, int MELIM, int NSPARE, double SMALL, int LPIVC1, int LPIVC2, ref int LFIRST, int LPIVR2, int LFREE, int MINFRE, int ILAST, ref int JLAST, ref int LROW, ref int LCOL, ref int LU, ref int NFILL, int MARK, double AL, int MARKL, double AU, int IFILL, int JFILL)
+        /* ==================================================================
+   lu1gau does most of the work for each step of Gaussian elimination.
+   A multiple of the pivot column is added to each other column j
+   in the pivot row.  The column list is fully updated.
+   The row list is updated if there is room, but some fill-ins may
+   remain, as indicated by ifill and jfill.
+   ------------------------------------------------------------------
+   Input:
+      ilast    is the row    at the end of the row    list.
+      jlast    is the column at the end of the column list.
+      lfirst   is the first column to be processed.
+      lu + 1   is the corresponding element of U in au(*).
+      nfill    keeps track of pending fill-in.
+      a(*)     contains the nonzeros for each column j.
+      indc(*)  contains the row indices for each column j.
+      al(*)    contains the new column of L.  A multiple of it is
+               used to modify each column.
+      mark(*)  has been set to -1, -2, -3, ... in the rows
+               corresponding to nonzero 1, 2, 3, ... of the col of L.
+      au(*)    contains the new row of U.  Each nonzero gives the
+               required multiple of the column of L.
+
+   Workspace:
+      markl(*) marks the nonzeros of L actually used.
+               (A different mark, namely j, is used for each column.)
+
+   Output:
+      ilast     New last row    in the row    list.
+      jlast     New last column in the column list.
+      lfirst    = 0 if all columns were completed,
+                > 0 otherwise.
+      lu        returns the position of the last nonzero of U
+                actually used, in case we come back in again.
+      nfill     keeps track of the total extra space needed in the
+                row file.
+      ifill(ll) counts pending fill-in for rows involved in the new
+                column of L.
+      jfill(lu) marks the first pending fill-in stored in columns
+                involved in the new row of U.
+   ------------------------------------------------------------------
+   16 Apr 1989: First version of lu1gau.
+   23 Apr 1989: lfirst, lu, nfill are now input and output
+                to allow re-entry if elimination is interrupted.
+   23 Mar 2001: Introduced ilast, jlast.
+   27 Mar 2001: Allow fill-in "in situ" if there is already room
+                up to but NOT INCLUDING the end of the
+                row or column file.
+                Seems safe way to avoid overwriting empty rows/cols
+                at the end.  (May not be needed though, now that we
+                have ilast and jlast.)
+   ================================================================== */
+        private static void LU1GAU(LUSOLrec LUSOL, int MELIM, int NSPARE, double SMALL, int LPIVC1, int LPIVC2, ref int LFIRST, int LPIVR2, int LFREE, int MINFRE, int ILAST, ref int JLAST, ref int LROW, ref int LCOL, ref int LU, ref int NFILL, int[] MARK, double[] AL, int[] MARKL, double[] AU, int[] IFILL, int[] JFILL)
         {
-            throw new NotImplementedException();
+            bool ATEND;
+            int LR;
+            int J;
+            int LENJ;
+            int NFREE;
+            int LC1;
+            int LC2;
+            int NDONE;
+            int NDROP;
+            int L;
+            int I;
+            int LL;
+            int K;
+            int LR1;
+            int LAST;
+            int LREP;
+            int L1;
+            int L2;
+            int LC;
+            int LENI;
+            //C++ TO C# CONVERTER NOTE: 'register' variable declarations are not supported in C#:
+            //ORIGINAL LINE: register double UJ;
+            double UJ;
+            double AIJ;
+
+            for (LR = LFIRST; LR <= LPIVR2; LR++)
+            {
+                J = LUSOL.indr[LR];
+                LENJ = LUSOL.lenc[J];
+                NFREE = LFREE - LCOL;
+                if (NFREE < MINFRE)
+                {
+                    goto x900;
+                }
+              /*         ---------------------------------------------------------------
+                         Inner loop to modify existing nonzeros in column  j.
+                         Loop 440 performs most of the arithmetic involved in the
+                         whole LU factorization.
+                         ndone counts how many multipliers were used.
+                         ndrop counts how many modified nonzeros are negligibly small.
+                         --------------------------------------------------------------- */
+              (LU)++;
+                UJ = AU[LU];
+                LC1 = LUSOL.locc[J];
+                LC2 = (LC1 + LENJ) - 1;
+                ATEND = (bool)(J == JLAST);
+                NDONE = 0;
+                if (LENJ == 0)
+                {
+                    goto x500;
+                }
+                NDROP = 0;
+                for (L = LC1; L <= LC2; L++)
+                {
+                    I = LUSOL.indc[L];
+                    LL = -MARK[I];
+                    if (LL > 0)
+                    {
+                        NDONE++;
+                        MARKL[LL] = J;
+                        LUSOL.a[L] += AL[LL] * UJ;
+                        if (System.Math.Abs(LUSOL.a[L]) <= SMALL)
+                        {
+                            NDROP++;
+                        }
+                    }
+                }
+                /*         ---------------------------------------------------------------
+                           Remove any negligible modified nonzeros from both
+                           the column file and the row file.
+                           --------------------------------------------------------------- */
+                if (NDROP == 0)
+                {
+                    goto x500;
+                }
+                K = LC1;
+                for (L = LC1; L <= LC2; L++)
+                {
+                    I = LUSOL.indc[L];
+                    if (System.Math.Abs(LUSOL.a[L]) <= SMALL)
+                    {
+                        goto x460;
+                    }
+                    LUSOL.a[K] = LUSOL.a[L];
+                    LUSOL.indc[K] = I;
+                    K++;
+                    continue;
+                    /*            Delete the nonzero from the row file. */
+                    x460:
+                    LENJ--;
+                    LUSOL.lenr[I]--;
+                    LR1 = LUSOL.locr[I];
+                    LAST = LR1 + LUSOL.lenr[I];
+                    for (LREP = LR1; LREP <= LAST; LREP++)
+                    {
+                        if (LUSOL.indr[LREP] == J)
+                        {
+                            break;
+                        }
+                    }
+                    LUSOL.indr[LREP] = LUSOL.indr[LAST];
+                    LUSOL.indr[LAST] = 0;
+                    if (I == ILAST)
+                    {
+                        (LROW)--;
+                    }
+                }
+                /*         Free the deleted elements from the column file. */
+#if LUSOLFastClear
+	MEMCLEAR(LUSOL.indc + K, LC2 - K + 1);
+#else
+                for (L = K; L <= LC2; L++)
+                {
+                    LUSOL.indc[L] = 0;
+                }
+#endif
+                if (ATEND)
+                {
+                    LCOL = K - 1;
+                }
+                /*         ---------------------------------------------------------------
+                           Deal with the fill-in in column j.
+                           --------------------------------------------------------------- */
+                x500:
+                if (NDONE == MELIM)
+                {
+                    goto x590;
+                }
+                /*         See if column j already has room for the fill-in. */
+                if (ATEND)
+                {
+                    goto x540;
+                }
+                LAST = (LC1 + LENJ) - 1;
+                L1 = LAST + 1;
+                L2 = (LAST + MELIM) - NDONE;
+                /*      27 Mar 2001: Be sure it's not at or past end of the col file. */
+                if (L2 >= LCOL)
+                {
+                    goto x520;
+                }
+                for (L = L1; L <= L2; L++)
+                {
+                    if (LUSOL.indc[L] != 0)
+                    {
+                        goto x520;
+                    }
+                }
+                goto x540;
+                /*         We must move column j to the end of the column file.
+                           First, leave some spare room at the end of the
+                           current last column. */
+                x520:
+#if true
+	L1 = (LCOL) + 1;
+	L2 = (LCOL) + NSPARE;
+	LCOL = L2;
+	for (L = L1; L <= L2; L++)
+	{
+#else
+                for (L = (LCOL) + 1; L <= (LCOL) + NSPARE; L++)
+                {
+                    LCOL = L; // ****** ERROR ????
+#endif
+                    /*      Spare space is free. */
+                    LUSOL.indc[L] = 0;
+                }
+                ATEND = true;
+                JLAST = J;
+                L1 = LC1;
+                L2 = LCOL;
+                LC1 = L2 + 1;
+                LUSOL.locc[J] = LC1;
+                for (L = L1; L <= LAST; L++)
+                {
+                    L2++;
+                    LUSOL.a[L2] = LUSOL.a[L];
+                    LUSOL.indc[L2] = LUSOL.indc[L];
+                    /*      Free space. */
+                    LUSOL.indc[L] = 0;
+                }
+                LCOL = L2;
+                /*         ---------------------------------------------------------------
+                           Inner loop for the fill-in in column j.
+                           This is usually not very expensive.
+                           --------------------------------------------------------------- */
+                x540:
+                LAST = (LC1 + LENJ) - 1;
+                LL = 0;
+                for (LC = LPIVC1; LC <= LPIVC2; LC++)
+                {
+                    LL++;
+                    if (MARKL[LL] == J)
+                    {
+                        continue;
+                    }
+                    AIJ = AL[LL] * UJ;
+                    if (System.Math.Abs(AIJ) <= SMALL)
+                    {
+                        continue;
+                    }
+                    LENJ++;
+                    LAST++;
+                    LUSOL.a[LAST] = AIJ;
+                    I = LUSOL.indc[LC];
+                    LUSOL.indc[LAST] = I;
+                    LENI = LUSOL.lenr[I];
+                    /*            Add 1 fill-in to row i if there is already room.
+                                  27 Mar 2001: Be sure it's not at or past the }
+                                               of the row file. */
+                    L = LUSOL.locr[I] + LENI;
+                    if (L >= LROW)
+                    {
+                        goto x550;
+                    }
+                    if (LUSOL.indr[L] > 0)
+                    {
+                        goto x550;
+                    }
+                    LUSOL.indr[L] = J;
+                    LUSOL.lenr[I] = LENI + 1;
+                    continue;
+                    /*            Row i does not have room for the fill-in.
+                                  Increment ifill(ll) to count how often this has
+                                  happened to row i.  Also, add m to the row index
+                                  indc(last) in column j to mark it as a fill-in that is
+                                  still pending.
+                                  If this is the first pending fill-in for row i,
+                                  nfill includes the current length of row i
+                                  (since the whole row has to be moved later).
+                                  If this is the first pending fill-in for column j,
+                                  jfill(lu) records the current length of column j
+                                  (to shorten the search for pending fill-ins later). */
+                    x550:
+                    if (IFILL[LL] == 0)
+                    {
+                        (NFILL) += LENI + NSPARE;
+                    }
+                    if (JFILL[LU] == 0)
+                    {
+                        JFILL[LU] = LENJ;
+                    }
+                  (NFILL)++;
+                    IFILL[LL]++;
+                    LUSOL.indc[LAST] = LUSOL.m + I;
+                }
+                if (ATEND)
+                {
+                    LCOL = LAST;
+                }
+                /*         End loop for column  j.  Store its final length. */
+                x590:
+                LUSOL.lenc[J] = LENJ;
+            }
+            /*      Successful completion. */
+            LFIRST = 0;
+            return;
+            /*      Interruption.  We have to come back in after the
+                    column file is compressed.  Give lfirst a new value.
+                    lu and nfill will retain their current values. */
+            x900:
+            LFIRST = LR;
+
         }
 
-        private static void LU1PEN(LUSOLrec LUSOL, int NSPARE, ref int ILAST, int LPIVC1, int LPIVC2, int LPIVR1, int LPIVR2, ref int LROW, int IFILL, int JFILL)
+        /* ==================================================================
+   lu1pen deals with pending fill-in in the row file.
+   ------------------------------------------------------------------
+   ifill(ll) says if a row involved in the new column of L
+             has to be updated.  If positive, it is the total
+             length of the final updated row.
+   jfill(lu) says if a column involved in the new row of U
+             contains any pending fill-ins.  If positive, it points
+             to the first fill-in in the column that has yet to be
+             added to the row file.
+   ------------------------------------------------------------------
+   16 Apr 1989: First version of lu1pen.
+   23 Mar 2001: ilast used and updated.
+   ================================================================== */
+        private static void LU1PEN(LUSOLrec LUSOL, int NSPARE, ref int ILAST, int LPIVC1, int LPIVC2, int LPIVR1, int LPIVR2, ref int LROW, int[] IFILL, int[] JFILL)
         {
-            throw new NotImplementedException();
+            int LL;
+            int LC;
+            int L;
+            int I;
+            int LR1;
+            int LR2;
+            int LR;
+            int LU;
+            int J;
+            int LC1;
+            int LC2;
+            int LAST;
+
+            LL = 0;
+            for (LC = LPIVC1; LC <= LPIVC2; LC++)
+            {
+                LL++;
+                if (IFILL[LL] == 0)
+                {
+                    continue;
+                }
+                /*      Another row has pending fill.
+                        First, add some spare space at the }
+                        of the current last row. */
+#if true
+	LC1 = (LROW) + 1;
+	LC2 = (LROW) + NSPARE;
+	LROW = LC2;
+	for (L = LC1; L <= LC2; L++)
+	{
+#else
+                for (L = (*LROW) + 1; L <= (*LROW) + NSPARE; L++)
+                {
+                    *LROW = L; // ******* ERROR ????
+#endif
+                    LUSOL.indr[L] = 0;
+                }
+                /*      Now move row i to the end of the row file. */
+                I = LUSOL.indc[LC];
+                ILAST = I;
+                LR1 = LUSOL.locr[I];
+                LR2 = (LR1 + LUSOL.lenr[I]) - 1;
+                LUSOL.locr[I] = (LROW) + 1;
+                for (LR = LR1; LR <= LR2; LR++)
+                {
+                    (LROW)++;
+                    LUSOL.indr[LROW] = LUSOL.indr[LR];
+                    LUSOL.indr[LR] = 0;
+                }
+              (LROW) += IFILL[LL];
+            }
+            /*         Scan all columns of  D  and insert the pending fill-in
+                       into the row file. */
+            LU = 1;
+            for (LR = LPIVR1; LR <= LPIVR2; LR++)
+            {
+                LU++;
+                if (JFILL[LU] == 0)
+                {
+                    continue;
+                }
+                J = LUSOL.indr[LR];
+                LC1 = (LUSOL.locc[J] + JFILL[LU]) - 1;
+                LC2 = (LUSOL.locc[J] + LUSOL.lenc[J]) - 1;
+                for (LC = LC1; LC <= LC2; LC++)
+                {
+                    I = LUSOL.indc[LC] - LUSOL.m;
+                    if (I > 0)
+                    {
+                        LUSOL.indc[LC] = I;
+                        LAST = LUSOL.locr[I] + LUSOL.lenr[I];
+                        LUSOL.indr[LAST] = J;
+                        LUSOL.lenr[I]++;
+                    }
+                }
+            }
+
         }
 
-        private static void LU1PQ2(LUSOLrec LUSOL, int NZPIV, ref int NZCHNG, int IND, int LENOLD, int[] LENNEW, int[] IXLOC, int[] IX, int[] IXINV)
+        /* ==================================================================
+   lu1pq2 frees the space occupied by the pivot row,
+   and updates the column permutation iq.
+   Also used to free the pivot column and update the row perm ip.
+   ------------------------------------------------------------------
+   nzpiv   (input)    is the length of the pivot row (or column).
+   nzchng  (output)   is the net change in total nonzeros.
+   ------------------------------------------------------------------
+   14 Apr 1989  First version.
+   ================================================================== */
+        private static void LU1PQ2(LUSOLrec LUSOL, int NZPIV, ref int NZCHNG, int[] IND, int[] LENOLD, int[] LENNEW, int[] IXLOC, int[] IX, int[] IXINV)
         {
-            throw new NotImplementedException();
+            int LR;
+            int J;
+            int NZ;
+            int NZNEW;
+            int L;
+            int NEXT;
+            int LNEW;
+            int JNEW;
+
+            NZCHNG = 0;
+            for (LR = 1; LR <= NZPIV; LR++)
+            {
+                J = IND[LR];
+                IND[LR] = 0;
+                NZ = LENOLD[LR];
+                NZNEW = LENNEW[J];
+                if (NZ != NZNEW)
+                {
+                    L = IXINV[J];
+                    NZCHNG = (NZCHNG + NZNEW) - NZ;
+                    /*            l above is the position of column j in iq  (so j = iq(l)). */
+                    if (NZ < NZNEW)
+                    {
+                        /*               Column  j  has to move towards the end of  iq. */
+                        x110:
+                        NEXT = NZ + 1;
+                        LNEW = IXLOC[NEXT] - 1;
+                        if (LNEW != L)
+                        {
+                            JNEW = IX[LNEW];
+                            IX[L] = JNEW;
+                            IXINV[JNEW] = L;
+                        }
+                        L = LNEW;
+                        IXLOC[NEXT] = LNEW;
+                        NZ = NEXT;
+                        if (NZ < NZNEW)
+                        {
+                            goto x110;
+                        }
+                    }
+                    else
+                    {
+                        /*               Column  j  has to move towards the front of  iq. */
+                        x120:
+                        LNEW = IXLOC[NZ];
+                        if (LNEW != L)
+                        {
+                            JNEW = IX[LNEW];
+                            IX[L] = JNEW;
+                            IXINV[JNEW] = L;
+                        }
+                        L = LNEW;
+                        IXLOC[NZ] = LNEW + 1;
+                        NZ = NZ - 1;
+                        if (NZ > NZNEW)
+                        {
+                            goto x120;
+                        }
+                    }
+                    IX[LNEW] = J;
+                    IXINV[J] = LNEW;
+                }
+            }
         }
 
+        /* ==================================================================
+   lu1pq3  looks at the permutation  iperm(*)  and moves any entries
+   to the end whose corresponding length  len(*)  is zero.
+   ------------------------------------------------------------------
+   09 Feb 1994: Added work array iw(*) to improve efficiency.
+   ================================================================== */
         private static void LU1PQ3(LUSOLrec LUSOL, int MN, int[] LEN, int[] IPERM, int[] IW, ref int NRANK)
         {
-            throw new NotImplementedException();
+            int NZEROS;
+            int K;
+            int I;
+
+            NRANK = 0;
+            NZEROS = 0;
+            for (K = 1; K <= MN; K++)
+            {
+                I = IPERM[K];
+                if (LEN[I] == 0)
+                {
+                    NZEROS++;
+                    IW[NZEROS] = I;
+                }
+                else
+                {
+                    (NRANK)++;
+                    IPERM[NRANK] = I;
+                }
+            }
+            for (K = 1; K <= NZEROS; K++)
+            {
+                IPERM[(NRANK) + K] = IW[K];
+            }
         }
 
-        private static void LU1FUL(LUSOLrec LUSOL, int LEND, int LU1, bool TPP, int MLEFT, int NLEFT, int NRANK, int NROWU, ref int LENL, ref int LENU, ref int NSING, bool KEEPLU, double SMALL, double D, int[] IPVT)
+        /* ==================================================================
+   lu1ful computes a dense (full) LU factorization of the
+   mleft by nleft matrix that remains to be factored at the
+   beginning of the nrowu-th pass through the main loop of lu1fad.
+   ------------------------------------------------------------------
+   02 May 1989: First version.
+   05 Feb 1994: Column interchanges added to lu1DPP.
+   08 Feb 1994: ipinv reconstructed, since lu1pq3 may alter ip.
+   ================================================================== */
+        private static void LU1FUL(LUSOLrec LUSOL, int LEND, int LU1, bool TPP, int MLEFT, int NLEFT, int NRANK, int NROWU, ref int LENL, ref int LENU, ref int NSING, bool KEEPLU, double SMALL, double[] D, int[] IPVT)
+        {
+            int L;
+            int I;
+            int J;
+            int IPBASE;
+            int LDBASE;
+            int LQ;
+            int LC1;
+            int LC2;
+            int LC;
+            int LD;
+            int LKK;
+            int LKN;
+            int LU;
+            int K;
+            int L1;
+            int L2;
+            int IBEST;
+            int JBEST;
+            int LA;
+            int LL;
+            int NROWD;
+            int NCOLD;
+            double AI;
+            double AJ;
+
+            /*      ------------------------------------------------------------------
+                    If lu1pq3 moved any empty rows, reset ipinv = inverse of ip.
+                    ------------------------------------------------------------------ */
+            if (NRANK < LUSOL.m)
+            {
+                for (L = 1; L <= LUSOL.m; L++)
+                {
+                    I = LUSOL.ip[L];
+                    LUSOL.ipinv[I] = L;
+                }
+            }
+            /*      ------------------------------------------------------------------
+                    Copy the remaining matrix into the dense matrix D.
+                     ------------------------------------------------------------------ */
+#if LUSOLFastClear
+  MEMCLEAR((D + 1), LEND);
+#else
+            /*   dload(LEND, ZERO, D, 1); */
+            for (J = 1; J <= LEND; J++)
+            {
+                D[J] = 0;
+            }
+#endif
+            IPBASE = NROWU - 1;
+            LDBASE = 1 - NROWU;
+            for (LQ = NROWU; LQ <= LUSOL.n; LQ++)
+            {
+                J = LUSOL.iq[LQ];
+                LC1 = LUSOL.locc[J];
+                LC2 = (LC1 + LUSOL.lenc[J]) - 1;
+                for (LC = LC1; LC <= LC2; LC++)
+                {
+                    I = LUSOL.indc[LC];
+                    LD = LDBASE + LUSOL.ipinv[I];
+                    D[LD] = LUSOL.a[LC];
+                }
+                LDBASE += MLEFT;
+            }
+            /*      ------------------------------------------------------------------
+                    Call our favorite dense LU factorizer.
+                    ------------------------------------------------------------------ */
+            if (TPP)
+            {
+                int[] IX = null;
+                IX[0] = LUSOL.iq[0] + NROWU - lusol.LUSOL_ARRAYOFFSET;
+                LU1DPP(LUSOL, D, MLEFT, MLEFT, NLEFT, SMALL, ref NSING, IPVT, IX);
+            }
+            else
+            {
+                int[] IX = null;
+                IX[0] = LUSOL.iq[0] + NROWU - lusol.LUSOL_ARRAYOFFSET;
+                LU1DCP(LUSOL, D, MLEFT, MLEFT, NLEFT, SMALL, ref NSING, IPVT, IX);
+            }
+
+            /*      ------------------------------------------------------------------
+                    Move D to the beginning of A,
+                    and pack L and U at the top of a, indc, indr.
+                    In the process, apply the row permutation to ip.
+                    lkk points to the diagonal of U.
+                    ------------------------------------------------------------------ */
+#if LUSOLFastCopy
+  MEMCOPY(LUSOL.a + 1,D + 1,LEND);
+#else
+           myblas.dcopy(LEND, ref D[0], 1, ref LUSOL.a[0], 1);
+#endif
+#if ClassicdiagU
+  LUSOL.diagU = LUSOL.a + (LUSOL.lena - LUSOL.n);
+#endif
+            LKK = 1;
+            LKN = (LEND - MLEFT) + 1;
+            LU = LU1;
+            for (K = 1; K <= (int)commonlib.MIN(MLEFT, NLEFT); K++)
+            {
+                L1 = IPBASE + K;
+                L2 = IPBASE + IPVT[K];
+                if (L1 != L2)
+                {
+                    I = LUSOL.ip[L1];
+                    LUSOL.ip[L1] = LUSOL.ip[L2];
+                    LUSOL.ip[L2] = I;
+                }
+                IBEST = LUSOL.ip[L1];
+                JBEST = LUSOL.iq[L1];
+                if (KEEPLU)
+                {
+                    /*            ===========================================================
+                                  Pack the next column of L.
+                                  =========================================================== */
+                    LA = LKK;
+                    LL = LU;
+                    NROWD = 1;
+                    for (I = K + 1; I <= MLEFT; I++)
+                    {
+                        LA++;
+                        AI = LUSOL.a[LA];
+                        if (System.Math.Abs(AI) > SMALL)
+                        {
+                            NROWD = NROWD + 1;
+                            LL--;
+                            LUSOL.a[LL] = AI;
+                            LUSOL.indc[LL] = LUSOL.ip[IPBASE + I];
+                            LUSOL.indr[LL] = IBEST;
+                        }
+                    }
+                    /*            ===========================================================
+                                  Pack the next row of U.
+                                  We go backwards through the row of D
+                                  so the diagonal ends up at the front of the row of  U.
+                                  Beware -- the diagonal may be zero.
+                                  =========================================================== */
+                    LA = LKN + MLEFT;
+                    LU = LL;
+                    NCOLD = 0;
+                    for (J = NLEFT; J >= K; J--)
+                    {
+                        LA = LA - MLEFT;
+                        AJ = LUSOL.a[LA];
+                        if (System.Math.Abs(AJ) > SMALL || J == K)
+                        {
+                            NCOLD++;
+                            LU--;
+                            LUSOL.a[LU] = AJ;
+                            LUSOL.indr[LU] = LUSOL.iq[IPBASE + J];
+                        }
+                    }
+                    LUSOL.lenr[IBEST] = -NCOLD;
+                    LUSOL.lenc[JBEST] = -NROWD;
+                    LENL = ((LENL) + NROWD) - 1;
+                    LENU = (LENU) + NCOLD;
+                    LKN++;
+                }
+                else
+                {
+                    /*            ===========================================================
+                                  Store just the diagonal of U, in natural order.
+                                  =========================================================== */
+                    LUSOL.diagU[JBEST] = LUSOL.a[LKK];
+                }
+                LKK += MLEFT + 1;
+            }
+
+        }
+        internal static void LU1DCP(LUSOLrec LUSOL, double[] DA, int LDA, int M, int N, double SMALL, ref int NSING, int[] IPVT, int[] IX)
         {
             throw new NotImplementedException();
         }
+
+        internal static void LU1DPP(LUSOLrec LUSOL, double[] DA, int LDA, int M, int N, double SMALL, ref int NSING, int[] IPVT, int[] IX)
+        {
+            throw new NotImplementedException();
+        }
+
 
     }
 }
