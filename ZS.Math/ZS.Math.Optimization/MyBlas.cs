@@ -206,8 +206,11 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public static double ddot(int n, ref double dx, int incx, ref double dy, int incy)
         { throw new NotImplementedException(); }
-        public static int idamax(int n, ref double[] x, int @is)
-        { throw new NotImplementedException(); }
+        public static int idamax(int n, ref double x, int @is)
+        {
+            x++;
+            return (BLAS_idamax(ref n, ref x, ref @is));
+        }
         public static int idamin(int n, ref double x, int @is)
         { throw new NotImplementedException(); }
         public static void dload(int n, double da, ref double dx, int incx)

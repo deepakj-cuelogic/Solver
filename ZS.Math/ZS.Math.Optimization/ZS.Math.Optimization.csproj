@@ -47,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Colamd.cs" />
     <Compile Include="CommonLib.cs" />
     <Compile Include="corecrt_wstdio.cs" />
     <Compile Include="Ini.cs" />
@@ -63,6 +64,7 @@
     <Compile Include="LpUtils.cs" />
     <Compile Include="lusol.cs" />
     <Compile Include="lusol1.cs" />
+    <Compile Include="lusol2.cs" />
     <Compile Include="lusol6a.cs" />
     <Compile Include="lusol6l0.cs" />
     <Compile Include="lusol6u.cs" />

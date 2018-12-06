@@ -382,8 +382,8 @@ namespace ZS.Math.Optimization
                 MEMCOPY(rownum, lp.var_basic, lp.rows + 1);
                 */
                 //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
-                //changed from 'rownum' to 'rownum[0][0]'; need to check at run time
-                commonlib.sortByINT(ref lp.var_basic[0], ref rownum[0][0], lp.rows, 1, 1);
+                //changed from 'rownum' to 'rownum[0]'; need to check at run time
+                commonlib.sortByINT(lp.var_basic, rownum[0], lp.rows, 1, true);
             }
             return (i);
         }

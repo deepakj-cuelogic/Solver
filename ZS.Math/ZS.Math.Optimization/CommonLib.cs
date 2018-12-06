@@ -71,9 +71,10 @@ namespace ZS.Math.Optimization
         internal static Func<double, double, double> MAX = (x, y) => ((x) > (y) ? (x) : (y));
 
         internal static Func<bool, bool> my_boolstr = (x) => (!(x) ? false : true);
-
-        internal static Action<int, int> SETMIN = delegate (int x, int y) { if (x > y) x = y; };
-        public static Action<int, int> SETMAX = delegate (int x, int y) { if (x < y) x = y; };
+        // PREVIOUS: internal static Action<int, int> SETMIN = delegate (int x, int y) { if (x > y) x = y; };
+        internal static Action<double, double> SETMIN = delegate (double x, double y) { if (x > y) x = y; };
+        // PREVIOUS: public static Action<int, int> SETMAX = delegate (int x, int y) { if (x < y) x = y; };
+        public static Action<double, double> SETMAX = delegate (double x, double y) { if (x < y) x = y; };
 
         public static Action<double, double> doubleSETMAX = delegate (double x, double y) { if (x < y) x = y; };
 
@@ -454,9 +455,38 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        internal static int sortByINT(ref int item, ref int weight, int size, int offset, byte unique)
+        internal static int sortByINT(int[] item, int[] weight, int size, int offset, bool unique)
         {
-            throw new NotImplementedException();
+            int i;
+            int ii;
+            int saveI;
+            int saveW;
+
+            for (i = 1; i < size; i++)
+            {
+                ii = i + offset - 1;
+                while ((ii >= offset) && (weight[ii] >= weight[ii + 1]))
+                {
+                    if (weight[ii] == weight[ii + 1])
+                    {
+                        if (unique)
+                        {
+                            return (item[ii]);
+                        }
+                    }
+                    else
+                    {
+                        saveI = item[ii];
+                        saveW = weight[ii];
+                        item[ii] = item[ii + 1];
+                        weight[ii] = weight[ii + 1];
+                        item[ii + 1] = saveI;
+                        weight[ii + 1] = saveW;
+                    }
+                    ii--;
+                }
+            }
+            return (0);
         }
 
         /// <summary> FIX_56e7e228-14a6-4c52-9a3c-9dc092b89cb1  16/11/18

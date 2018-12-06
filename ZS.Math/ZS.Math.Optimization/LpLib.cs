@@ -701,7 +701,7 @@ namespace ZS.Math.Optimization
         // ORIGINAL LINE: typedef int    (BFP_CALLMODEL BFPint_lp)(lprec* lp);
         public delegate int BFPint_lp(lprec lp);
         // ORIGINAL LINE: typedef MYBOOL(BFP_CALLMODEL BFPbool_lp)(lprec* lp);
-        public delegate byte BFPbool_lp(lprec lp);
+        public delegate bool BFPbool_lp(lprec lp);
         // ORIGINAL LINE: typedef int    (BFP_CALLMODEL BFPint_lpintintboolbool)(lprec* lp, int uservars, int Bsize, MYBOOL *usedpos, MYBOOL final);
         public delegate int BFPint_lpintintboolbool(lprec lp, int uservars, int Bsize, ref byte usedpos, byte final);
         // ORIGINAL LINE: typedef LREAL(BFP_CALLMODEL BFPlreal_lpintintreal)(lprec* lp, int row_nr, int col_nr, REAL *pcol);
@@ -3034,7 +3034,7 @@ throw new NotImplementedException(); }
 
         public int get_basisOF(lprec lp, int[] coltarget, double[] crow, int[] colno)
         { throw new NotImplementedException(); }
-        private int get_basiscolumn(lprec lp, int j, int rn, double bj)
+        private int get_basiscolumn(lprec lp, int j, int[] rn, double?[] bj)
         { throw new NotImplementedException(); }
         public int obtain_column(lprec lp, int varin, ref double pcol, ref int nzlist, ref int maxabs)
         { throw new NotImplementedException(); }

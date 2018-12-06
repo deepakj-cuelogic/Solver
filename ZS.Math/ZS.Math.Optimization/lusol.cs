@@ -41,6 +41,7 @@ namespace ZS.Math.Optimization
 
         /* luparm INPUT parameters: */
         public const int LUSOL_IP_PRINTLEVEL = 2;
+        public const int LUSOL_IP_MARKOWITZ_MAXCOL = 3;
         public const int LUSOL_IP_SCALAR_NZA = 4;
         public const int LUSOL_IP_PIVOTTYPE = 6;
         public const int LUSOL_IP_KEEPLU = 8;
@@ -75,6 +76,12 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
         public const int LUSOL_RP_FACTORMAX_Lij = 1;
         public const int LUSOL_RP_UPDATEMAX_Lij = 2;
         public const int LUSOL_RP_ZEROTOLERANCE = 3;
+        public const int LUSOL_RP_SMALLDIAG_U = 4;
+        public const int LUSOL_RP_EPSDIAG_U = 5;
+        public const int LUSOL_RP_COMPSPACE_U = 6;
+        public const int LUSOL_RP_MARKOWITZ_CONLY = 7;
+        public const int LUSOL_RP_MARKOWITZ_DENSE = 8;
+        public const int LUSOL_RP_GAMMA = 9;
 
         /* parmlu OUPUT parameters: */
         public const int LUSOL_RP_MAXELEM_A = 10;
@@ -90,6 +97,7 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
 
         public const int LUSOL_MSG_SINGULARITY = 0;
         public const int LUSOL_MSG_STATISTICS = 10;
+        public const int LUSOL_MSG_PIVOT = 50;
 
         public const int LUSOL_PIVMOD_NOCHANGE = -2;  /* Don't change active pivoting model */
         public const int LUSOL_PIVMOD_DEFAULT = -1;  /* Set pivoting model to default */
@@ -119,6 +127,20 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
         /* User-settable default parameter values                                    */
         /* ------------------------------------------------------------------------- */
         public const double LUSOL_SMALLNUM = 1.0e-20;  /* IAEE doubles have precision 2.22e-16 */
+        public const double LUSOL_BIGNUM = 1.0e+20;
+        public const double LUSOL_MINDELTA_a = 10000;
+
+        public const int LUSOL_MULT_nz_a = 2;  /* Suggested by Yin Zhang */
+
+        internal static bool LUSOL_addSingularity(LUSOLrec LUSOL, int singcol, ref int inform)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static char relationChar(double left, double right)
+        {
+            throw new NotImplementedException();
+        }
 
         internal static int LUSOL_getSingularity(LUSOLrec LUSOL, int singitem)
         {
@@ -349,7 +371,7 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
         {
             int len;
 
-            LUSOL.nelem = 0;
+            LUSOL.nelem[0] = 0;
             if (!nzonly)
             {
 
@@ -422,7 +444,7 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
             int nz;
             int k;
 
-            nz = LUSOL.nelem;
+            nz = LUSOL.nelem[0];
             i = nz + nzcount;
             if (i > (LUSOL.lena / LUSOL.luparm[LUSOL_IP_SCALAR_NZA]) && !LUSOL_realloc_a(LUSOL, i * LUSOL.luparm[LUSOL_IP_SCALAR_NZA]))
             {
@@ -452,13 +474,8 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
                 LUSOL.indc[nz] = iA[i][0];
                 LUSOL.indr[nz] = jA;
             }
-            LUSOL.nelem = nz;
+            LUSOL.nelem[0] = nz;
             return (k);
-        }
-
-        internal static char relationChar(double left, double right)
-        {
-            throw new NotImplementedException();
         }
 
         internal static void LUSOL_report(LUSOLrec LUSOL, int msglevel, string format, params object[] LegacyParamArray)
@@ -499,7 +516,28 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
 
         internal static bool LUSOL_realloc_a(LUSOLrec LUSOL, int newsize)
         {
-            throw new NotImplementedException();
+            int oldsize;
+
+            if (newsize < 0)
+                newsize = (int)(LUSOL.lena + commonlib.MAX(System.Math.Abs(newsize), LUSOL_MINDELTA_a));
+
+            oldsize = LUSOL.lena;
+            LUSOL.lena = newsize;
+            if (newsize > 0)
+                newsize++;
+            if (oldsize > 0)
+                oldsize++;
+
+            /*NOT REQUIRED
+            LUSOL.a = (REAL)clean_realloc(LUSOL.a, sizeof(*(LUSOL.a)), newsize, oldsize);
+            LUSOL.indc = (int)clean_realloc(LUSOL.indc, sizeof(*(LUSOL.indc)), newsize, oldsize);
+            LUSOL.indr = (int)clean_realloc(LUSOL.indr, sizeof(*(LUSOL.indr)), newsize, oldsize);
+            */
+            if ((newsize == 0) || ((LUSOL.a != null) && (LUSOL.indc != null) && (LUSOL.indr != null)))
+                return true;
+            else
+                return false;
+            
         }
 
         internal static int LUSOL_factorize(LUSOLrec LUSOL)
@@ -509,10 +547,16 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
             lusol1.LU1FAC(LUSOL, ref inform);
             return (inform);
         }
+
+        internal static bool LUSOL_expand_a(LUSOLrec LUSOL, ref int delta_lena, ref int right_shift)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 
     /* The main LUSOL data record */
-                /* ------------------------------------------------------------------------- */
+    /* ------------------------------------------------------------------------- */
     public class LUSOLrec
     {
         private const int LUSOL_RP_RESIDUAL_U = 20;
@@ -525,7 +569,7 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
         public LUSOLlogfunc debuginfo;
 
         /* Parameter storage arrays */
-        public int[] luparm = new int[LUSOL_IP_LASTITEM + 1];
+        public int[] luparm = new int[lusol.LUSOL_IP_LASTITEM + 1];
         public double[] parmlu = new double[LUSOL_RP_LASTITEM + 1];
 
         /* Arrays of length lena+1 */
@@ -560,13 +604,13 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
         public int[] isingular;
 
         /* Extra arrays of length n for TCP and keepLU == FALSE */
-        public double Ha;
-        public double diagU;
-        public int Hj;
-        public int Hk;
+        public double[] Ha;
+        public double[] diagU;
+        public int[] Hj;
+        public int[] Hk;
 
         /* Extra arrays of length m for TRP*/
-        public double? amaxr;
+        public double[] amaxr;
         public LUSOLmat[] L0;
         public LUSOLmat[] U;
 
