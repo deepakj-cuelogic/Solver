@@ -48,7 +48,18 @@ namespace ZS.Math.Optimization
         }
         static internal void free_hash_table(hashtable ht)
         {
-            throw new NotImplementedException();
+            hashelem hp;
+            hashelem thp;
+
+            hp = ht.first;
+            while (hp != null)
+            {
+                thp = hp;
+                hp = hp.nextelem;
+                free_hash_item(thp);
+            }
+            ht.table = null;
+            ht = null;
         }
         static void drophash(string name, hashelem list, hashtable ht)
         {
@@ -56,11 +67,42 @@ namespace ZS.Math.Optimization
         }
         static void free_hash_item(hashelem hp)
         {
-            throw new NotImplementedException();
+            /*NOT REQUIRED
+            //C++ TO C# CONVERTER TODO TASK: The memory management function 'free' has no equivalent in C#:
+            free(hp.name);
+            //C++ TO C# CONVERTER TODO TASK: The memory management function 'free' has no equivalent in C#:
+            free(*hp);
+            *hp = null;
+            */
         }
-        static internal hashtable copy_hash_table(hashtable ht, hashelem list, int newsize)
+        static internal hashtable copy_hash_table(hashtable ht, hashelem[] list, int newsize)
         {
-            throw new NotImplementedException();
+            hashtable copy;
+            hashelem elem;
+            hashelem new_elem;
+
+            if (newsize < ht.size)
+            {
+                newsize = ht.size;
+            }
+
+            copy = create_hash_table(newsize, ht.@base);
+            if (copy != null)
+            {
+                elem = ht.first;
+                while (elem != null)
+                {
+                    if ((new_elem = puthash(elem.name, elem.index, list, copy)) == null)
+                    {
+                        free_hash_table(copy);
+                        return (null);
+                    }
+                    elem = elem.nextelem;
+                }
+            }
+
+            return (copy);
+
         }
         internal static int find_var(lprec lp, string name, bool verbose)
         {

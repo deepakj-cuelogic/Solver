@@ -80,7 +80,7 @@ namespace ZS.Math.Optimization
             }
 
             lp.columns_scaled = false;
-            objLpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REBASE | lp_lib.ACTION_REINVERT | lp_lib.ACTION_RECOMPUTE);
+            LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REBASE | lp_lib.ACTION_REINVERT | lp_lib.ACTION_RECOMPUTE);
 
         }
 

@@ -255,7 +255,7 @@ namespace ZS.Math.Optimization
         private static void LU1FAD(LUSOLrec LUSOL,
 #if ClassicHamaxR
 //C++ TO C# CONVERTER TODO TASK: Statements that are interrupted by preprocessor statements are not converted by C++ to C# Converter:
-			int LENA2, int LENH, REAL HA[], int HJ[], int HK[], REAL AMAXR[],
+			int LENA2, int LENH, double HA[], int HJ[], int HK[], double AMAXR[],
 #endif
            ref int INFORM, ref int LENL, ref int LENU, ref int MINLEN, ref int MERSUM, ref int NUTRI, ref int NLTRI, ref int NDENS1, ref int NDENS2, ref int NRANK, ref double LMAX, ref double UMAX, ref double DUMAX, ref double DUMIN, ref double AKMAX)
         {
@@ -3636,14 +3636,473 @@ namespace ZS.Math.Optimization
             }
 
         }
+
+        /* ==================================================================
+   lu1DCP factors a dense m x n matrix A by Gaussian elimination,
+   using Complete Pivoting (row and column interchanges) for stability.
+   This version also uses column interchanges if all elements in a
+   pivot column are smaller than (or equal to) "small".  Such columns
+   are changed to zero and permuted to the right-hand end.
+   As in LINPACK's dgefa, ipvt(!) keeps track of pivot rows.
+   Rows of U are interchanged, but we don't have to physically
+   permute rows of L.  In contrast, column interchanges are applied
+   directly to the columns of both L and U, and to the column
+   permutation vector iq(*).
+   ------------------------------------------------------------------
+   On entry:
+      a       Array holding the matrix A to be factored.
+      lda     The leading dimension of the array  a.
+      m       The number of rows    in  A.
+      n       The number of columns in  A.
+      small   A drop tolerance.  Must be zero or positive.
+
+   On exit:
+      a       An upper triangular matrix and the multipliers
+              which were used to obtain it.
+              The factorization can be written  A = L*U  where
+              L  is a product of permutation and unit lower
+              triangular matrices and  U  is upper triangular.
+      nsing   Number of singularities detected.
+      ipvt    Records the pivot rows.
+      iq      A vector to which column interchanges are applied.
+   ------------------------------------------------------------------
+   01 May 2002: First dense Complete Pivoting, derived from lu1DPP.
+   07 May 2002: Another break needed at end of first loop.
+   07 May 2002: Current version of lu1DCP.
+   ================================================================== */
         internal static void LU1DCP(LUSOLrec LUSOL, double[] DA, int LDA, int M, int N, double SMALL, ref int NSING, int[] IPVT, int[] IX)
         {
-            throw new NotImplementedException();
+            int I;
+            int J;
+            int K;
+            int KP1;
+            int L;
+            int LAST;
+            int LENCOL;
+            int IMAX;
+            int JMAX;
+            int JLAST;
+            int JNEW;
+            double AIJMAX = new double();
+            double AJMAX = new double();
+            //C++ TO C# CONVERTER NOTE: 'register' variable declarations are not supported in C#:
+            //ORIGINAL LINE: register double T;
+            double T = new double();
+#if LUSOLFastDenseIndex
+//C++ TO C# CONVERTER NOTE: 'register' variable declarations are not supported in C#:
+//ORIGINAL LINE: register double *DA1, *DA2;
+//C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+  double * DA1 = new double();
+//C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+  double * DA2 = new double();
+  int IDA1;
+  int IDA2;
+#else
+            //C++ TO C# CONVERTER NOTE: 'register' variable declarations are not supported in C#:
+            //ORIGINAL LINE: register int IDA1, IDA2;
+            int IDA1;
+            int IDA2;
+#endif
+
+            NSING = 0;
+            LENCOL = M + 1;
+            LAST = N;
+            /*     -----------------------------------------------------------------
+                    Start of elimination loop.
+                   ----------------------------------------------------------------- */
+            for (K = 1; K <= N; K++)
+            {
+                KP1 = K + 1;
+                LENCOL--;
+                /*      Find the biggest aij in row imax and column jmax. */
+                AIJMAX = 0;
+                IMAX = K;
+                JMAX = K;
+                JLAST = LAST;
+                for (J = K; J <= JLAST; J++)
+                {
+                    x10:
+                    double x = DA[0] + lusol.DAPOS(K, J, LDA) - lusol.LUSOL_ARRAYOFFSET;
+                    L = myblas.idamax(LENCOL, ref x, 1) + K - 1;
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    AJMAX = System.Math.Abs(DA[lusol.DAPOS(L, J, 1)]);  
+                    if (AJMAX <= SMALL)
+                    {
+                        /*     ========================================================
+                                Do column interchange, changing old column to zero.
+                                Reduce  "last"  and try again with same j.
+                               ======================================================== */
+                        (NSING)++;
+                        JNEW = IX[LAST];
+                        IX[LAST] = IX[J];
+                        IX[J] = JNEW;
+#if LUSOLFastDenseIndex
+		DA1 = DA + DAPOS(0,LAST);
+		DA2 = DA + DAPOS(0,J);
+		for (I = 1; I <= K - 1; I++)
+		{
+		  DA1++;
+		  DA2++;
+//C++ TO C# CONVERTER TODO TASK: The following line was determined to be a copy assignment (rather than a reference assignment) - this should be verified and a 'CopyFrom' method should be created:
+//ORIGINAL LINE: T = *DA1;
+		  T.CopyFrom(DA1);
+		  *DA1 = DA2;
+		  *DA2 = T;
+#else
+                        for (I = 1; I <= K - 1; I++)
+                        {
+                            // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                            // 1 temporarly added as LDA, need to check at runtime
+                            IDA1 = lusol.DAPOS(I, LAST, 1);
+                            // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                            // 1 temporarly added as LDA, need to check at runtime
+                            IDA2 = lusol.DAPOS(I, J, 1);
+                            T = DA[IDA1];
+                            DA[IDA1] = DA[IDA2];
+                            DA[IDA2] = T;
+#endif
+                        }
+#if LUSOLFastDenseIndex
+		for (I = K; I <= M; I++)
+		{
+		  DA1++;
+		  DA2++;
+		  T = *DA1;
+		  *DA1 = ZERO;
+		  *DA2 = T;
+#else
+                        for (I = K; I <= M; I++)
+                        {
+                            // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                            // 1 temporarly added as LDA, need to check at runtime
+                            IDA1 = lusol.DAPOS(I, LAST, 1);
+                            // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                            // 1 temporarly added as LDA, need to check at runtime
+                            IDA2 = lusol.DAPOS(I, J, 1);
+                            T = DA[IDA1];
+                            DA[IDA1] = 0;
+                            DA[IDA2] = T;
+#endif
+                        }
+                        LAST--;
+                        if (J <= LAST)
+                        {
+                            goto x10;
+                        }
+                        break;
+                    }
+                    /*      Check if this column has biggest aij so far. */
+                    if (AIJMAX < AJMAX)
+                    {
+                        AIJMAX = AJMAX;
+                        IMAX = L;
+                        JMAX = J;
+                    }
+                    if (J >= LAST)
+                    {
+                        break;
+                    }
+                }
+                IPVT[K] = IMAX;
+                if (JMAX != K)
+                {
+                    /*     ==========================================================
+                            Do column interchange (k and jmax).
+                           ========================================================== */
+                    JNEW = IX[JMAX];
+                    IX[JMAX] = IX[K];
+                    IX[K] = JNEW;
+#if LUSOLFastDenseIndex
+	  DA1 = DA + DAPOS(0,JMAX);
+	  DA2 = DA + DAPOS(0,K);
+	  for (I = 1; I <= M; I++)
+	  {
+		DA1++;
+		DA2++;
+		T = *DA1;
+		*DA1 = *DA2;
+		*DA2 = T;
+#else
+                    for (I = 1; I <= M; I++)
+                    {
+                        // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                        // 1 temporarly added as LDA, need to check at runtime
+                        IDA1 = lusol.DAPOS(I, JMAX, 1);
+                        // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                        // 1 temporarly added as LDA, need to check at runtime
+                        IDA2 = lusol.DAPOS(I, K, 1);
+                        T = DA[IDA1];
+                        DA[IDA1] = DA[IDA2];
+                        DA[IDA2] = T;
+#endif
+                    }
+                }
+                if (M > K)
+                {
+                    /*     ===========================================================
+                            Do row interchange if necessary.
+                           =========================================================== */
+                    if (IMAX != K)
+                    {
+                        // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                        // 1 temporarly added as LDA, need to check at runtime
+                        IDA1 = lusol.DAPOS(IMAX, K, 1);
+                        // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                        // 1 temporarly added as LDA, need to check at runtime
+                        IDA2 = lusol.DAPOS(K, K, 1);
+                        T = DA[IDA1];
+                        DA[IDA1] = DA[IDA2];
+                        DA[IDA2] = T;
+                    }
+                    /*     ===========================================================
+                            Compute multipliers.
+                            Do row elimination with column indexing.
+                           =========================================================== */
+                    double dx = DA[0] + lusol.DAPOS(KP1, K, 1) - lusol.LUSOL_ARRAYOFFSET;
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    T = -1 / DA[lusol.DAPOS(K, K, 1)];
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    myblas.dscal(M - K, T, ref dx, 1);
+                    for (J = KP1; J <= LAST; J++)
+                    {
+                        // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                        // 1 temporarly added as LDA, need to check at runtime
+                        IDA1 = lusol.DAPOS(IMAX, J, 1);
+                        T = DA[IDA1];
+                        if (IMAX != K)
+                        {
+                            // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                            // 1 temporarly added as LDA, need to check at runtime
+                            IDA2 = lusol.DAPOS(K, J, 1);
+                            DA[IDA1] = DA[IDA2];
+                            DA[IDA2] = T;
+                        }
+                        dx = DA[0] + lusol.DAPOS(KP1, K, 1) - lusol.LUSOL_ARRAYOFFSET;
+                        double dy = DA[0] + lusol.DAPOS(KP1, J, 1) - lusol.LUSOL_ARRAYOFFSET;
+                        // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                        // 1 temporarly added as LDA, need to check at runtime
+                        myblas.daxpy(M - K, T, ref dx, 1, ref dy, 1);
+                    }
+                }
+                else
+                {
+                    break;
+                }
+                if (K >= LAST)
+                {
+                    break;
+                }
+            }
+            /*      Set ipvt(*) for singular rows. */
+            for (K = LAST + 1; K <= M; K++)
+            {
+                IPVT[K] = K;
+            }
         }
 
+        /* ==================================================================
+   lu1DPP factors a dense m x n matrix A by Gaussian elimination,
+   using row interchanges for stability, as in dgefa from LINPACK.
+   This version also uses column interchanges if all elements in a
+   pivot column are smaller than (or equal to) "small".  Such columns
+   are changed to zero and permuted to the right-hand end.
+   As in LINPACK, ipvt(*) keeps track of pivot rows.
+   Rows of U are interchanged, but we don't have to physically
+   permute rows of L.  In contrast, column interchanges are applied
+   directly to the columns of both L and U, and to the column
+   permutation vector iq(*).
+   ------------------------------------------------------------------
+   On entry:
+        a       Array holding the matrix A to be factored.
+        lda     The leading dimension of the array  a.
+        m       The number of rows    in  A.
+        n       The number of columns in  A.
+        small   A drop tolerance.  Must be zero or positive.
+
+   On exit:
+        a       An upper triangular matrix and the multipliers
+                which were used to obtain it.
+                The factorization can be written  A = L*U  where
+                L  is a product of permutation and unit lower
+                triangular matrices and  U  is upper triangular.
+        nsing   Number of singularities detected.
+        ipvt    Records the pivot rows.
+        iq      A vector to which column interchanges are applied.
+   ------------------------------------------------------------------
+   02 May 1989: First version derived from dgefa
+                in LINPACK (version dated 08/14/78).
+   05 Feb 1994: Generalized to treat rectangular matrices
+                and use column interchanges when necessary.
+                ipvt is retained, but column permutations are applied
+                directly to iq(*).
+   21 Dec 1994: Bug found via example from Steve Dirkse.
+                Loop 100 added to set ipvt(*) for singular rows.
+   ================================================================== */
         internal static void LU1DPP(LUSOLrec LUSOL, double[] DA, int LDA, int M, int N, double SMALL, ref int NSING, int[] IPVT, int[] IX)
         {
-            throw new NotImplementedException();
+            int I;
+            int J;
+            int K;
+            int KP1;
+            int L;
+            int LAST;
+            int LENCOL;
+            double T;
+#if LUSOLFastDenseIndex
+//C++ TO C# CONVERTER NOTE: 'register' variable declarations are not supported in C#:
+//ORIGINAL LINE: register double *DA1, *DA2;
+//C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+  double DA1;
+//C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+//ORIGINAL LINE: double *DA2;
+  double DA2;
+  int IDA1;
+  int IDA2;
+#else
+            int IDA1;
+            int IDA2;
+#endif
+            NSING = 0;
+            K = 1;
+            LAST = N;
+            /*      ------------------------------------------------------------------
+                    Start of elimination loop.
+                    ------------------------------------------------------------------ */
+            x10:
+            KP1 = K + 1;
+            LENCOL = (M - K) + 1;
+            /*      Find l, the pivot row. */
+            double x = DA[0] + lusol.DAPOS(K, K, 1) - lusol.LUSOL_ARRAYOFFSET;
+            // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+            // 1 temporarly added as LDA, need to check at runtime
+            L = (myblas.idamax(LENCOL, ref x, 1) + K) - 1;
+            IPVT[K] = L;
+            // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+            // 1 temporarly added as LDA, need to check at runtime
+            if (System.Math.Abs(DA[lusol.DAPOS(L, K, 1)]) <= SMALL)
+            {
+                /*         ===============================================================
+                           Do column interchange, changing old pivot column to zero.
+                           Reduce  "last"  and try again with same k.
+                           =============================================================== */
+                (NSING)++;
+                J = IX[LAST];
+                IX[LAST] = IX[K];
+                IX[K] = J;
+#if LUSOLFastDenseIndex
+	DA1 = DA + DAPOS(0,LAST);
+	DA2 = DA + DAPOS(0,K);
+	for (I = 1; I <= K - 1; I++)
+	{
+	  DA1++;
+	  DA2++;
+	  T = *DA1;
+	  *DA1 = *DA2;
+	  *DA2 = T;
+#else
+                for (I = 1; I <= K - 1; I++)
+                {
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    IDA1 = lusol.DAPOS(I, LAST, 1);
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    IDA2 = lusol.DAPOS(I, K, 1);
+                    T = DA[IDA1];
+                    DA[IDA1] = DA[IDA2];
+                    DA[IDA2] = T;
+#endif
+                }
+#if LUSOLFastDenseIndex
+	for (I = K; I <= M; I++)
+	{
+	  DA1++;
+	  DA2++;
+	  T = *DA1;
+	  *DA1 = ZERO;
+	  *DA2 = T;
+#else
+                for (I = K; I <= M; I++)
+                {
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    IDA1 = lusol.DAPOS(I, LAST, 1);
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    IDA2 = lusol.DAPOS(I, K, 1);
+                    T = DA[IDA1];
+                    DA[IDA1] = 0;
+                    DA[IDA2] = T;
+#endif
+                }
+                LAST = LAST - 1;
+                if (K <= LAST)
+                {
+                    goto x10;
+                }
+            }
+            else if (M > K)
+            {
+                /*         ===============================================================
+                           Do row interchange if necessary.
+                           =============================================================== */
+                if (L != K)
+                {
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    IDA1 = lusol.DAPOS(L, K, 1);
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    IDA2 = lusol.DAPOS(K, K, 1);
+                    T = DA[IDA1];
+                    DA[IDA1] = DA[IDA2];
+                    DA[IDA2] = T;
+                }
+                /*         ===============================================================
+                           Compute multipliers.
+                           Do row elimination with column indexing.
+                           =============================================================== */
+                // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                // 1 temporarly added as LDA, need to check at runtime
+                T = -1 / DA[lusol.DAPOS(K, K, 1)];
+                double dx = DA[0] + lusol.DAPOS(KP1, K, 1) - lusol.LUSOL_ARRAYOFFSET;
+                // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                // 1 temporarly added as LDA, need to check at runtime
+                myblas.dscal(M - K, T, ref dx, 1);
+                for (J = KP1; J <= LAST; J++)
+                {
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    IDA1 = lusol.DAPOS(L, J, 1);
+                    T = DA[IDA1];
+                    if (L != K)
+                    {
+                        // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                        // 1 temporarly added as LDA, need to check at runtime
+                        IDA2 = lusol.DAPOS(K, J, 1);
+                        DA[IDA1] = DA[IDA2];
+                        DA[IDA2] = T;
+                    }
+                    dx = DA[0] + lusol.DAPOS(KP1, K, 1) - lusol.LUSOL_ARRAYOFFSET;
+                    double dy = DA[0] + lusol.DAPOS(KP1, J, 1) - lusol.LUSOL_ARRAYOFFSET;
+                    // FIX_f7c383fc-0d86-42f9-a8dd-870d67c9964d 7/12/18
+                    // 1 temporarly added as LDA, need to check at runtime
+                    myblas.daxpy(M - K, T, ref dx, 1, ref dy, 1);
+                }
+                K++;
+                if (K <= LAST)
+                {
+                    goto x10;
+                }
+            }
+            /*      Set ipvt(*) for singular rows. */
+            for (K = LAST + 1; K <= M; K++)
+            {
+                IPVT[K] = K;
+            }
         }
 
 

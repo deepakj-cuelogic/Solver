@@ -79,7 +79,7 @@ namespace ZS.Math.Optimization
 
 
         // MUST MODIFY 
-        internal void bfp_free(lprec lp)    //BFP_CALLMODEL
+        internal static void bfp_free(lprec lp)    //BFP_CALLMODEL
         {
             INVrec lu;
 

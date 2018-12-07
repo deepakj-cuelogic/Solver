@@ -177,7 +177,7 @@ namespace ZS.Math.Optimization
             psundo.orig_sum = orig_rows + orig_cols;
             if (lp.wasPresolved)
             {
-                presolve_fillUndo(lp, orig_rows, orig_cols, 0);
+                presolve_fillUndo(lp, orig_rows, orig_cols, false);
             }
             return true;
 
@@ -186,13 +186,34 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public static byte presolve_fillUndo(lprec lp, int orig_rows, int orig_cols, byte setOrig)
+        public static bool presolve_fillUndo(lprec lp, int orig_rows, int orig_cols, bool setOrig)
         {
-            throw new NotImplementedException();
+            int i;
+            presolveundorec psundo = lp.presolve_undo;
+
+            for (i = 0; i <= orig_rows; i++)
+            {
+                psundo.var_to_orig[i] = i;
+                psundo.orig_to_var[i] = i;
+                psundo.fixed_rhs[i] = 0;
+            }
+            for (i = 1; i <= orig_cols; i++)
+            {
+                psundo.var_to_orig[orig_rows + i] = i;
+                psundo.orig_to_var[orig_rows + i] = i;
+                psundo.fixed_obj[i] = 0;
+            }
+            if (setOrig)
+            {
+                presolve_setOrig(lp, orig_rows, orig_cols);
+            }
+
+            return true;
+
         }
         public static bool presolve_freeUndo(lprec lp)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
             /* NOT REQUIRED
             presolveundorec psundo = lp.presolve_undo;
 
@@ -219,6 +240,7 @@ namespace ZS.Math.Optimization
             FREE(lp.presolve_undo);
             return (1);
              */
+            return true;
         }
 
         public static byte presolve_updatesums(presolverec psdata)

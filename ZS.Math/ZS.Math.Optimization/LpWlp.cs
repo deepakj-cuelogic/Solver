@@ -128,6 +128,7 @@ namespace ZS.Math.Optimization
             double[] val = null;
             String ptr;
             string msg;
+            LpCls objLpCls = new LpCls();
 
             lp_report objlpReport = new lp_report();
 
@@ -296,7 +297,7 @@ namespace ZS.Math.Optimization
             ok = false;
             for (i = nrows + 1; i <= lp.sum; i++)
             {
-                if (!lp.is_splitvar(lp, i - nrows))
+                if (!objLpCls.is_splitvar(lp, i - nrows))
                 {
                     if (lp.orig_lowbo[i] == lp.orig_upbo[i])
                     {
@@ -405,7 +406,7 @@ namespace ZS.Math.Optimization
                     i++;
                     for (; i <= ncols; i++)
                     {
-                        if ((!lp.is_splitvar(lp, i)) && (lp.is_int(lp, i)))
+                        if ((!objLpCls.is_splitvar(lp, i)) && (lp.is_int(lp, i)))
                         {
                             if ((maxlen != 0) && (nchars > maxlen))
                             {
@@ -439,7 +440,7 @@ namespace ZS.Math.Optimization
                     i++;
                     for (; i <= ncols; i++)
                     {
-                        if ((!lp.is_splitvar(lp, i)) && (lp.is_semicont(lp, i)))
+                        if ((!objLpCls.is_splitvar(lp, i)) && (lp.is_semicont(lp, i)))
                         {
                             if ((maxlen != 0) && (nchars > maxlen))
                             {

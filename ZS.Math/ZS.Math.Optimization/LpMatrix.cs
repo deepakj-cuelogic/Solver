@@ -298,7 +298,71 @@ namespace ZS.Math.Optimization
             return (status);
 
         }
-        static bool inc_mat_space(MATrec mat, int mindelta) { throw new NotImplementedException(); }
+        static bool inc_mat_space(MATrec mat, int mindelta)
+        {
+            int spaceneeded;
+            int nz = mat_nonzeros(mat);
+
+            if (mindelta <= 0)
+            {
+                mindelta = (int)commonlib.MAX((mat.rows != null) ? Convert.ToDouble(mat.rows) : 0, Convert.ToDouble(mat.columns)) + 1;
+            }
+            spaceneeded = (int)commonlib.DELTA_SIZE(mindelta, nz);
+            commonlib.SETMAX(mindelta, spaceneeded);
+
+            if (mat.mat_alloc == 0)
+            {
+                spaceneeded = mindelta;
+            }
+            else
+            {
+                spaceneeded = nz + mindelta;
+            }
+
+            if (spaceneeded >= mat.mat_alloc)
+            {
+                /* Let's allocate at least MAT_START_SIZE entries */
+                if (mat.mat_alloc < lp_lib.MAT_START_SIZE)
+                {
+                    mat.mat_alloc = lp_lib.MAT_START_SIZE;
+                }
+
+                /* Increase the size by RESIZEFACTOR each time it becomes too small */
+                while (spaceneeded >= mat.mat_alloc)
+                {
+                    mat.mat_alloc += mat.mat_alloc / lp_lib.RESIZEFACTOR;
+                }
+
+                //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if MatrixColAccess == CAM_Record
+                //C++ TO C# CONVERTER TODO TASK: The memory management function 'realloc' has no equivalent in C#:
+                /*NOT REQUIRED
+                mat.col_mat = (MATitem)realloc(mat.col_mat, (mat.mat_alloc) * sizeof(*(mat.col_mat)));
+                */
+#else
+	allocINT(mat.lp, (mat.col_mat_colnr), mat.mat_alloc, AUTOMATIC);
+	allocINT(mat.lp, (mat.col_mat_rownr), mat.mat_alloc, AUTOMATIC);
+	allocREAL(mat.lp, (mat.col_mat_value), mat.mat_alloc, AUTOMATIC);
+#endif
+
+                //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if MatrixRowAccess == RAM_Index
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                // commented on 7/12/18, check at runtime
+                // lp_utils.allocINT(mat.lp, mat.row_mat, mat.mat_alloc, lp_types.AUTOMATIC);
+                //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#elif MatrixColAccess == CAM_Record
+//C++ TO C# CONVERTER TODO TASK: The memory management function 'realloc' has no equivalent in C#:
+	mat.row_mat = (MATitem) realloc(mat.row_mat, (mat.mat_alloc) * sizeof(*(mat.row_mat)));
+#else
+	allocINT(mat.lp, (mat.row_mat_colnr), mat.mat_alloc, AUTOMATIC);
+	allocINT(mat.lp, (mat.row_mat_rownr), mat.mat_alloc, AUTOMATIC);
+	allocREAL(mat.lp, (mat.row_mat_value), mat.mat_alloc, AUTOMATIC);
+#endif
+            }
+            return true;
+        }
+
         internal static int mat_shiftrows(MATrec mat, ref int bbase, int delta, LLrec varmap)
         {
             int j;
@@ -1028,7 +1092,27 @@ namespace ZS.Math.Optimization
 
             return (1);
         }
-        static byte mat_set_rowmap(MATrec mat, int row_mat_index, int rownr, int colnr, int col_mat_index) { throw new NotImplementedException(); }
+        static bool mat_set_rowmap(MATrec mat, int row_mat_index, int rownr, int colnr, int col_mat_index)
+        {
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#if MatrixRowAccess == RAM_Index
+            mat.row_mat[row_mat_index] = col_mat_index;
+
+            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+#elif MatrixColAccess == CAM_Record
+  mat.row_mat[row_mat_index].rownr = rownr;
+  mat.row_mat[row_mat_index].colnr = colnr;
+  mat.row_mat[row_mat_index].value = COL_MAT_VALUE(col_mat_index);
+
+#else
+  mat.row_mat_rownr[row_mat_index] = rownr;
+  mat.row_mat_colnr[row_mat_index] = colnr;
+  mat.row_mat_value[row_mat_index] = COL_MAT_VALUE(col_mat_index);
+
+#endif
+            return true;
+        }
+
         static byte mat_indexrange(MATrec mat, int index, byte isrow, int startpos, int endpos) { throw new NotImplementedException(); }
         internal static bool mat_validate(MATrec mat)
         /* Routine to make sure that row mapping arrays are valid */
@@ -1254,7 +1338,29 @@ namespace ZS.Math.Optimization
             }
         }
 
-        static double mat_getitem(MATrec mat, int row, int column) { throw new NotImplementedException(); }
+        internal static double mat_getitem(MATrec mat, int row, int column)
+        {
+            int elmnr;
+
+#if DirectOverrideOF
+  if ((row == 0) && (mat == mat.lp.matA) && (mat.lp.OF_override != null))
+  {
+	return (mat.lp.OF_override[column]);
+  }
+  else
+#endif
+            {
+                elmnr = mat_findelm(mat, row, column);
+                if (elmnr >= 0)
+                {
+                    return (COL_MAT_VALUE(elmnr));
+                }
+                else
+                {
+                    return (0);
+                }
+            }
+        }
         static byte mat_setitem(MATrec mat, int row, int column, double value) { throw new NotImplementedException(); }
         static byte mat_additem(MATrec mat, int row, int column, double delta) { throw new NotImplementedException(); }
         internal static bool mat_setvalue(MATrec mat, int Row, int Column, double Value, bool doscale)
@@ -2150,7 +2256,7 @@ namespace ZS.Math.Optimization
                 }
                 if (lp.obj_in_basis || (row_nr2 > 0))
                 {
-                    vector2[row_nr2] = 1;    
+                    vector2[row_nr2] = 1;
                     /*      workINT[2] = 1;
                           workINT[3] = row_nr2; */
                 }
@@ -2251,9 +2357,54 @@ namespace ZS.Math.Optimization
         }
 
         static int countsUndoLadder(DeltaVrec DV) { throw new NotImplementedException(); }
-        static int restoreUndoLadder(DeltaVrec DV, double[] target) { throw new NotImplementedException(); }
-        static int decrementUndoLadder(DeltaVrec DV) { throw new NotImplementedException(); }
-        static bool freeUndoLadder(DeltaVrec[] DV)
+        internal static int restoreUndoLadder(DeltaVrec DV, double[] target)
+        {
+            int iD = 0;
+
+            if (DV.activelevel > 0)
+            {
+                MATrec mat = DV.tracker;
+                int iB = Convert.ToInt32(mat.col_end[DV.activelevel - 1]);
+                int iE = Convert.ToInt32(mat.col_end[DV.activelevel]);
+
+                int matRownr = COL_MAT_ROWNR(iB);
+
+                double matValue = COL_MAT_VALUE(iB);
+                double oldvalue = new double();
+
+                /* Restore the values */
+                iD = iE - iB;
+                for (; iB < iE; iB++, matValue += matValueStep, matRownr += matRowColStep)
+                {
+                    //ORIGINAL LINE: oldvalue = *matValue;
+                    oldvalue = (matValue);
+#if UseMilpSlacksRCF
+	  target[(*matRownr)] = oldvalue;
+#else
+                    target[DV.lp.rows + (matRownr)] = oldvalue;
+#endif
+                }
+
+                /* Get rid of the changes */
+                mat_shiftcols(DV.tracker, ref (DV.activelevel), -1, null);
+            }
+
+            return (iD);
+
+        }
+        internal static int decrementUndoLadder(DeltaVrec DV)
+        {
+            int deleted = 0;
+
+            if (DV.activelevel > 0)
+            {
+                deleted = mat_shiftcols(DV.tracker, ref (DV.activelevel), -1, null);
+                DV.activelevel--;
+                DV.tracker.columns--;
+            }
+            return (deleted);
+        }
+        internal static bool freeUndoLadder(DeltaVrec[] DV)
         {
             throw new NotImplementedException();
             /*NOT REQUIRED

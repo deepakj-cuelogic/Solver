@@ -133,6 +133,11 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
 
         public const int LUSOL_MULT_nz_a = 2;  /* Suggested by Yin Zhang */
 
+        /* Macros for matrix-based access for dense part of A and timer mapping      */
+        /* ------------------------------------------------------------------------- */
+        // PREVIOUS CODE: #define DAPOS(row, col)   (row + (col-1)*LDA)
+        internal static Func<int, int, int, int> DAPOS = (row, col, lda) => (row + (col - 1) * lda);
+
         internal static bool LUSOL_addSingularity(LUSOLrec LUSOL, int singcol, ref int inform)
         {
             int NSING = LUSOL.luparm[LUSOL_IP_SINGULARITIES];

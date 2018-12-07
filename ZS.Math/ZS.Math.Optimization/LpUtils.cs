@@ -82,7 +82,8 @@ namespace ZS.Math.Optimization
                 return (1);
             }
             */
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+            return true;
         }
         internal static bool allocREAL(lprec lp, double[][] ptr, int size, byte clear)
         {
@@ -119,7 +120,13 @@ namespace ZS.Math.Optimization
 
         internal static workarraysrec mempool_create(lprec lp)
         {
-            throw new NotImplementedException();
+            workarraysrec temp = new workarraysrec();
+            /*NOT REQUIRED
+            temp = (workarraysrec)calloc(1, sizeof(workarraysrec));
+            */
+            temp.lp = lp;
+            return (temp);
+
         }
         internal static string mempool_obtainVector(workarraysrec mempool, int count, int unitsize)
         {

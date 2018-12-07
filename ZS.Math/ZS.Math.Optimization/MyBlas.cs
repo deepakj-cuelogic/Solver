@@ -28,6 +28,24 @@ namespace ZS.Math.Optimization
 
         public static bool mustinitBLAS = true;
 
+        /* ************************************************************************ */
+        /* Now define the unoptimized local BLAS functions                          */
+        /* ************************************************************************ */
+        internal static void daxpy(int n, double da, ref double dx, int incx, ref double dy, int incy)
+        {
+            dx++;
+            dy++;
+            BLAS_daxpy(ref n, ref da, ref dx, ref incx, ref dy, ref incy);
+        }
+
+        internal static void dscal(int n, double da, ref double dx, int incx)
+        {
+            dx++;
+            BLAS_dscal(ref n, ref da, ref dx, ref incx);
+        }
+
+
+
         public static void BLAS_dscal_func(ref int n, ref double da, ref double dx, ref int incx)
         { throw new NotImplementedException(); }
         public static void BLAS_dcopy_func(ref int n, ref double dx, ref int incx, ref double dy, ref int incy)
@@ -196,11 +214,7 @@ namespace ZS.Math.Optimization
         /* ************************************************************************ */
         /* User-callable BLAS definitions (C base 1)                                */
         /* ************************************************************************ */
-        public static void dscal(int n, double da, ref double dx, int incx)
-        { throw new NotImplementedException(); }
         public static void dcopy(int n, ref double dx, int incx, ref double dy, int incy)
-        { throw new NotImplementedException(); }
-        public static void daxpy(int n, double da, ref double dx, int incx, ref double dy, int incy)
         { throw new NotImplementedException(); }
         public static void dswap(int n, ref double dx, int incx, ref double dy, int incy)
         { throw new NotImplementedException(); }

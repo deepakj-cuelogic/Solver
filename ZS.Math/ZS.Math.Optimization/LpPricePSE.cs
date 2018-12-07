@@ -25,8 +25,7 @@ namespace ZS.Math.Optimization
         }
         public static bool applyPricer(lprec lp)
         {
-            LpCls objLpCls = new LpCls();
-            int rule = objLpCls.get_piv_rule(lp);
+            int rule = LpCls.get_piv_rule(lp);
             return ((bool)((rule == lp_lib.PRICER_DEVEX) || (rule == lp_lib.PRICER_STEEPESTEDGE)));
         }
         public static void simplexPricer(lprec lp, bool isdual)
