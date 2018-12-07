@@ -2300,23 +2300,23 @@ RetryRow:
                 lp.solutioncount = 0;
                 lp.real_solution = lp.infinite;
                 LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REBASE | lp_lib.ACTION_REINVERT);
-                lp.bb_break = 0;
+                lp.bb_break = false;
 
                 /* Do the call to the real underlying solver (note that
                    run_BB is replaceable with any compatible MIP solver) */
-                status = run_BB(lp);
+                status = lp_mipbb.run_BB(lp);
 
                 /* Restore modified problem */
                 if (iprocessed != null)
                 {
-                    postprocess(lp);
+                    objLpCls.postprocess(lp);
                 }
 
             /* Restore data related to presolve (mainly a placeholder as of v5.1) */
             Reconstruct:
                 if (!postsolve(lp, status))
                 {
-                    report(lp, SEVERE, "spx_solve: Failure during postsolve.\n");
+                    lp.report(lp, SEVERE, "spx_solve: Failure during postsolve.\n");
                 }
 
                 goto Leave;
