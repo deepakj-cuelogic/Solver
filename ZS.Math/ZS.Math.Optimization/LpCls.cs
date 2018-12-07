@@ -1704,7 +1704,7 @@ namespace ZS.Math.Optimization
 
 
 
-        private bool set_int(lprec lp, int colnr, bool var_type)
+        internal bool set_int(lprec lp, int colnr, bool var_type)
         {
             if ((colnr > lp.columns) || (colnr < 1))
             {
@@ -7000,6 +7000,795 @@ internal static class StringFunctions
         internal new bool is_scalemode(lprec lp, int testmask)
         {
             return ((bool)((lp.scalemode & testmask) != 0));
+        }
+
+        internal static basisrec push_basis(lprec lp, ref int basisvar, ref bool isbasic, bool[] islower)
+        /* Save the ingoing basis and push it onto the stack */
+        {
+            int sum = lp.sum + 1;
+            basisrec newbasis = null;
+            lp_bit objLp_bit = new lp_bit();
+
+            //NOT REQUIRED
+            //newbasis = (basisrec)calloc(sizeof(basisrec), 1);
+
+            //ORIGINAL LINES: 
+            /*if ((newbasis != null) &&
+            {
+
+#if LowerStorageModel == 0
+
+                allocMYBOOL(lp, newbasis.is_lower, sum, 0) &&
+#else
+	allocMYBOOL(lp, newbasis.is_lower, (sum + 8) / 8, 1) &&
+#endif
+#if BasisStorageModel == 0
+                allocMYBOOL(lp, newbasis.is_basic, sum, 0) &&
+#endif
+    allocINT(lp, newbasis.var_basic, lp.rows + 1, 0)) */
+            //SOLUTION:
+            if (newbasis != null)
+            {
+                    if (islower == null)
+                    {
+                        islower = lp.is_lower;
+                    }
+                    if (isbasic == null)
+                    {
+                        isbasic = Convert.ToBoolean(lp.is_basic);
+                    }
+                    if (basisvar == null)
+                    {
+                        basisvar = Convert.ToInt32(lp.var_basic);
+                    }
+                
+#if LowerStorageModel
+                MEMCOPY(newbasis.is_lower, islower, sum);
+#else
+	for (sum = 1; sum <= lp.sum; sum++)
+	{
+	  if (islower[sum])
+	  {
+                        objLp_bit.set_biton(newbasis.is_lower, sum);
+	  }
+	}
+#endif
+        
+#if BasisStorageModel 
+                    MEMCOPY(newbasis.is_basic, isbasic, lp.sum + 1);
+#endif
+                    //MEMCOPY(newbasis.var_basic, basisvar, lp.rows + 1);
+
+                    newbasis.previous = lp.bb_basis;
+                    if (lp.bb_basis == null)
+                    {
+                        newbasis.level = 0;
+                    }
+                    else
+                    {
+                        newbasis.level = lp.bb_basis.level + 1;
+                    }
+                    newbasis.pivots = 0;
+
+                    lp.bb_basis = newbasis;
+                }
+            return (newbasis);
+        }
+
+        internal new int get_var_branch(lprec lp, int colnr)
+        {
+            if (colnr > lp.columns || colnr < 1)
+            {
+                string msg = "get_var_branch: Column %d out of range\n";
+                report(lp, IMPORTANT, ref msg, colnr);
+                return (lp.bb_floorfirst);
+            }
+
+            if (lp.bb_varbranch == null)
+            {
+                return (lp.bb_floorfirst);
+            }
+            if (lp.bb_varbranch[colnr - 1] == BRANCH_DEFAULT)
+            {
+                return (lp.bb_floorfirst);
+            }
+            else
+            {
+                return (Convert.ToInt32(lp.bb_varbranch[colnr - 1]));
+            }
+        }
+
+        internal new static double get_pseudorange(BBPSrec pc, int mipvar, int varcode)
+        {
+            if (varcode == BB_SC)
+            {
+                return (lp_scale.unscaled_value(pc.lp, pc.lp.sc_lobound[mipvar], pc.lp.rows + mipvar));
+            }
+            else
+            {
+                return (1.0);
+            }
+        }
+
+        internal new static double get_pseudonodecost(BBPSrec pc, int mipvar, int vartype, double varsol)
+        {
+            double hold=0;
+            double uplim;
+
+            uplim = get_pseudorange(pc, mipvar, vartype);
+            varsol = lp_utils.modf(varsol / uplim, hold);
+            //NOTED ISSUE
+            if (isnan(varsol))
+            {
+                varsol = 0;
+            }
+
+            hold = pc.LOcost[mipvar].value * varsol + pc.UPcost[mipvar].value * (1 - varsol);
+
+            return (hold * uplim);
+        }
+
+        internal new static double scaled_floor(lprec lp, int colnr, double value, double epsscale)
+        {
+            LpCls objLpCls = new LpCls();
+            value = System.Math.Floor(value);
+            if (value != 0)
+            {
+                if (lp.columns_scaled && objLpCls.is_integerscaling(lp))
+                {
+                    value = lp_scale.scaled_value(lp, value, colnr);
+                    if (epsscale != 0)
+                    {
+                        value += epsscale * lp.epsmachine;
+                    }
+                    /*      value += epsscale*lp->epsprimal; */
+                    /*    value = restoreINT(value, lp->epsint); */
+                }
+            }
+            return (value);
+        }
+
+        internal new static void free_pseudocost(lprec lp)
+        {
+            if ((lp != null) && (lp.bb_PseudoCost != null))
+            {
+                while (free_pseudoclass((lp.bb_PseudoCost)))
+                {
+                    ;
+                }
+            }
+        }
+        internal static bool free_pseudoclass(BBPSrec PseudoClass)
+        {
+            BBPSrec target = PseudoClass[0];
+
+            //NOT REQUIRED
+            //FREE(target.LOcost);
+            //FREE(target.UPcost);
+            target = target.secondary;
+            //FREE(PseudoClass);
+            PseudoClass[0] = target;
+
+            return ((bool)(target != null));
+        }
+
+        internal static bool pop_basis(lprec lp, bool restore)
+        /* Pop / free, and optionally restore the previously "pushed" / saved basis */
+        {
+            bool ok;
+            basisrec oldbasis;
+
+            ok = (bool)(lp.bb_basis != null);
+            if (ok)
+            {
+                oldbasis = lp.bb_basis;
+                if (oldbasis != null)
+                {
+                    lp.bb_basis = oldbasis.previous;
+                    //FREE(oldbasis.var_basic);
+                    
+#if BasisStorageModel
+                    FREE(oldbasis.is_basic);
+#endif
+                    //FREE(oldbasis.is_lower);
+                    //FREE(oldbasis);
+                }
+                if (restore && (lp.bb_basis != null))
+                {
+                    restore_basis(lp);
+                }
+            }
+            return (ok);
+        }
+
+        internal new void postprocess(lprec lp)
+        {
+            int i;
+            int ii;
+            int j;
+            double hold;
+            string msg;
+
+            /* Check if the problem actually was preprocessed */
+            if (!lp.wasPreprocessed)
+            {
+                return;
+            }
+
+            /* Must compute duals here in case we have free variables; note that in
+               this case sensitivity analysis is not possible unless done here */
+            if ((lp.bb_totalnodes == 0) && (lp.var_is_free == null))
+            {
+                if (is_presolve(lp, PRESOLVE_DUALS))
+                {
+                    construct_duals(lp);
+                }
+                if (is_presolve(lp, PRESOLVE_SENSDUALS))
+                {
+                    if (!construct_sensitivity_duals(lp) || !construct_sensitivity_obj(lp))
+                    {
+                        msg = "postprocess: Unable to allocate working memory for duals.\n";
+                        report(lp, IMPORTANT, ref msg);
+                    }
+                }
+            }
+
+            /* Loop over all columns */
+            for (j = 1; j <= lp.columns; j++)
+            {
+                i = lp.rows + j;
+                /* Reconstruct strictly negative values */
+                if ((lp.var_is_free != null) && (lp.var_is_free[j] < 0))
+                {
+                    /* Check if we have the simple case where the UP and LB are negated and switched */
+                    if (-lp.var_is_free[j] == j)
+                    {
+                        lp_matrix.mat_multcol(lp.matA, j, -1, 1);
+                        hold = lp.orig_upbo[i];
+                        lp.orig_upbo[i] = lp_types.my_flipsign(lp.orig_lowbo[i]);
+                        lp.orig_lowbo[i] = lp_types.my_flipsign(hold);
+                        lp.best_solution[i] = lp_types.my_flipsign(Convert.ToDouble(lp.best_solution[i]));
+                        transfer_solution_var(lp, j);
+
+                        /* hold = lp->objfrom[j];
+                        lp->objfrom[j] = my_flipsign(lp->objtill[j]);
+                        lp->objtill[j] = my_flipsign(hold); */
+                        /* under investigation <peno> */
+
+                        /* lp->duals[i] = my_flipsign(lp->duals[i]);
+                        hold = lp->dualsfrom[i];
+                        lp->dualsfrom[i] = my_flipsign(lp->dualstill[i]);
+                        lp->dualstill[i] = my_flipsign(hold); */
+                        /* under investigation <peno> */
+                        /* Bound switch undone, so clear the status */
+                        lp.var_is_free[j] = 0;
+                        /* Adjust negative ranged SC */
+                        if (lp.sc_lobound[j] > 0)
+                        {
+                            lp.orig_lowbo[lp.rows + j] = -lp.sc_lobound[j];
+                        }
+                    }
+                    /* Ignore the split / helper columns (will be deleted later) */
+                }
+                /* Condense values of extra columns of quasi-free variables split in two */
+                else if ((lp.var_is_free != null) && (lp.var_is_free[j] > 0))
+                {
+                    ii = Convert.ToInt32(lp.var_is_free[j]); // Index of the split helper var
+                                            /* if(lp->objfrom[j] == -lp->infinite)
+                                              lp->objfrom[j] = -lp->objtill[ii];
+                                            lp->objtill[ii] = lp->infinite;
+                                            if(lp->objtill[j] == lp->infinite)
+                                              lp->objtill[j] = my_flipsign(lp->objfrom[ii]);
+                                            lp->objfrom[ii] = -lp->infinite; */
+                                            /* under investigation <peno> */
+
+                    ii += lp.rows;
+                    lp.best_solution[i] -= lp.best_solution[ii]; // join the solution again
+                    transfer_solution_var(lp, j);
+                    lp.best_solution[ii] = 0;
+
+                    /* if(lp->duals[i] == 0)
+                      lp->duals[i] = my_flipsign(lp->duals[ii]);
+                    lp->duals[ii] = 0;
+                    if(lp->dualsfrom[i] == -lp->infinite)
+                      lp->dualsfrom[i] = my_flipsign(lp->dualstill[ii]);
+                    lp->dualstill[ii] = lp->infinite;
+                    if(lp->dualstill[i] == lp->infinite)
+                      lp->dualstill[i] = my_flipsign(lp->dualsfrom[ii]);
+                    lp->dualsfrom[ii] = -lp->infinite; */
+                    /* under investigation <peno> */
+
+                    /* Reset to original bound */
+                    lp.orig_lowbo[i] = lp_types.my_flipsign(lp.orig_upbo[ii]);
+                }
+                /* Adjust for semi-continuous variables */
+                else if (lp.sc_lobound[j] > 0)
+                {
+                    lp.orig_lowbo[i] = lp.sc_lobound[j];
+                }
+            }
+
+            /* Remove any split column helper variables */
+            del_splitvars(lp);
+            post_MIPOBJ(lp);
+
+            /* Do extended reporting, if specified */
+            if (lp.verbose > NORMAL)
+            {
+                lp_report objlp_report = new lp_report();
+                objlp_report.REPORT_extended(lp);
+
+            }
+
+            lp.wasPreprocessed = false;
+        }
+
+        /* Calculate sensitivity duals */
+        internal new static bool construct_sensitivity_duals(lprec lp)
+        {
+            int k;
+            int varnr;
+            bool ok = true;           
+            //ORIGINAL LINE: int *workINT = null;
+            int[] workINT = null;
+            //ORIGINAL LINE: double *pcol,a,infinite,epsvalue,from,till,objfromvalue;
+            double[] pcol;
+            double a;
+            double infinite;
+            double epsvalue;
+            double from;
+            double till;
+            double objfromvalue;
+            LpCls objLpCls = new LpCls();
+
+            /* one column of the matrix */
+            //NOT REQUIRED
+            //FREE(lp.objfromvalue);
+            //FREE(lp.dualsfrom);
+            //FREE(lp.dualstill);
+            //BELOW CODE IS NOT REQUIRED
+            if (!lp_utils.allocREAL(lp, pcol, lp.rows + 1, 1) || !lp_utils.allocREAL(lp, lp.objfromvalue, lp.columns + 1, lp_types.AUTOMATIC) || !lp_utils.allocREAL(lp, lp.dualsfrom, lp.sum + 1, lp_types.AUTOMATIC) || !lp_utils.allocREAL(lp, lp.dualstill, lp.sum + 1, lp_types.AUTOMATIC))
+            {
+               // FREE(pcol);
+                //FREE(lp.objfromvalue);
+               // FREE(lp.dualsfrom);
+               // FREE(lp.dualstill);
+                ok = 0;
+            }
+            else
+            {
+                infinite = lp.infinite;
+                epsvalue = lp.epsmachine;
+                for (varnr = 1; varnr <= lp.sum; varnr++)
+                {
+                    from = infinite;
+                    till = infinite;
+                    objfromvalue = infinite;
+                    if (!lp.is_basic[varnr])
+                    {
+                        if (!lp_matrix.fsolve(lp, varnr, pcol, workINT, epsvalue, 1.0, 0))
+                        { // construct one column of the tableau
+                            ok = 0;
+                            break;
+                        }
+                        /* Search for the rows(s) which first result in further iterations */
+                        for (k = 1; k <= lp.rows; k++)
+                        {
+                            if (System.Math.Abs(pcol[k]) > epsvalue)
+                            {
+                                a = lp.rhs[k] / pcol[k];
+                                if ((varnr > lp.rows) && (System.Math.Abs(lp.solution[varnr]) <= epsvalue) && (a < objfromvalue) && (a >= lp.lowbo[varnr]))
+                                {
+                                    objfromvalue = a;
+                                }
+                                if ((a <= 0.0) && (pcol[k] < 0.0) && (-a < from))
+                                {
+                                    from = lp_types.my_flipsign(a);
+                                }
+                                if ((a >= 0.0) && (pcol[k] > 0.0) && (a < till))
+                                {
+                                    till = a;
+                                }
+                                if (lp.upbo[lp.var_basic[k]] < infinite)
+                                {
+                                    a = (double)((lp.rhs[k] - lp.upbo[lp.var_basic[k]]) / pcol[k]);
+                                    if ((varnr > lp.rows) && (System.Math.Abs(lp.solution[varnr]) <= epsvalue) && (a < objfromvalue) && (a >= lp.lowbo[varnr]))
+                                    {
+                                        objfromvalue = a;
+                                    }
+                                    if ((a <= 0.0) && (pcol[k] > 0.0) && (-a < from))
+                                    {
+                                        from = lp_types.my_flipsign(a);
+                                    }
+                                    if ((a >= 0.0) && (pcol[k] < 0.0) && (a < till))
+                                    {
+                                        till = a;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!lp.is_lower[varnr])
+                        {
+                            a = from;
+                            from = till;
+                            till = a;
+                        }
+                        if ((varnr <= lp.rows) && (!objLpCls.is_chsign(lp, varnr)))
+                        {
+                            a = from;
+                            from = till;
+                            till = a;
+                        }
+                    }
+
+                    if (from != infinite)
+                    {
+                        lp.dualsfrom[varnr] = lp.solution[varnr] - lp_scale.unscaled_value(lp, from, varnr);
+                    }
+                    else
+                    {
+                        lp.dualsfrom[varnr] = -infinite;
+                    }
+                    if (till != infinite)
+                    {
+                        lp.dualstill[varnr] = lp.solution[varnr] + lp_scale.unscaled_value(lp, till, varnr);
+                    }
+                    else
+                    {
+                        lp.dualstill[varnr] = infinite;
+                    }
+
+                    if (varnr > lp.rows)
+                    {
+                        if (objfromvalue != infinite)
+                        {
+                            if ((!lp_lib.sensrejvar) || (lp.upbo[varnr] != 0.0))
+                            {
+                                if (!lp.is_lower[varnr])
+                                {
+                                    objfromvalue = lp.upbo[varnr] - objfromvalue;
+                                }
+                                if ((lp.upbo[varnr] < infinite) && (objfromvalue > lp.upbo[varnr]))
+                                {
+                                    objfromvalue = lp.upbo[varnr];
+                                }
+                            }
+                            objfromvalue += lp.lowbo[varnr];
+                            objfromvalue = lp_scale.unscaled_value(lp, objfromvalue, varnr);
+                        }
+                        else
+                        {
+                            objfromvalue = -infinite;
+                        }
+                        lp.objfromvalue[varnr - lp.rows] = objfromvalue;
+                    }
+
+                }
+                //NOT REQUIRED
+                //FREE(pcol);
+            }
+            return (ok);
+        } // construct_sensitivity_duals
+
+        /* Calculate sensitivity objective function */
+        internal new static bool construct_sensitivity_obj(lprec lp)
+        {
+            int i;
+            int l;
+            int varnr;
+            int row_nr;
+            bool ok = true;
+            int coltarget = 0;
+            int? Parameter = null;
+            int Parameter2 = 0;
+            string memVector = "";
+
+            //ORIGINAL LINE: double *OrigObj = null, *drow = null, *prow = null, sign, a, min1, min2, infinite, epsvalue, from, till;
+            double[] OrigObj;
+
+            //ORIGINAL LINE: double *drow = null;
+            double[] drow;
+            
+            //ORIGINAL LINE: double *prow = null;
+            double[] prow = null;
+            double sign;
+            double a;
+            double min1;
+            double min2;
+            double infinite=0;
+            double epsvalue =0;
+            double from;
+            double till;
+            LpCls objLpCls = new LpCls();
+
+            /* objective function */
+           // FREE(lp.objfrom);
+           // FREE(lp.objtill);
+            if (!lp_utils.allocREAL(lp, drow, lp.sum + 1, 1) || !lp_utils.allocREAL(lp, OrigObj, lp.columns + 1, 0) || !lp_utils.allocREAL(lp, prow, lp.sum + 1, 1) || !lp_utils.allocREAL(lp, lp.objfrom, lp.columns + 1, lp_types.AUTOMATIC) || !lp_utils.allocREAL(lp, lp.objtill, lp.columns + 1, lp_types.AUTOMATIC))
+            {
+            Abandon:
+                //FREE(drow);
+                //FREE(OrigObj);
+                //FREE(prow);
+                //FREE(lp.objfrom);
+                //FREE(lp.objtill);
+                ok = false;
+            }
+            else
+            {
+                //ORIGINAL LINE: int *coltarget;
+                
+                
+
+                infinite = lp.infinite;
+                epsvalue = lp.epsmachine;
+
+                /// <summary> FIX_133d8fd1-d4bf-4e73-ac14-1bb037ba574f 29/11/18
+                /// PREVIOUS: coltarget = coltarget = (int)mempool_obtainVector(lp.workarrays, lp.columns + 1, sizeof(int));
+                /// ERROR IN PREVIOUS: Cannot convert type 'string' to 'int'
+                /// FIX 1: 
+                /// </summary>
+                int id = 0;
+                bool res = int.TryParse(lp_utils.mempool_obtainVector(lp.workarrays, lp.columns + 1, sizeof(int)), out id);
+                if (res)
+                {
+                    if (!lp_matrix.get_colIndexA(lp, SCAN_USERVARS + USE_NONBASICVARS, coltarget, false))
+                    {
+                        memVector = coltarget.ToString();
+                        lp_utils.mempool_releaseVector(lp.workarrays, ref memVector, 0);
+                        //NOTED ISSUE
+                        goto Abandon;
+                    }
+                }
+                else
+                    throw new Exception("lp_utils.mempool_obtainVector");
+
+
+                
+                memVector = coltarget.ToString();
+                lp_matrix.bsolve(lp, 0, ref drow, ref Parameter, epsvalue * DOUBLEROUND, 1.0);
+                lp_matrix.prod_xA(lp, ref coltarget, ref drow[0], ref Parameter2, epsvalue, 1.0, ref drow[0], ref Parameter2, lp_matrix.MAT_ROUNDDEFAULT | lp_matrix.MAT_ROUNDRC);
+            }
+
+            /* original (unscaled) objective function */
+            objLpCls.get_row(lp, 0, ref OrigObj);
+            for (i = 1; i <= lp.columns; i++)
+            {
+                from = -infinite;
+                till = infinite;
+                varnr = lp.rows + i;
+                if (!lp.is_basic[varnr])
+                {
+                    /* only the coeff of the objective function of column i changes. */
+                    a = lp_scale.unscaled_mat(lp, drow[varnr], 0, i);
+                    if (is_maxim(lp))
+                    {
+                        a = -a;
+                    }
+                    if ((!sensrejvar) && (lp.upbo[varnr] == 0.0))
+                    {
+                        /* ignore, because this case doesn't results in further iterations */
+                        ;
+                    }
+                    else if (((lp.is_lower[varnr] != false) == (!LpCls.is_maxim(lp))) && (a > -epsvalue))
+                    {
+                        from = OrigObj[i] - a; // less than this value gives further iterations
+                    }
+                    else
+                    {
+                        till = OrigObj[i] - a; // bigger than this value gives further iterations
+                    }
+                }
+                else
+                {
+                    /* all the coeff of the objective function change. Search the minimal change needed for further iterations */
+                    for (row_nr = 1; (row_nr <= lp.rows) && (lp.var_basic[row_nr] != varnr); row_nr++)
+                    {
+                        /* Search on which row the variable exists in the basis */
+                        ;
+                    }
+                    if (row_nr <= lp.rows)
+                    { // safety test; should always be found ...
+                      /* Construct one row of the tableau */
+                        lp_matrix.bsolve(lp, row_nr, ref prow, ref Parameter, epsvalue * DOUBLEROUND, 1.0);
+                        lp_matrix.prod_xA(lp, ref coltarget, ref prow[0], ref Parameter2, epsvalue, 1.0, ref prow[0], ref Parameter2, lp_matrix.MAT_ROUNDDEFAULT);
+                        /* sign = my_chsign(is_chsign(lp, row_nr), -1); */
+                        sign = lp_types.my_chsign(lp.is_lower[row_nr], -1);
+                        min1 = infinite;
+                        min2 = infinite;
+                        for (l = 1; l <= lp.sum; l++) // search for the column(s) which first results in further iterations
+                        {
+                            if ((!lp.is_basic[l]) && (lp.upbo[l] > 0.0) && (System.Math.Abs(prow[l]) > epsvalue) && (drow[l] * (lp.is_lower[l] ? -1 : 1) < epsvalue))
+                            {
+                                a = lp_scale.unscaled_mat(lp, System.Math.Abs(drow[l] / prow[l]), 0, i);
+                                if (prow[l] * sign * (lp.is_lower[l] ? 1 : -1) < 0.0 != false != false)
+                                {
+                                    if (a < min1)
+                                    {
+                                        min1 = a;
+                                    }
+                                }
+                                else
+                                {
+                                    if (a < min2)
+                                    {
+                                        min2 = a;
+                                    }
+                                }
+                            }
+                        }
+                        if ((lp.is_lower[varnr] = false) == (!LpCls.is_maxim(lp)))
+                        {
+                            a = min1;
+                            min1 = min2;
+                            min2 = a;
+                        }
+                        if (min1 < infinite)
+                        {
+                            from = OrigObj[i] - min1;
+                        }
+                        if (min2 < infinite)
+                        {
+                            till = OrigObj[i] + min2;
+                        }
+                        a = lp.solution[varnr];
+                        if (is_maxim(lp))
+                        {
+                            if (a - lp.lowbo[varnr] < epsvalue)
+                            {
+                                from = -infinite; // if variable is at lower bound then decrementing objective coefficient will not result in extra iterations because it would only extra decrease the value, but since it is at its lower bound ...
+                            }
+                            else if (((!sensrejvar) || (lp.upbo[varnr] != 0.0)) && (lp.lowbo[varnr] + lp.upbo[varnr] - a < epsvalue))
+                            {
+                                till = infinite; // if variable is at upper bound then incrementing objective coefficient will not result in extra iterations because it would only extra increase the value, but since it is at its upper bound ...
+                            }
+                        }
+                        else
+                        {
+                            if (a - lp.lowbo[varnr] < epsvalue)
+                            {
+                                till = infinite; // if variable is at lower bound then incrementing objective coefficient will not result in extra iterations because it would only extra decrease the value, but since it is at its lower bound ...
+                            }
+                            else if (((!sensrejvar) || (lp.upbo[varnr] != 0.0)) && (lp.lowbo[varnr] + lp.upbo[varnr] - a < epsvalue))
+                            {
+                                from = -infinite; // if variable is at upper bound then decrementing objective coefficient will not result in extra iterations because it would only extra increase the value, but since it is at its upper bound ...
+                            }
+                        }
+                    }
+                }
+                lp.objfrom = from;
+                lp.objtill = till;
+            }
+           lp_utils.mempool_releaseVector(lp.workarrays, ref memVector, 0);
+  //FREE(prow);
+  //FREE(OrigObj);
+  //FREE(drow);
+
+  return (ok);
+
+        }
+
+        internal bool get_row(lprec lp, int rownr, ref double[] row)
+        {
+            int? []var = null;
+            return ((bool)(get_rowex(lp, rownr, ref row, ref var) >= 0));
+        }
+
+        internal void del_splitvars(lprec lp)
+        {
+            int j;
+            int jj;
+            int i;
+
+            if (lp.var_is_free != null)
+            {
+                for (j = lp.columns; j >= 1; j--)
+                {
+                    if (is_splitvar(lp, j))
+                    {
+                        /* Check if we need to modify the basis */
+                        jj = lp.rows + System.Math.Abs(Convert.ToByte(lp.var_is_free[j]));
+                        i = lp.rows + j;
+                        if (lp.is_basic[i] && !lp.is_basic[jj])
+                        {
+                            int var = 0;
+                            i = findBasisPos(lp, i, ref var);
+                            set_basisvar(lp, i, jj);
+                        }
+                        /* Delete the helper column */
+                        del_column(lp, j);
+                    }
+                }
+                //FREE(lp.var_is_free);
+            }
+        }
+
+        internal static bool post_MIPOBJ(lprec lp)
+        {
+#if MIPboundWithOF
+/*
+  if(lp->constraintOF) {
+    del_constraint(lp, lp->rows);
+    if(is_BasisReady(lp) && !verify_basis(lp))
+      return( FALSE );
+  }
+*/
+#endif
+            return (true);
+        }
+
+        internal new bool get_ptr_sensitivity_obj(lprec lp, double[][] objfrom, double[][] objtill)
+        {
+            return (get_ptr_sensitivity_objex(lp, objfrom, objtill, null, null));
+        }
+
+        internal new bool get_ptr_sensitivity_objex(lprec lp, double[][] objfrom, double[][] objtill, double[][] objfromvalue, double[][] objtillvalue)
+        {
+            string msg;
+            if (!lp.basis_valid)
+            {
+                msg = "get_ptr_sensitivity_objex: Not a valid basis\n";
+                lp.report(lp, CRITICAL, ref msg);
+                return (false);
+            }
+
+            if ((objfrom != null) || (objtill != null))
+            {
+                if ((lp.objfrom == null) || (lp.objtill == null))
+                {
+                    if ((MIP_count(lp) > 0) && (lp.bb_totalnodes > 0))
+                    {
+                        msg = "get_ptr_sensitivity_objex: Sensitivity unknown\n";
+                        lp.report(lp, CRITICAL, ref msg);
+                        return (false);
+                    }
+                    construct_sensitivity_obj(lp);
+                    if ((lp.objfrom == null) || (lp.objtill == null))
+                    {
+                        return (false);
+                    }
+                }
+                if (objfrom != null)
+                {
+                    objfrom[0][0] = Convert.ToDouble(lp.objfrom + 1);
+                }
+                if (objtill != null)
+                {
+                    objtill[0][0] = Convert.ToDouble(lp.objtill + 1);
+                }
+            }
+
+            if ((objfromvalue != null))
+            {
+                if ((lp.objfromvalue == null))
+                {
+                    if ((MIP_count(lp) > 0) && (lp.bb_totalnodes > 0))
+                    {
+                        msg = "get_ptr_sensitivity_objex: Sensitivity unknown\n";
+                        lp.report(lp, CRITICAL, ref msg);
+                        return (0);
+                    }
+                    construct_sensitivity_duals(lp);
+                    if ((lp.objfromvalue == null))
+                    {
+                        return (false);
+                    }
+                }
+            }
+
+            if (objfromvalue != null)
+            {
+                objfromvalue[0][0] = Convert.ToDouble(lp.objfromvalue[0] + 1);
+            }
+
+            if (objtillvalue != null)
+            {
+                objtillvalue = null;
+            }
+
+            return (true);
+
         }
     }
 }

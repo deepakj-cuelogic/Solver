@@ -54,7 +54,7 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: byte *is_basic;
         public byte is_basic;
         //ORIGINAL LINE: byte *is_lower;
-        public byte is_lower;
+        public byte[] is_lower;
         public int pivots;
         public basisrec previous;
     }
@@ -92,8 +92,8 @@ namespace ZS.Math.Optimization
         public int updatelimit;
         public int updatesfinished;
         public double restartlimit;
-        public MATitem UPcost;
-        public MATitem LOcost;
+        public MATitem[] UPcost;
+        public MATitem[] LOcost;
         public BBPSrec secondary;
     }
 
@@ -407,15 +407,15 @@ namespace ZS.Math.Optimization
         public int[][] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
         public double[] duals; // rows_alloc+1 : The dual variables of the last LP
         public double[] full_duals; // sum_alloc+1: Final duals array expanded for deleted variables
-        public double? dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
+        public double?[] dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
                                    of the last LP */
-        public double? dualstill; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
+        public double?[] dualstill; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
                                    of the last LP */
         public double? objfrom; /* columns_alloc+1 :The sensitivity on objective function
                                    of the last LP */
         public double? objtill; /* columns_alloc+1 :The sensitivity on objective function
                                    of the last LP */
-        public double? objfromvalue; /* columns_alloc+1 :The value of the variables when objective value
+        public double?[] objfromvalue; /* columns_alloc+1 :The value of the variables when objective value
                                    is at its from value of the last LP */
         public double[] orig_obj; // Unused pointer - Placeholder for OF not part of B
         public double[] obj; // Special vector used to temporarily change the OF vector
@@ -573,7 +573,7 @@ namespace ZS.Math.Optimization
 
         /* Simplex basis indicators */
         internal int[] rejectpivot;       /* List of unacceptable pivot choices due to division-by-zero */
-        BBPSrec bb_PseudoCost;     /* Data structure for costing of node branchings */
+        internal BBPSrec bb_PseudoCost;     /* Data structure for costing of node branchings */
         internal int bb_PseudoUpdates;   /* Maximum number of updates for pseudo-costs */
         internal int bb_strongbranches;  /* The number of strong B&B branches performed */
         internal int is_strongbranch;    /* Are we currently in a strong branch mode? */
@@ -1381,6 +1381,7 @@ namespace ZS.Math.Optimization
         public const int INVERSE_LUMOD = 2;
         public const int INVERSE_LUSOL = 3;
         public const int INVERSE_GLPKLU = 4;
+        public const bool sensrejvar = true;
 
         /* Active external language interface logic (default is none)                */
         /* ------------------------------------------------------------------------- */
@@ -2692,10 +2693,14 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte get_sensitivity_objex(lprec lp, ref double objfrom, ref double objtill, ref double objfromvalue, ref double objtillvalue)
         { throw new NotImplementedException(); }
-        public byte get_ptr_sensitivity_obj(lprec lp, double[][] objfrom, double[][] objtill)
-        { throw new NotImplementedException(); }
-        public byte get_ptr_sensitivity_objex(lprec lp, double[][] objfrom, double[][] objtill, double[][] objfromvalue, double[][] objtillvalue)
-        { throw new NotImplementedException(); }
+        public bool get_ptr_sensitivity_obj(lprec lp, double[][] objfrom, double[][] objtill)
+        {
+            throw new NotImplementedException();
+        }
+        public bool get_ptr_sensitivity_objex(lprec lp, double[][] objfrom, double[][] objtill, double[][] objfromvalue, double[][] objtillvalue)
+        {
+            throw new NotImplementedException();
+        }
 
         public void set_solutionlimit(lprec lp, int limit)
         { throw new NotImplementedException(); }

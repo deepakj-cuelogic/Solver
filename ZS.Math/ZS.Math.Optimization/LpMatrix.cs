@@ -1254,7 +1254,29 @@ namespace ZS.Math.Optimization
             }
         }
 
-        static double mat_getitem(MATrec mat, int row, int column) { throw new NotImplementedException(); }
+        internal static double mat_getitem(MATrec mat, int row, int column)
+        {
+            int elmnr;
+
+#if DirectOverrideOF
+  if ((row == 0) && (mat == mat.lp.matA) && (mat.lp.OF_override != null))
+  {
+	return (mat.lp.OF_override[column]);
+  }
+  else
+#endif
+            {
+                elmnr = mat_findelm(mat, row, column);
+                if (elmnr >= 0)
+                {
+                    return (COL_MAT_VALUE(elmnr));
+                }
+                else
+                {
+                    return (0);
+                }
+            }
+        }
         static byte mat_setitem(MATrec mat, int row, int column, double value) { throw new NotImplementedException(); }
         static byte mat_additem(MATrec mat, int row, int column, double delta) { throw new NotImplementedException(); }
         internal static bool mat_setvalue(MATrec mat, int Row, int Column, double Value, bool doscale)
@@ -2251,9 +2273,54 @@ namespace ZS.Math.Optimization
         }
 
         static int countsUndoLadder(DeltaVrec DV) { throw new NotImplementedException(); }
-        static int restoreUndoLadder(DeltaVrec DV, double[] target) { throw new NotImplementedException(); }
-        static int decrementUndoLadder(DeltaVrec DV) { throw new NotImplementedException(); }
-        static bool freeUndoLadder(DeltaVrec[] DV)
+        internal static int restoreUndoLadder(DeltaVrec DV, double[] target)
+        {
+            int iD = 0;
+
+            if (DV.activelevel > 0)
+            {
+                MATrec mat = DV.tracker;
+                int iB = Convert.ToInt32(mat.col_end[DV.activelevel - 1]);
+                int iE = Convert.ToInt32(mat.col_end[DV.activelevel]);
+                
+                int matRownr = COL_MAT_ROWNR(iB);
+                
+                double matValue = COL_MAT_VALUE(iB);
+                double oldvalue = new double();
+
+                /* Restore the values */
+                iD = iE - iB;
+                for (; iB < iE; iB++, matValue += matValueStep, matRownr += matRowColStep)
+                {
+                    //ORIGINAL LINE: oldvalue = *matValue;
+                    oldvalue = (matValue);
+#if UseMilpSlacksRCF
+	  target[(*matRownr)] = oldvalue;
+#else
+                    target[DV.lp.rows + (matRownr)] = oldvalue;
+#endif
+                }
+
+                /* Get rid of the changes */
+                mat_shiftcols(DV.tracker, ref (DV.activelevel), -1, null);
+            }
+
+            return (iD);
+
+        }
+        internal static int decrementUndoLadder(DeltaVrec DV)
+        {
+            int deleted = 0;
+
+            if (DV.activelevel > 0)
+            {
+                deleted = mat_shiftcols(DV.tracker, ref (DV.activelevel), -1, null);
+                DV.activelevel--;
+                DV.tracker.columns--;
+            }
+            return (deleted);
+        }
+        internal static bool freeUndoLadder(DeltaVrec[] DV)
         {
             throw new NotImplementedException();
             /*NOT REQUIRED

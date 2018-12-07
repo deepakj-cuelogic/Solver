@@ -113,9 +113,84 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public void REPORT_extended(lprec lp)
+        internal void REPORT_extended(lprec lp)
         {
-            throw new NotImplementedException();
+            int i;
+            int j;
+            double hold = new double();
+            LpCls objLpCls = new LpCls();
+            string msg;
+            
+            //ORIGINAL LINE: double *duals, *dualsfrom, *dualstill, *objfrom, *objtill;
+            double[][] duals = null;
+            
+            //ORIGINAL LINE: double *dualsfrom;
+            double[][] dualsfrom=null;
+            
+            //ORIGINAL LINE: double *dualstill;
+            double[][] dualstill=null;
+            double[][] objfrom =null;
+            double[][] objtill=null;
+            bool ret;
+
+            ret = objLpCls.get_ptr_sensitivity_obj(lp, objfrom, objtill);
+            msg = " \n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = "Primal objective:\n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = " \n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = "  Column name                      Value   Objective         Min         Max\n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = "  --------------------------------------------------------------------------\n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            for (j = 1; j <= lp.columns; j++)
+            {
+                hold = objLpCls.get_mat(lp, 0, j);
+                msg = "  %-25s "  + lp_lib.MPSVALUEMASK + "\n";
+                //NEED TO CHECK, temporary avoid 
+                //ORIGINAL LINE: report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_col_name(lp, j), lp_types.my_precision(hold, lprec.epsprimal), lp_types.my_precision(hold * lp.best_solution[lp.rows + j], lprec.epsprimal), lp_types.my_precision((ret) ? objfrom[j - 1] : 0.0, lprec.epsprimal), lp_types.my_precision((ret) ? objtill[j - 1] : 0.0, lprec.epsprimal));
+                report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_col_name(lp, j));
+            }
+            msg = " \n";
+            report(lp, lp_lib.NORMAL, ref msg);
+
+            ret = objLpCls.get_ptr_sensitivity_rhs(lp, duals, dualsfrom, dualstill);
+            msg = "Primal variables:\n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = " \n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = "  Column name                      Value       Slack         Min         Max\n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = "  --------------------------------------------------------------------------\n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            for (j = 1; j <= lp.columns; j++)
+            {
+                msg = "  %-25s " + lp_lib.MPSVALUEMASK+""+ lp_lib.MPSVALUEMASK+""+ lp_lib.MPSVALUEMASK+""+ lp_lib.MPSVALUEMASK+ "\n";
+                //ORIGINAL LINE: report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_col_name(lp, j), my_precision(lp.best_solution[lp.rows + j], lp.epsprimal), my_precision(my_inflimit(lp, (ret) ? duals[lp.rows + j - 1] : 0.0), lp.epsprimal), my_precision((ret) ? dualsfrom[lp.rows + j - 1] : 0.0, lp.epsprimal), my_precision((ret) ? dualstill[lp.rows + j - 1] : 0.0, lp.epsprimal));
+                //Temporary some lines not considered
+                report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_col_name(lp, j));
+            }
+            msg = " \n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = "Dual variables:\n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = " \n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = "  Row name                         Value       Slack         Min         Max\n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            msg = "  --------------------------------------------------------------------------\n";
+            report(lp, lp_lib.NORMAL, ref msg);
+            for (i = 1; i <= lp.rows; i++)
+            {
+                msg = "  %-25s " + lp_lib.MPSVALUEMASK + "" + lp_lib.MPSVALUEMASK + "" + lp_lib.MPSVALUEMASK + "" + lp_lib.MPSVALUEMASK + "\n";
+                //ORIGINAL LINE: report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_col_name(lp, j), my_precision(lp.best_solution[lp.rows + j], lp.epsprimal), my_precision(my_inflimit(lp, (ret) ? duals[lp.rows + j - 1] : 0.0), lp.epsprimal), my_precision((ret) ? dualsfrom[lp.rows + j - 1] : 0.0, lp.epsprimal), my_precision((ret) ? dualstill[lp.rows + j - 1] : 0.0, lp.epsprimal));
+                //Temporary some lines not considered
+                report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_row_name(lp, i));
+            }
+            msg = " \n";
+            report(lp, lp_lib.NORMAL, ref msg);
+
         }
 
         /* Other rarely used, but sometimes extremely useful reports */
