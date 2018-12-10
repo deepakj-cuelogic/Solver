@@ -2258,6 +2258,7 @@ RetryRow:
             int status;
             bool iprocessed = new bool();
             LpCls objLpCls = new LpCls();
+            string msg = "";
 
             lp.total_iter = 0;
             lp.total_bswap = 0;
@@ -2314,9 +2315,10 @@ RetryRow:
 
             /* Restore data related to presolve (mainly a placeholder as of v5.1) */
             Reconstruct:
-                if (!postsolve(lp, status))
+                if (!lp_presolve.postsolve(lp, status))
                 {
-                    lp.report(lp, SEVERE, "spx_solve: Failure during postsolve.\n");
+                    msg = "spx_solve: Failure during postsolve.\n";
+                    lp.report(lp, lp_lib.SEVERE, ref msg);
                 }
 
                 goto Leave;
@@ -2325,59 +2327,430 @@ RetryRow:
             /* If we get here, mat_validate(lp) failed. */
             if (lp.bb_trace || lp.spx_trace)
             {
-                report(lp, CRITICAL, "spx_solve: The current LP seems to be invalid\n");
+                msg = "spx_solve: The current LP seems to be invalid\n";
+                lp.report(lp, lp_lib.CRITICAL, ref msg);
             }
-            lp.spx_status = NUMFAILURE;
+            lp.spx_status = lp_lib.NUMFAILURE;
 
         Leave:
-            lp.timeend = timeNow();
+            lp.timeend = commonlib.timeNow();
 
-            if ((lp.lag_status != RUNNING) && (lp.invB != null))
+            if ((lp.lag_status != lp_lib.RUNNING) && (lp.invB != null))
             {
                 int itemp;
-                REAL test = new REAL();
+                double test = new double();
 
                 itemp = lp.bfp_nonzeros(lp, 1);
                 test = 100;
                 if (lp.total_iter > 0)
                 {
-                    test *= (REAL)lp.total_bswap / lp.total_iter;
+                    test *= (double)lp.total_bswap / lp.total_iter;
                 }
-                report(lp, NORMAL, "\n ");
-                report(lp, NORMAL, "MEMO: lp_solve version %d.%d.%d.%d for %d bit OS, with %d bit REAL variables.\n", MAJORVERSION, MINORVERSION, RELEASE, BUILD, 8 * sizeof(object), 8 * sizeof(REAL));
-                report(lp, NORMAL, "      In the total iteration count %.0f, %.0f (%.1f%%) were bound flips.\n", (double)lp.total_iter, (double)lp.total_bswap, test);
-                report(lp, NORMAL, "      There were %d refactorizations, %d triggered by time and %d by density.\n", lp.bfp_refactcount(lp, BFP_STAT_REFACT_TOTAL), lp.bfp_refactcount(lp, BFP_STAT_REFACT_TIMED), lp.bfp_refactcount(lp, BFP_STAT_REFACT_DENSE));
-                report(lp, NORMAL, "       ... on average %.1f major pivots per refactorization.\n", get_refactfrequency(lp, 1));
-                report(lp, NORMAL, "      The largest [%s] fact(B) had %d NZ entries, %.1fx largest basis.\n", lp.bfp_name(), itemp, lp.bfp_efficiency(lp));
+
+                msg = "\n ";
+                lp.report(lp, lp_lib.NORMAL, ref msg);
+                msg = "MEMO: lp_solve version %d.%d.%d.%d for %d bit OS, with %d bit REAL variables.\n";
+                //ORIGINAL LINE:lp.report(lp, lp_lib.NORMAL, ref msg, lp_lib.MAJORVERSION, lp_lib.MINORVERSION, lp_lib.RELEASE, lp_lib.BUILD, 8 * sizeof(object), 8 * sizeof(double));
+                //Removed: 8 * sizeof(object), need to check at runtime
+                lp.report(lp, lp_lib.NORMAL, ref msg, lp_lib.MAJORVERSION, lp_lib.MINORVERSION, lp_lib.RELEASE, lp_lib.BUILD, 8 * sizeof(double));
+                msg = "      In the total iteration count %.0f, %.0f (%.1f%%) were bound flips.\n";
+                lp.report(lp, lp_lib.NORMAL, ref msg, (double)lp.total_iter, (double)lp.total_bswap, test);
+                msg = "      There were %d refactorizations, %d triggered by time and %d by density.\n";
+                lp.report(lp, lp_lib.NORMAL, ref msg, lp.bfp_refactcount(lp, commonlib.BFP_STAT_REFACT_TOTAL), lp.bfp_refactcount(lp, commonlib.BFP_STAT_REFACT_TIMED), lp.bfp_refactcount(lp, commonlib.BFP_STAT_REFACT_DENSE));
+                msg = "       ... on average %.1f major pivots per refactorization.\n";
+                lp.report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_refactfrequency(lp, 1));
+                msg = "      The largest [%s] fact(B) had %d NZ entries, %.1fx largest basis.\n";
+                lp.report(lp, lp_lib.NORMAL, ref msg, lp.bfp_name(), itemp, lp.bfp_efficiency(lp));
                 if (lp.perturb_count > 0)
                 {
-                    report(lp, NORMAL, "      The bounds were relaxed via perturbations %d times.\n", lp.perturb_count);
+                    msg = "      The bounds were relaxed via perturbations %d times.\n";
+                    lp.report(lp, lp_lib.NORMAL, ref msg, lp.perturb_count);
                 }
-                if (MIP_count(lp) > 0)
+                if (LpCls.MIP_count(lp) > 0)
                 {
                     if (lp.bb_solutionlevel > 0)
                     {
-                        report(lp, NORMAL, "      The maximum B&B level was %d, %.1fx MIP order, %d at the optimal solution.\n", lp.bb_maxlevel, (double)lp.bb_maxlevel / (MIP_count(lp) + lp.int_vars), lp.bb_solutionlevel);
+                        msg = "      The maximum B&B level was %d, %.1fx MIP order, %d at the optimal solution.\n";
+                        lp.report(lp, lp_lib.NORMAL, ref msg, lp.bb_maxlevel, (double)lp.bb_maxlevel / (LpCls.MIP_count(lp) + lp.int_vars), lp.bb_solutionlevel);
                     }
                     else
                     {
-                        report(lp, NORMAL, "      The maximum B&B level was %d, %.1fx MIP order, with %.0f nodes explored.\n", lp.bb_maxlevel, (double)lp.bb_maxlevel / (MIP_count(lp) + lp.int_vars), (double)get_total_nodes(lp));
+                        msg = "      The maximum B&B level was %d, %.1fx MIP order, with %.0f nodes explored.\n";
+                        lp.report(lp, lp_lib.NORMAL, ref msg, lp.bb_maxlevel, (double)lp.bb_maxlevel / (LpCls.MIP_count(lp) + lp.int_vars), (double)objLpCls.get_total_nodes(lp));
                     }
-                    if (GUB_count(lp) > 0)
+                    if (LpCls.GUB_count(lp) > 0)
                     {
-                        report(lp, NORMAL, "      %d general upper-bounded (GUB) structures were employed during B&B.\n", GUB_count(lp));
+                        msg = "      %d general upper-bounded (GUB) structures were employed during B&B.\n";
+                        lp.report(lp, lp_lib.NORMAL, ref msg, LpCls.GUB_count(lp));
                     }
                 }
-                report(lp, NORMAL, "      The constraint matrix inf-norm is %g, with a dynamic range of %g.\n", lp.matA.infnorm, lp.matA.dynrange);
-                report(lp, NORMAL, "      Time to load data was %.3f seconds, presolve used %.3f seconds,\n", lp.timestart - lp.timecreate, lp.timepresolved - lp.timestart);
-                report(lp, NORMAL, "       ... %.3f seconds in simplex solver, in total %.3f seconds.\n", lp.timeend - lp.timepresolved, lp.timeend - lp.timecreate);
+                msg = "      The constraint matrix inf-norm is %g, with a dynamic range of %g.\n";
+                lp.report(lp, lp_lib.NORMAL, ref msg, lp.matA.infnorm, lp.matA.dynrange);
+                msg = "      Time to load data was %.3f seconds, presolve used %.3f seconds,\n";
+                //ORIGINAL LINE: lp.report(lp, lp_lib.NORMAL, ref msg, lp.timestart - lp.timecreate, lp.timepresolved - lp.timestart);
+                //Removed Datetime substraction, need to check at runtime
+                lp.report(lp, lp_lib.NORMAL, ref msg);
+                msg = "       ... %.3f seconds in simplex solver, in total %.3f seconds.\n";
+                lp.report(lp, lp_lib.NORMAL, ref msg, lp.timeend - lp.timepresolved, lp.timeend - lp.timecreate);
             }
             return (lp.spx_status);
         }
 
         public static int lag_solve(lprec lp, double start_bound, int num_iter)
         {
-            throw new NotImplementedException();
+            int i;
+            int j;
+            int citer;
+            int nochange;
+            int oldpresolve;
+            bool LagFeas;
+            bool AnyFeas;
+            bool Converged;
+            bool same_basis;
+            //ORIGINAL LINE: double *OrigObj, *ModObj, *SubGrad, *BestFeasSol;
+            double[] OrigObj;
+            //ORIGINAL LINE: double *ModObj;
+            double[] ModObj;
+            //ORIGINAL LINE: double *SubGrad;
+            double[] SubGrad;
+            //ORIGINAL LINE: double *BestFeasSol;
+            double[] BestFeasSol;
+            double Zub;
+            double Zlb;
+            double Znow;
+            double Zprev;
+            double Zbest;
+            double rhsmod;
+            double hold;
+            double Phi;
+            double StepSize = 0.0;
+            double SqrsumSubGrad;
+            string msg;
+            LpCls objLpCls = new LpCls();
+
+            /* Make sure we have something to work with */
+            if (lp.spx_status != lp_lib.OPTIMAL)
+            {
+                lp.lag_status = lp_lib.NOTRUN;
+                return (lp.lag_status);
+            }
+
+            /* Allocate iteration arrays */
+            //Below Code is not required as it is memory allowcation
+            if (!lp_utils.allocREAL(lp, OrigObj, lp.columns + 1, 0) || !lp_utils.allocREAL(lp, ModObj, lp.columns + 1, 1) || !lp_utils.allocREAL(lp, SubGrad, LpCls.get_Lrows(lp) + 1, 1) || !lp_utils.allocREAL(lp, BestFeasSol, lp.sum + 1, 1))
+            {
+                lp.lag_status = lp_lib.NOMEMORY;
+                return (lp.lag_status);
+            }
+            lp.lag_status = lp_lib.RUNNING;
+
+            /* Prepare for Lagrangean iterations using results from relaxed problem */
+            oldpresolve = lp.do_presolve;
+            lp.do_presolve = lp_lib.PRESOLVE_NONE;
+            int Parameter = 0;
+            bool Paremeter2 = false;
+            LpCls.push_basis(lp, ref Parameter, ref Paremeter2, null);
+
+            /* Initialize variables (assume minimization problem in overall structure) */
+            Zlb = (double)lp.best_solution[0];
+            Zub = start_bound;
+            Zbest = Zub;
+            Znow = Zlb;
+            Zprev = lp.infinite;
+            rhsmod = 0;
+
+            Phi = lp_lib.DEF_LAGCONTRACT; // In the range 0-2.0 to guarantee convergence
+                                   /*  Phi      = 0.15; */
+            LagFeas = false;
+            Converged = false;
+            AnyFeas = false;
+            citer = 0;
+            nochange = 0;
+
+            /* Initialize reference and solution vectors; don't bother about the
+               original OF offset since we are maintaining an offset locally. */
+
+            /* #define DirectOverrideOF */
+
+           objLpCls.get_row(lp, 0, ref OrigObj);
+#if DirectOverrideOF
+  set_OF_override(lp, ModObj);
+#endif
+            OrigObj[0] = objLpCls.get_rh(lp, 0);
+            for (i = 1; i <= LpCls.get_Lrows(lp); i++)
+            {
+                lp.lambda[i] = 0;
+            }
+
+            /* Iterate to convergence, failure or user-specified termination */
+            while ((lp.lag_status == lp_lib.RUNNING) && (citer < num_iter))
+            {
+
+                citer++;
+
+                /* Compute constraint feasibility gaps and associated sum of squares,
+                   and determine feasibility over the Lagrangean constraints;
+                   SubGrad is the subgradient, which here is identical to the slack. */
+                LagFeas = true;
+                Converged = true;
+                SqrsumSubGrad = 0;
+                for (i = 1; i <= LpCls.get_Lrows(lp); i++)
+                {
+                    hold = lp.lag_rhs[i];
+                    for (j = 1; j <= lp.columns; j++)
+                    {
+                        hold -= Convert.ToDouble(lp_matrix.mat_getitem(lp.matL, i, j) * lp.best_solution[lp.rows + j]);
+                    }
+                    if (LagFeas)
+                    {
+                        if (lp.lag_con_type[i] == lp_lib.EQ)
+                        {
+                            if (System.Math.Abs(hold) > lprec.epsprimal)
+                            {
+                                LagFeas = false;
+                            }
+                        }
+                        else if (hold < -lprec.epsprimal)
+                        {
+                            LagFeas = false;
+                        }
+                    }
+                    /* Test for convergence and update */
+                    if (Converged && (System.Math.Abs(lp_types.my_reldiff(hold, SubGrad[i])) > lp.lag_accept))
+                    {
+                        Converged = false;
+                    }
+                    SubGrad[i] = hold;
+                    SqrsumSubGrad += hold * hold;
+                }
+                SqrsumSubGrad = System.Math.Sqrt(SqrsumSubGrad);
+#if ONE
+	Converged &= LagFeas;
+#endif
+                if (Converged)
+                {
+                    break;
+                }
+
+                /* Modify step parameters and initialize ahead of next iteration */
+                Znow = Convert.ToDouble(lp.best_solution[0] - rhsmod);
+                if (Znow > Zub)
+                {
+                    /* Handle exceptional case where we overshoot */
+                    Phi *= lp_lib.DEF_LAGCONTRACT;
+                    StepSize *= (Zub - Zlb) / (Znow - Zlb);
+                }
+
+                else
+
+#if LagBasisContract
+                    /*      StepSize = Phi * (Zub - Znow) / SqrsumSubGrad; */
+                    StepSize = Phi * (2 - DEF_LAGCONTRACT) * (Zub - Znow) / SqrsumSubGrad;
+#else
+	  StepSize = Phi * (Zub - Znow) / SqrsumSubGrad;
+#endif
+
+                /* Compute the new dual price vector (Lagrangean multipliers, lambda) */
+                for (i = 1; i <= LpCls.get_Lrows(lp); i++)
+                {
+                    lp.lambda[i] += StepSize * SubGrad[i];
+                    if ((lp.lag_con_type[i] != lp_lib.EQ) && (lp.lambda[i] > 0))
+                    {
+                        /* Handle case where we overshoot and need to correct (see above) */
+                        if (Znow < Zub)
+                        {
+                            lp.lambda[i] = 0;
+                        }
+                    }
+                }
+                /*    normalizeVector(lp->lambda, get_Lrows(lp)); */
+
+                /* Save the current vector if it is better */
+                if (LagFeas && (Znow < Zbest))
+                {
+
+                    /* Recompute the objective function value in terms of the original values */
+                    //NOT REQUIRED
+                    //MEMCOPY(BestFeasSol, lp.best_solution, lp.sum + 1);
+                    hold = OrigObj[0];
+                    for (i = 1; i <= lp.columns; i++)
+                    {
+                        hold += Convert.ToDouble(lp.best_solution[lp.rows + i] * OrigObj[i]);
+                    }
+                    BestFeasSol[0] = hold;
+                    if (lp.lag_trace)
+                    {
+                        msg = "lag_solve: Improved feasible solution at iteration %d of %g\n";
+                        lp.report(lp, lp_lib.NORMAL, ref msg, citer, hold);
+                    }
+
+                    /* Reset variables */
+                    Zbest = Znow;
+                    AnyFeas = true;
+                    nochange = 0;
+                }
+                else if (Znow == Zprev)
+                {
+                    nochange++;
+                    if (nochange > lp_lib.LAG_SINGULARLIMIT)
+                    {
+                        Phi *= 0.5;
+                        nochange = 0;
+                    }
+                }
+                Zprev = Znow;
+
+                /* Recompute the objective function values for the next iteration */
+                for (j = 1; j <= lp.columns; j++)
+                {
+                    hold = 0;
+                    for (i = 1; i <= LpCls.get_Lrows(lp); i++)
+                    {
+                        hold += lp.lambda[i] * lp_matrix.mat_getitem(lp.matL, i, j);
+                    }
+                    ModObj[j] = OrigObj[j] - lp_types.my_chsign(LpCls.is_maxim(lp), hold);
+#if !DirectOverrideOF
+                    objLpCls.set_mat(lp, 0, j, ModObj[j]);
+#endif
+                }
+
+                /* Recompute the fixed part of the new objective function */
+                rhsmod = lp_types.my_chsign(LpCls.is_maxim(lp), objLpCls.get_rh(lp, 0));
+                for (i = 1; i <= LpCls.get_Lrows(lp); i++)
+                {
+                    rhsmod += lp.lambda[i] * lp.lag_rhs[i];
+                }
+
+                /* Print trace/debugging information, if specified */
+                if (lp.lag_trace)
+                {
+                    msg = "Zub: %10g Zlb: %10g Stepsize: %10g Phi: %10g Feas %d\n";
+                    lp.report(lp, lp_lib.IMPORTANT, ref msg, (double)Zub, (double)Zlb, (double)StepSize, (double)Phi, LagFeas);
+                    for (i = 1; i <= LpCls.get_Lrows(lp); i++)
+                    {
+                        msg = "%3d SubGrad %10g lambda %10g\n";
+                        lp.report(lp, lp_lib.IMPORTANT, ref msg, i, (double)SubGrad[i], (double)lp.lambda[i]);
+                    }
+                    if (lp.sum < 20)
+                    {
+                       objLpCls.print_lp(lp);
+                    }
+                }
+
+                /* Solve the Lagrangean relaxation, handle failures and compute
+                   the Lagrangean objective value, if successful */
+                i = spx_solve(lp);
+                if (lp.spx_status == lp_lib.UNBOUNDED)
+                {
+                    if (lp.lag_trace)
+                    {
+                        msg = "lag_solve: Unbounded solution encountered with this OF:\n";
+                        lp.report(lp, lp_lib.NORMAL, ref msg);
+                        for (i = 1; i <= lp.columns; i++)
+                        {
+                            lp.report(lp, lp_lib.NORMAL, ref msg, (double)ModObj[i]);
+                        }
+                    }
+                    goto Leave;
+                }
+                else if ((lp.spx_status == lp_lib.NUMFAILURE) || (lp.spx_status == lp_lib.PROCFAIL) || (lp.spx_status == lp_lib.USERABORT) || (lp.spx_status == lp_lib.TIMEOUT) || (lp.spx_status == lp_lib.INFEASIBLE))
+                {
+                    lp.lag_status = lp.spx_status;
+                }
+
+                /* Compare optimal bases and contract if we have basis stationarity */
+#if LagBasisContract
+                same_basis = compare_basis(lp);
+                if (LagFeas && !same_basis)
+                {
+                    pop_basis(lp, 0);
+                    push_basis(lp, null, null, null);
+                    Phi *= DEF_LAGCONTRACT;
+                }
+                if (lp.lag_trace)
+                {
+                    report(lp, DETAILED, "lag_solve: Simplex status code %d, same basis %s\n", lp.spx_status, my_boolstr(same_basis));
+                    print_solution(lp, 1);
+                }
+#endif
+            }
+
+            /* Transfer solution values */
+            if (AnyFeas)
+            {
+                lp.lag_bound = lp_types.my_chsign(LpCls.is_maxim(lp), Zbest);
+                for (i = 0; i <= lp.sum; i++)
+                {
+                    lp.solution[i] = BestFeasSol[i];
+                }
+                LpCls.transfer_solution(lp, 1);
+                if (!LpCls.is_maxim(lp))
+                {
+                    for (i = 1; i <= LpCls.get_Lrows(lp); i++)
+                    {
+                        lp.lambda[i] = lp_types.my_flipsign(lp.lambda[i]);
+                    }
+                }
+            }
+
+        /* Do standard postprocessing */
+        Leave:
+
+            /* Set status variables and report */
+            if (citer >= num_iter)
+            {
+                if (AnyFeas)
+                {
+                    lp.lag_status = lp_lib.FEASFOUND;
+                }
+                else
+                {
+                    lp.lag_status = lp_lib.NOFEASFOUND;
+                }
+            }
+            else
+            {
+                lp.lag_status = lp.spx_status;
+            }
+            if (lp.lag_status == lp_lib.OPTIMAL)
+            {
+                msg = "\nLagrangean convergence achieved in %d iterations\n";
+                lp.report(lp, lp_lib.NORMAL, ref msg, citer);
+                i = LpCls.check_solution(lp, lp.columns, lp.best_solution, lp.orig_upbo, lp.orig_lowbo, lp.epssolution);
+            }
+            else
+            {
+                msg = "\nUnsatisfactory convergence achieved over %d Lagrangean iterations.\n";
+                lp.report(lp, lp_lib.NORMAL, ref msg, citer);
+                if (AnyFeas)
+                {
+                    msg = "The best feasible Lagrangean objective function value was %g\n";
+                    lp.report(lp, lp_lib.NORMAL, ref msg, lp.best_solution[0]);
+                }
+            }
+
+            /* Restore the original objective function */
+#if DirectOverrideOF
+  set_OF_override(lp, null);
+#else
+            for (i = 1; i <= lp.columns; i++)
+            {
+                objLpCls.set_mat(lp, 0, i, OrigObj[i]);
+            }
+#endif
+
+            /* ... and then free memory */
+            //NOT REQUIRED
+            //FREE(BestFeasSol);
+            //FREE(SubGrad);
+            //FREE(OrigObj);
+            //FREE(ModObj);
+            objLpCls.pop_basis(lp, 0);
+
+            lp.do_presolve = oldpresolve;
+
+            return (lp.lag_status);
+
         }
 
         public static int heuristics(lprec lp, int mode)

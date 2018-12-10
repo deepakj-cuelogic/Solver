@@ -59,6 +59,7 @@ namespace ZS.Math.Optimization
         internal const int COMP_PREFERNONE = 0;
         internal const int COMP_PREFERCANDIDATE = 0;
         internal const int COMP_PREFERINCUMBENT = -1;
+        
 
         /* Byte-sized Booleans and extended options */
         internal const byte FALSE = 0;

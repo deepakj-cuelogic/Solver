@@ -17,7 +17,10 @@ namespace ZS.Math.Optimization
         public const int matRowColStep = 1;
         public const int matValueStep = 1;
         public const int BFP_STAT_REFACT_TOTAL = 0;
+        public const int BFP_STAT_REFACT_TIMED = 1;
+        public const int BFP_STAT_REFACT_DENSE = 2;
         public const int QS_IS_switch = 4;
+        
 
         public const int LUSOL_INFORM_RANKLOSS = -1;
 

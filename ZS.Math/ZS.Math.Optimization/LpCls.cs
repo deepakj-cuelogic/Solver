@@ -7815,6 +7815,409 @@ internal static class StringFunctions
 #endif
         }
 
+        internal static int check_solution(lprec lp, int lastcolumn, double?[] solution, double[] upbo, double[] lowbo, double tolerance)
+        {
+            /*#define UseMaxValueInCheck*/
+            bool isSC;
 
+            double test, value, hold, diff, maxdiff = 0.0, maxerr = 0.0, matValue;
+            double[] plusum = null, negsum = null;
+
+            int i;
+            int j;
+            int n;
+            int errlevel = IMPORTANT;
+            int errlimit = 10;
+            
+            int matRownr;
+            
+            int matColnr;
+            MATrec mat = lp.matA;
+            string msg;
+            LpCls objLpCls = new LpCls();
+
+            msg = " \n";
+            lp.report(lp, NORMAL, ref msg);
+            if (MIP_count(lp) > 0)
+            {
+                msg = "%s solution  " + lp_types.RESULTVALUEMASK+ " after %10.0f iter, %9.0f nodes (gap %.1f%%).\n";
+                //ORIGINAL LINE: lp.report(lp, NORMAL, ref msg, lp_types.my_if(lp.bb_break && !bb_better(lp, OF_DUALLIMIT, OF_TEST_BE) && bb_better(lp, OF_RELAXED, OF_TEST_NE), "Subopt.", "Optimal"), solution[0], (double)lp.total_iter, (double)lp.bb_totalnodes, 100.0 * Math.Abs(my_reldiff(solution[0], lp.bb_limitOF)));
+                //String has been passed to the parameters double, hence temporary not considered other optional pameters in report. Need to check at runtime.
+                lp.report(lp, NORMAL, ref msg);
+            }
+            else
+            {
+                msg = "Optimal solution  " + lp_types.RESULTVALUEMASK + " after %10.0f iter.\n";
+                lp.report(lp, NORMAL, ref msg, solution[0], (double)lp.total_iter);
+            }
+
+            /* Find the signed sums and the largest absolute product in the matrix (exclude the OF for speed) */
+#if UseMaxValueInCheck
+  allocREAL(lp, maxvalue, lp.rows + 1, 0);
+  for (i = 0; i <= lp.rows; i++)
+  {
+	maxvalue[i] = Math.Abs(get_rh(lp, i));
+  }
+#else
+            //NOT REQUIRED
+            //allocREAL(lp, plusum, lp.rows + 1, 1);
+            //allocREAL(lp, negsum, lp.rows + 1, 1);
+#endif
+            n = objLpCls.get_nonzeros(lp);
+            matRownr = lp_matrix.COL_MAT_ROWNR(0);
+            matColnr = lp_matrix.COL_MAT_COLNR(0);
+            matValue = lp_matrix.COL_MAT_VALUE(0);
+            for (i = 0; i < n; i++, matRownr += lp_matrix.matRowColStep, matColnr += lp_matrix.matRowColStep, matValue += lp_matrix.matValueStep)
+            {
+                test = lp_scale.unscaled_mat(lp, matValue, matRownr, matColnr);
+                test *= solution[lp.rows + (matColnr)];
+#if UseMaxValueInCheck
+	test = Math.Abs(test);
+	if (test > maxvalue[*matRownr])
+	{
+	  maxvalue[*matRownr] = test;
+	}
+#else
+                if (test > 0)
+                {
+                    plusum[matRownr] += test;
+                }
+                else
+                {
+                    negsum[matRownr] += test;
+                }
+#endif
+            }
+
+
+            /* Check if solution values are within the bounds; allowing a margin for numeric errors */
+            n = 0;
+            for (i = lp.rows + 1; i <= lp.rows + lastcolumn; i++)
+            {
+
+                value = solution[i];
+
+                /* Check for case where we are testing an intermediate solution
+                   (variables shifted to the origin) */
+                if (lowbo == null)
+                {
+                    test = 0;
+                }
+                else
+                {
+                    test = lp_scale.unscaled_value(lp, lowbo[i], i);
+                }
+
+                isSC = is_semicont(lp, i - lp.rows);
+                diff = lp_types.my_reldiff(value, test);
+                if (diff < 0)
+                {
+                    if (isSC && (value < test / 2))
+                    {
+                        test = 0;
+                    }
+                    commonlib.SETMAX(maxerr, System.Math.Abs(value - test));
+                    commonlib.SETMAX(maxdiff, System.Math.Abs(diff));
+                }
+                if ((diff < -tolerance) && !isSC)
+                {
+                    if (n < errlimit)
+                    {
+                        msg = "check_solution: Variable   %s = " + lp_types.RESULTVALUEMASK + " is below its lower bound "+ lp_types.RESULTVALUEMASK + "\n";
+                        lp.report(lp, errlevel, ref msg, objLpCls.get_col_name(lp, i - lp.rows), value, test);
+                    }
+                    n++;
+                }
+
+                test = lp_scale.unscaled_value(lp, upbo[i], i);
+                diff = lp_types.my_reldiff(value, test);
+                if (diff > 0)
+                {
+                    commonlib.SETMAX(maxerr, System.Math.Abs(value - test));
+                    commonlib.SETMAX(maxdiff, System.Math.Abs(diff));
+                }
+                if (diff > tolerance)
+                {
+                    if (n < errlimit)
+                    {
+                        msg = "check_solution: Variable   %s = " + lp_types.RESULTVALUEMASK+ " is above its upper bound "+ lp_types.RESULTVALUEMASK+ "\n";
+                        lp.report(lp, errlevel, ref msg, objLpCls.get_col_name(lp, i - lp.rows), value, test);
+                    }
+                    n++;
+                }
+            }
+
+            /* Check if constraint values are within the bounds; allowing a margin for numeric errors */
+            for (i = 1; i <= lp.rows; i++)
+            {
+
+                test = lp.orig_rhs[i];
+                if (is_infinite(lp, test))
+                {
+                    continue;
+                }
+
+#if LegacySlackDefinition
+	j = lp.presolve_undo.var_to_orig[i];
+	if (j != 0)
+	{
+	  if (is_infinite(lp, lp.presolve_undo.fixed_rhs[j]))
+	  {
+		continue;
+	  }
+	  test += lp.presolve_undo.fixed_rhs[j];
+	}
+#endif
+
+                if (objLpCls.is_chsign(lp, i))
+                {
+                    test = lp_types.my_flipsign(test);
+                    test += System.Math.Abs(upbo[i]);
+                }
+                value = solution[i];
+                test = lp_scale.unscaled_value(lp, test, i);
+#if !LegacySlackDefinition
+                value += test;
+#endif
+                /*    diff = my_reldiff(value, test); */
+#if UseMaxValueInCheck
+	hold = maxvalue[i];
+#else
+                hold = plusum[i] - negsum[i];
+#endif
+                if (hold < lprec.epsvalue)
+                {
+                    hold = 1;
+                }
+                diff = lp_types.my_reldiff((value + 1) / hold, (test + 1) / hold);
+                if (diff > 0)
+                {
+                    commonlib.SETMAX(maxerr, System.Math.Abs(value - test));
+                    commonlib.SETMAX(maxdiff, System.Math.Abs(diff));
+                }
+                if (diff > tolerance)
+                {
+                    if (n < errlimit)
+                    {
+                        msg = "check_solution: Constraint %s = " + lp_types.RESULTVALUEMASK+ " is above its %s "+ lp_types.RESULTVALUEMASK +"\n";
+                        lp.report(lp, errlevel, ref msg, objLpCls.get_row_name(lp, i), value, (is_constr_type(lp, i, EQ) ? "equality of" : "upper bound"), test);
+                    }
+                    n++;
+                }
+
+                test = lp.orig_rhs[i];
+#if LegacySlackDefinition
+	j = lp.presolve_undo.var_to_orig[i];
+	if (j != 0)
+	{
+	  if (is_infinite(lp, lp.presolve_undo.fixed_rhs[j]))
+	  {
+		continue;
+	  }
+	  test += lp.presolve_undo.fixed_rhs[j];
+	}
+#endif
+
+                value = solution[i];
+                if (objLpCls.is_chsign(lp, i))
+                {
+                    test = lp_types.my_flipsign(test);
+                }
+                else
+                {
+                    if (is_infinite(lp, upbo[i]))
+                    {
+                        continue;
+                    }
+                    test -= System.Math.Abs(upbo[i]);
+#if !LegacySlackDefinition
+                    value = System.Math.Abs(upbo[i]) - value;
+#endif
+                }
+                test = lp_scale.unscaled_value(lp, test, i);
+#if !LegacySlackDefinition
+                value += test;
+#endif
+                /*    diff = my_reldiff(value, test); */
+#if UseMaxValueInCheck
+	hold = maxvalue[i];
+#else
+                hold = plusum[i] - negsum[i];
+#endif
+                if (hold < lprec.epsvalue)
+                {
+                    hold = 1;
+                }
+                diff = lp_types.my_reldiff((value + 1) / hold, (test + 1) / hold);
+                if (diff < 0)
+                {
+                    commonlib.SETMAX(maxerr, System.Math.Abs(value - test));
+                    commonlib.SETMAX(maxdiff, System.Math.Abs(diff));
+                }
+                if (diff < -tolerance)
+                {
+                    if (n < errlimit)
+                    {
+                        msg = "check_solution: Constraint %s = " + lp_types.RESULTVALUEMASK+ " is below its %s " + lp_types.RESULTVALUEMASK + "\n";
+                        lp.report(lp, errlevel, ref msg, objLpCls.get_row_name(lp, i), value, (is_constr_type(lp, i, EQ) ? "equality of" : "lower bound"), test);
+                    }
+                    n++;
+                }
+            }
+
+#if UseMaxValueInCheck
+  FREE(maxvalue);
+#else
+            //NOT REQUIRED
+            //FREE(plusum);
+            //FREE(negsum);
+#endif
+
+            if (n > 0)
+            {
+                msg = "\nSeriously low accuracy found ||*|| = %g (rel. error %g)\n";
+                lp.report(lp, IMPORTANT, ref msg, maxerr, maxdiff);
+                return (NUMFAILURE);
+            }
+            else
+            {
+                if (maxerr > 1.0e-7)
+                {
+                    msg = "\nMarginal numeric accuracy ||*|| = %g (rel. error %g)\n";
+                    lp.report(lp, NORMAL, ref msg, maxerr, maxdiff);
+                }
+                else if (maxerr > 1.0e-9)
+                {
+                    msg = "\nReasonable numeric accuracy ||*|| = %g (rel. error %g)\n";
+                    lp.report(lp, NORMAL, ref msg, maxerr, maxdiff);
+                }
+                else if (maxerr > 1.0e11)
+                {
+                    msg = "\nVery good numeric accuracy ||*|| = %g\n";
+                    lp.report(lp, NORMAL, ref msg, maxerr);
+                }
+                else
+                {
+                    msg = "\nExcellent numeric accuracy ||*|| = %g\n";
+                    lp.report(lp, NORMAL, ref msg, maxerr);
+                }
+
+                return (OPTIMAL);
+            }
+
+        }
+
+        internal new static bool varmap_canunlock(lprec lp)
+        {
+            /* Don't do anything if variables aren't locked yet */
+            if (lp.varmap_locked)
+            {
+                int i;
+                presolveundorec psundo = lp.presolve_undo;
+
+                /* Check for the obvious */
+                if ((psundo.orig_columns > lp.columns) || (psundo.orig_rows > lp.rows))
+                {
+                    return (false);
+                }
+
+                /* Check for deletions */
+                for (i = psundo.orig_rows + psundo.orig_columns; i > 0; i--)
+                {
+                    if (psundo.orig_to_var[i] == 0)
+                    {
+                        return (false);
+                    }
+                }
+
+                /* Check for insertions */
+                for (i = lp.sum; i > 0; i--)
+                {
+                    if (psundo.var_to_orig[i] == 0)
+                    {
+                        return (false);
+                    }
+                }
+            }
+            return (true);
+        }
+
+        internal static double get_refactfrequency(lprec lp, bool final)
+        {
+            //ORIGINAL CODE:
+            //COUNTER iters = new COUNTER();
+            long iters;
+            int refacts;
+
+            /* Get numerator and divisor information */
+            iters = (lp.total_iter + lp.current_iter) - (lp.total_bswap + lp.current_bswap);
+            refacts = lp.bfp_refactcount(lp, commonlib.BFP_STAT_REFACT_TOTAL);
+
+            /* Return frequency for different cases:
+                1) Actual frequency in case final statistic is desired
+                2) Dummy if we are in a B&B process
+                3) Frequency with added initialization offsets which
+                   are diluted in course of the solution process */
+            if (final)
+            {
+                return ((double)(iters) / commonlib.MAX(1, refacts));
+            }
+            else if (lp.bb_totalnodes > 0)
+            {
+                return ((double)lp.bfp_pivotmax(lp));
+            }
+            else
+            {
+                return ((double)(lp.bfp_pivotmax(lp) + iters) / (1 + refacts));
+            }
+        }
+
+        public new long get_total_nodes(lprec lp)
+        {
+            return (lp.bb_totalnodes);
+        }
+
+        internal new static int GUB_count(lprec lp)
+        {
+            if (lp.GUB == null)
+            {
+                return (0);
+            }
+            else
+            {
+                return (lp.GUB.sos_count);
+            }
+        }
+
+        private new double get_rh(lprec lp, int rownr)
+        {
+            double value;
+
+            if ((rownr > lp.rows) || (rownr < 0))
+            {
+                string msg = "get_rh: Row %d out of range";
+                report(lp, IMPORTANT, ref msg, rownr);
+                return (0.0);
+            }
+
+            value = lp.orig_rhs[rownr];
+            if (((rownr == 0) && !is_maxim(lp)) || ((rownr > 0) && is_chsign(lp, rownr))) // setting of RHS of OF IS meaningful
+            {
+                value = lp_types.my_flipsign(value);
+            }
+            value = lp_scale.unscaled_value(lp, value, rownr);
+            return (value);
+        }
+
+        internal new void print_lp(lprec lp)
+        {
+            lp_report objReport = new lp_report();
+            objReport.REPORT_lp(lp);
+        }
+
+        internal new string get_lp_name(lprec lp)
+        {
+            return ((lp.lp_name != null) ? lp.lp_name : (string)"");
+        }
     }
 }

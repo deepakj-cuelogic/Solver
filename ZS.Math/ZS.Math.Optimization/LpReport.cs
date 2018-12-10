@@ -204,7 +204,108 @@ namespace ZS.Math.Optimization
         }
         public void REPORT_lp(lprec lp)
         {
-            throw new NotImplementedException();
+           /* int i;
+            int j;
+
+            if (lp.outstream == null)
+            {
+                return;
+            }
+
+            fprintf(lp.outstream, "Model name: %s\n", get_lp_name(lp));
+            fprintf(lp.outstream, "          ");
+
+            for (j = 1; j <= lp.columns; j++)
+            {
+                fprintf(lp.outstream, "%8s ", get_col_name(lp, j));
+            }
+
+            fprintf(lp.outstream, "\n%simize  ", (is_maxim(lp) ? "Max" : "Min"));
+            for (j = 1; j <= lp.columns; j++)
+            {
+                fprintf(lp.outstream, "%8g ", get_mat(lp, 0, j));
+            }
+            fprintf(lp.outstream, "\n");
+
+            for (i = 1; i <= lp.rows; i++)
+            {
+                fprintf(lp.outstream, "%-9s ", get_row_name(lp, i));
+                for (j = 1; j <= lp.columns; j++)
+                {
+                    fprintf(lp.outstream, "%8g ", get_mat(lp, i, j));
+                }
+                if (is_constr_type(lp, i, GE))
+                {
+                    fprintf(lp.outstream, ">= ");
+                }
+                else if (is_constr_type(lp, i, LE))
+                {
+                    fprintf(lp.outstream, "<= ");
+                }
+                else
+                {
+                    fprintf(lp.outstream, " = ");
+                }
+                fprintf(lp.outstream, "%8g", get_rh(lp, i));
+
+                if (is_constr_type(lp, i, GE))
+                {
+                    if (get_rh_upper(lp, i) < lp.infinite)
+                    {
+                        fprintf(lp.outstream, "  %s = %8g", "upbo", get_rh_upper(lp, i));
+                    }
+                }
+                else if (is_constr_type(lp, i, LE))
+                {
+                    if (get_rh_lower(lp, i) > -lp.infinite)
+                    {
+                        fprintf(lp.outstream, "  %s = %8g", "lowbo", get_rh_lower(lp, i));
+                    }
+                }
+                fprintf(lp.outstream, "\n");
+            }
+
+            fprintf(lp.outstream, "Type      ");
+            for (i = 1; i <= lp.columns; i++)
+            {
+                if (is_int(lp, i))
+                {
+                    fprintf(lp.outstream, "     Int ");
+                }
+                else
+                {
+                    fprintf(lp.outstream, "    Real ");
+                }
+            }
+
+            fprintf(lp.outstream, "\nupbo      ");
+            for (i = 1; i <= lp.columns; i++)
+            {
+                if (get_upbo(lp, i) >= lp.infinite)
+                {
+                    fprintf(lp.outstream, "     Inf ");
+                }
+                else
+                {
+                    fprintf(lp.outstream, "%8g ", get_upbo(lp, i));
+                }
+            }
+            fprintf(lp.outstream, "\nlowbo     ");
+            for (i = 1; i <= lp.columns; i++)
+            {
+                if (get_lowbo(lp, i) <= -lp.infinite)
+                {
+                    fprintf(lp.outstream, "    -Inf ");
+                }
+                else
+                {
+                    fprintf(lp.outstream, "%8g ", get_lowbo(lp, i));
+                }
+            }
+            fprintf(lp.outstream, "\n");
+
+            fflush(lp.outstream);
+            */
         }
         public byte REPORT_tableau(lprec lp)
         {

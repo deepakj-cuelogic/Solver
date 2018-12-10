@@ -313,9 +313,62 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public static byte postsolve(lprec lp, int status)
+        public static bool postsolve(lprec lp, int status)
         {
-            throw new NotImplementedException();
+            LpCls objLpCls = new LpCls();
+            /* Verify solution */
+            if (lp.lag_status != lp_lib.RUNNING)
+            {
+                int itemp;
+                string msg;
+
+                if (status == lp_lib.PRESOLVED)
+                {
+                    status = lp_lib.OPTIMAL;
+                }
+
+                if ((status == lp_lib.OPTIMAL) || (status == lp_lib.SUBOPTIMAL))
+                {
+                    itemp = LpCls.check_solution(lp, lp.columns, lp.best_solution, lp.orig_upbo, lp.orig_lowbo, lp.epssolution);
+                    if ((itemp != lp_lib.OPTIMAL) && (lp.spx_status == lp_lib.OPTIMAL))
+                    {
+                        lp.spx_status = itemp;
+                    }
+                    else if ((itemp == lp_lib.OPTIMAL) && ((status == lp_lib.SUBOPTIMAL) || (lp.spx_status == lp_lib.PRESOLVED)))
+                    {
+                        lp.spx_status = status;
+                    }
+                }
+                else if (status != lp_lib.PRESOLVED)
+                {
+                    msg = "lp_solve unsuccessful after %.0f iter and a last best value of %g\n";
+                    lp.report(lp, lp_lib.NORMAL, ref msg, (double)LpCls.get_total_iter(lp), lp.best_solution[0]);
+                    if (lp.bb_totalnodes > 0)
+                    {
+                        msg = "lp_solve explored %.0f nodes before termination\n";
+                        lp.report(lp, lp_lib.NORMAL, ref msg, (double)objLpCls.get_total_nodes(lp));
+                    }
+                }
+                else
+                {
+                    lp.spx_status = lp_lib.OPTIMAL;
+                }
+
+                /* Only rebuild primal solution here, since the dual is only computed on request */
+                presolve_rebuildUndo(lp, 1);
+            }
+
+            /* Check if we can clear the variable map */
+            if (LpCls.varmap_canunlock(lp))
+            {
+                lp.varmap_locked = false;
+            }
+#if false
+//  REPORT_mat_mmsave(lp, "basis.mtx", NULL, FALSE);  // Write the current basis matrix (no OF) 
+#endif
+
+            return (true);
+
         }
 
     }
