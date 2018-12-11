@@ -1043,7 +1043,7 @@ namespace ZS.Math.Optimization
         }
 
         /* Find the primal simplex leaving basic column variable */
-        internal static int rowprim(lprec lp, int colnr, ref double theta, ref double?[] pcol, ref int? nzpcol, bool forceoutEQ, ref double xviol)
+        internal static int rowprim(lprec lp, int colnr, ref double theta, ref double[] pcol, ref int? nzpcol, bool forceoutEQ, ref double xviol)
         {
             int i;
             int ii;
@@ -1781,7 +1781,7 @@ namespace ZS.Math.Optimization
 
         //Changed By: CS Date:28/11/2018
         /* Computation of reduced costs */
-        internal static void update_reducedcosts(lprec lp, bool isdual, int leave_nr, int enter_nr, double?[] prow, double drow)
+        internal static void update_reducedcosts(lprec lp, bool isdual, int leave_nr, int enter_nr, double[] prow, double drow)
         {
             /* "Fast" update of the dual reduced cost vector; note that it must be called
                after the pivot operation and only applies to a major "true" iteration */
@@ -2626,6 +2626,31 @@ namespace ZS.Math.Optimization
 
             return (blockdata);
         }
+
+        static int partial_activeBlocks(lprec lp, bool isrow)
+        { throw new NotImplementedException(); }
+
+        static void partial_freeBlocks(partialrec[] blockdata)
+        { throw new NotImplementedException(); }
+
+        static void longdual_testset(lprec lp, int which, int rownr, ref double prow, ref int nzprow, ref double drow, ref int nzdrow)
+        { throw new NotImplementedException(); }
+
+        static int partial_blockNextPos(lprec lp, int block, bool isrow)
+        { throw new NotImplementedException(); }
+
+        static bool partial_isVarActive(lprec lp, int varno, bool isrow)
+        { throw new NotImplementedException(); }
+
+        static int multi_size(multirec multi)
+        { throw new NotImplementedException(); }
+
+        static double multi_valueList(multirec multi)
+        { throw new NotImplementedException(); }
+
+        static int multi_getvar(multirec multi, int item)
+        { throw new NotImplementedException(); }
+
 
     }
 }

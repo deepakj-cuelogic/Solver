@@ -177,8 +177,9 @@ namespace ZS.Math.Optimization
             if (!(lp.spx_trace) && (lastnr > 0))
             {
                 msg = "%s: Objective at iter %10.0f is " + lp_types.RESULTVALUEMASK + " (%4d: %4d %s- %4d)\n ";
-                //NOTED ISSUE:
-                lp.report(lp, msg, monitor.spxfunc, (double)lp.get_total_iter(lp), monitor.thisobj, rownr, lastnr, lp_types.my_if(minit == Convert.ToBoolean(lprec.ITERATE_MAJORMAJOR), "<", "|"), colnr);
+                //NOTED ISSUE:Temporary removed optional parameters, need to check at runtime.
+                //ORIGINAL LINE: lp.report(lp, msg, monitor.spxfunc, (double)lp.get_total_iter(lp), monitor.thisobj, rownr, lastnr, lp_types.my_if(minit == Convert.ToBoolean(lprec.ITERATE_MAJORMAJOR), "<", "|"), colnr);
+                lp.report(lp, msglevel, ref msg, monitor.spxfunc, (double)lp.get_total_iter(lp), monitor.thisobj, rownr, lastnr, colnr);
             }
             monitor.pivrule = lp.get_piv_rule(lp);
 
@@ -526,7 +527,7 @@ namespace ZS.Math.Optimization
                     }
 
                     /* Now set the artificial variable to be basic */
-                    objLpCls.set_basisvar(lp, bvar, lp.sum);
+                    LpCls.set_basisvar(lp, bvar, lp.sum);
                     lp.P1extraDim++;
                 }
                 else
@@ -652,7 +653,7 @@ namespace ZS.Math.Optimization
                 //    performiteration(lp, rownr, colnr, 0.0, TRUE, FALSE, prow, NULL,
                 //                                                          NULL, NULL, NULL);
                 ///#else
-                objLpCls.set_basisvar(lp, rownr, colnr);
+                LpCls.set_basisvar(lp, rownr, colnr);
                 ///#endif
                 objLpCls.del_column(lp, j);
                 P1extraDim--;
@@ -680,7 +681,7 @@ namespace ZS.Math.Optimization
                     continue;
                 }
                 j = get_artificialRow(lp, j - lp.rows);
-                objLpCls.set_basisvar(lp, i, j);
+                LpCls.set_basisvar(lp, i, j);
                 n++;
             }
 
@@ -733,8 +734,8 @@ namespace ZS.Math.Optimization
             double xviolated = 0.0;
             double cviolated = 0.0;
             double?[] prow = null;
-            double?[] pcol = null;
-            double drow = lp.drow;
+            double[] pcol = null;
+            double[] drow = lp.drow;
             string msg;
 
             LpCls objLpCls = new LpCls();
@@ -822,8 +823,8 @@ namespace ZS.Math.Optimization
             //ok = allocREAL(lp, (lp.bsolveVal), lp.rows + 1, 0) && allocREAL(lp, prow, lp.sum + 1, 1) && allocREAL(lp, pcol, lp.rows + 1, 1);
             if (objLpCls.is_piv_mode(lp, lp_lib.PRICE_MULTIPLE) && (lp.multiblockdiv > 1))
             {
-                lp.multivars = LpPrice.multi_create(lp, false);
-                ok &= (lp.multivars != null) && LpPrice.multi_resize(lp.multivars, lp.sum / lp.multiblockdiv, 2, false, true);
+                lp.multivars[0] = (multirec)LpPrice.multi_create(lp, false);
+                ok &= (lp.multivars != null) && LpPrice.multi_resize(lp.multivars[0], lp.sum / lp.multiblockdiv, 2, false, true);
             }
             if (!ok)
             {
@@ -846,7 +847,7 @@ namespace ZS.Math.Optimization
 
             /* Iterate while we are successful; exit when the model is infeasible/unbounded,
                or we must terminate due to numeric instability or user-determined reasons */
-            while ((lp.spx_status == lp_lib.RUNNING) && !objLpCls.userabort(lp, -1))
+            while ((lp.spx_status == lp_lib.RUNNING) && !LpCls.userabort(lp, -1))
             {
 
                 primalphase1 = (bool)(lp.P1extraDim > 0);
@@ -872,7 +873,7 @@ namespace ZS.Math.Optimization
                     do
                     {
                         i++;
-                        colnr = LpPrice.colprim(lp, ref drow, ref nzdrow, (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), i, ref candidatecount, true, ref xviolated);
+                        colnr = LpPrice.colprim(lp, ref drow[0], ref nzdrow, (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), i, ref candidatecount, true, ref xviolated);
                     } while ((colnr == 0) && (i < LpPrice.partial_countBlocks(lp, (bool)!primal)) && LpPrice.partial_blockStep(lp, (bool)!primal));
 
                     /* Handle direct outcomes */
@@ -886,7 +887,7 @@ namespace ZS.Math.Optimization
                     }
 
                     /* See if accuracy check during compute_reducedcosts flagged refactorization */
-                    if (objLpCls.is_action(lp.spx_action, lp_lib.ACTION_REINVERT))
+                    if (LpCls.is_action(lp.spx_action, lp_lib.ACTION_REINVERT))
                     {
                         bfpfinal = true;
                     }
@@ -914,7 +915,7 @@ namespace ZS.Math.Optimization
                 if (colnr > 0)
                 {
                     changedphase = false;
-                    lp_matrix.fsolve(lp, colnr, ref pcol, null, lp.epsmachine, 1.0, true); // Solve entering column for Pi
+                    lp_matrix.fsolve(lp, colnr,  pcol, null, lp.epsmachine, 1.0, true); // Solve entering column for Pi
 
                     /* Do special anti-degeneracy column selection, if specified */
                     int parameter = 0;
@@ -939,7 +940,7 @@ namespace ZS.Math.Optimization
                     }
 
                     /* Find the leaving variable that gives the most stringent bound on the entering variable */
-                    theta = drow;
+                    theta = drow[0];
                     rownr = LpPrice.rowprim(lp, colnr, ref theta, ref pcol, ref workINT, forceoutEQ, ref cviolated);
 
                     ///#if AcceptMarginalAccuracy
@@ -975,10 +976,10 @@ namespace ZS.Math.Optimization
                         if (!lp.obj_in_basis) // We must manually copy the reduced cost for RHS update
                         {
                             //NOTED ISSUE:
-                            pcol = lp_types.my_chsign(!lp.is_lower[colnr], drow);
+                            pcol[0] = lp_types.my_chsign(!lp.is_lower[colnr], drow[0]);
                         }
                         //NOTED ISSUE:
-                        lp.bfp_prepareupdate(lp, rownr, colnr, ref pcol);
+                        lp.bfp_prepareupdate(lp, rownr, colnr, ref pcol[0]);
                     }
                     /* We may be unbounded... */
                     else
@@ -1083,7 +1084,7 @@ namespace ZS.Math.Optimization
                                         }
                                         else
                                         {
-                                            objLpCls.set_basisvar(lp, i, k);
+                                            LpCls.set_basisvar(lp, i, k);
                                         }
                                         objLpCls.del_column(lp, j);
                                         lp.P1extraDim--;
@@ -1146,7 +1147,7 @@ namespace ZS.Math.Optimization
                 }
 
                 /* Pivot row/col and update the inverse */
-                if (objLpCls.is_action(lp.spx_action, lp_lib.ACTION_ITERATE))
+                if (LpCls.is_action(lp.spx_action, lp_lib.ACTION_ITERATE))
                 {
                     lastnr = lp.var_basic[rownr];
 
@@ -1159,7 +1160,7 @@ namespace ZS.Math.Optimization
                         LpCls.recompute_solution(lp, lp_lib.INITSOL_USEZERO);
                         minitcount = 0;
                     }
-                    double?[] Parameter1 = null;
+                    double[] Parameter1 = null;
                     int Parameter2 = 0;
                     minit = LpCls.performiteration(lp, rownr, colnr, theta, primal, (bool)((stallaccept != Convert.ToBoolean(DefineConstants.AUTOMATIC))), ref Parameter1, ref Parameter2, ref pcol, ref Parameter2, ref Parameter2);
                     if (minit != lp_lib.ITERATE_MAJORMAJOR)
@@ -1180,7 +1181,7 @@ namespace ZS.Math.Optimization
                     /* Do a fast update of the reduced costs in preparation for the next iteration */
                     if (minit == lp_lib.ITERATE_MAJORMAJOR)
                     {
-                        LpPrice.update_reducedcosts(lp, primal, lastnr, colnr, pcol, drow);
+                        LpPrice.update_reducedcosts(lp, primal, lastnr, colnr, pcol, drow[0]);
                     }
                     ///#endif
 
@@ -1299,9 +1300,9 @@ namespace ZS.Math.Optimization
             double xviolated = 0;
             double cviolated = 0;
             //ORIGINAL LINE: double *prow = null;
-            double prow = 0;
+            double[] prow = null;
             //ORIGINAL LINE: double *pcol = null;
-            double?[] pcol = null;
+            double[] pcol = null;
             //ORIGINAL LINE: double *drow = lp->drow;
             double[] drow = lp.drow;
             //ORIGINAL LINE: int *nzprow = null, *workINT = null, *nzdrow = lp->nzdrow;
@@ -1309,7 +1310,7 @@ namespace ZS.Math.Optimization
             //ORIGINAL LINE: int *workINT = null;
             int[] workINT = null;
             //ORIGINAL LINE: int *nzdrow = lp->nzdrow;
-            int nzdrow = Convert.ToInt32(lp.nzdrow);
+            int[] nzdrow = lp.nzdrow;
             string msg;
             LpCls objLpCls = new LpCls();
 
@@ -1421,7 +1422,7 @@ namespace ZS.Math.Optimization
             }
 #endif
 
-            while ((lp.spx_status == lp_lib.RUNNING) && !objLpCls.userabort(lp, -1))
+            while ((lp.spx_status == lp_lib.RUNNING) && !LpCls.userabort(lp, -1))
             {
 
                 /* Check if we have stalling (from numerics or degenerate cycling) */
@@ -1441,7 +1442,7 @@ namespace ZS.Math.Optimization
                 {
                     int[] Parameter = null;
                     int Parameter1 = 0;
-                    objLpCls.obtain_column(lp, dualinfeasibles[1], ref pcol, ref Parameter, ref Parameter1);
+                    LpCls.obtain_column(lp, dualinfeasibles[1], ref pcol, ref Parameter, ref Parameter1);
                     i = 2;
                     for (i = 2; i <= dualinfeasibles[0]; i++)
                     {
@@ -1463,7 +1464,8 @@ RetryRow:
                     {
                         double d = 0;
                         i++;
-                        rownr = LpPrice.rowdual(lp, lp_types.my_if(dualphase1, pcol, d), forceoutEQ, 1, xviolated);
+                        //NOTED ISSUE:
+                        rownr = LpPrice.rowdual(lp, lp_types.my_if(dualphase1, pcol[0], d), forceoutEQ, true, ref xviolated);
                     } while ((rownr == 0) && (i < LpPrice.partial_countBlocks(lp, (bool)!primal)) && LpPrice.partial_blockStep(lp, (bool)!primal));
                 }
 
@@ -1488,7 +1490,7 @@ RetryRow:
                 LpCls.clear_action(ref lp.spx_action, lp_lib.ACTION_ITERATE);
                 if (rownr > 0)
                 {
-                    colnr = LpPrice.coldual(lp, rownr, ref prow, ref nzprow, ref drow, ref nzdrow, (bool)(dualphase1 && !inP1extra), (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), ref candidatecount, ref cviolated);
+                    colnr = LpPrice.coldual(lp, rownr, ref prow[0], ref nzprow, ref drow, ref nzdrow[0], (bool)(dualphase1 && !inP1extra), (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), ref candidatecount, ref cviolated);
                     if (colnr < 0)
                     {
                         minit = lp_lib.ITERATE_MAJORMAJOR;
@@ -1575,11 +1577,11 @@ RetryRow:
                             {
                                 pcol[0] = lp_types.my_chsign(!lp.is_lower[colnr], drow[colnr]);
                             }
-                            theta = lp.bfp_prepareupdate(lp, rownr, colnr, ref pcol);
+                            theta = lp.bfp_prepareupdate(lp, rownr, colnr, ref pcol[0]);
 
                             /* Verify numeric accuracy of the basis factorization and change to
                                the "theoretically" correct version of the theta */
-                            if ((lp.improve != 0 & lp_lib.IMPROVE_THETAGAP != 0) && (!LpCls.refactRecent(lp)) && (lp_types.my_reldiff(System.Math.Abs(theta), System.Math.Abs(prow)) > lp.epspivot * 10.0 * System.Math.Log(2.0 + 50.0 * lp.rows)))
+                            if ((lp.improve != 0 & lp_lib.IMPROVE_THETAGAP != 0) && (!LpCls.refactRecent(lp)) && (lp_types.my_reldiff(System.Math.Abs(theta), System.Math.Abs((sbyte)prow[0])) > lp.epspivot * 10.0 * System.Math.Log(2.0 + 50.0 * lp.rows)))
                             { // This is my kludge - KE
                                 LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
                                 bfpfinal = true;
@@ -1589,7 +1591,7 @@ RetryRow:
                                 msg = "dualloop: Refactorizing at iter %.0f due to loss of accuracy.\n";
                                 lp.report(lp, lp_lib.DETAILED, ref msg, (double)LpCls.get_total_iter(lp));
                             }
-                            theta = prow;
+                            theta = prow[0];
                             LpCls.compute_theta(lp, rownr, ref theta, !lp.is_lower[colnr], 0, primal);
                         }
                     }
@@ -1687,7 +1689,7 @@ RetryRow:
                 }
 
                 /* Make sure that we enter the primal simplex with a high quality solution */
-                else if (inP1extra && !LpCls.refactRecent(lp) && objLpCls.is_action(lp.improve, lp_lib.IMPROVE_INVERSE))
+                else if (inP1extra && !LpCls.refactRecent(lp) && LpCls.is_action(lp.improve, lp_lib.IMPROVE_INVERSE))
                 {
                     LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
                     bfpfinal = true;
@@ -1813,7 +1815,7 @@ RetryRow:
                         { // NODE_RCOSTFIXING fix
                             LpCls.set_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
                             double d = 0;
-                            colnr = LpPrice.colprim(lp, ref drow, ref nzdrow, false, 1, ref candidatecount, false, ref d);
+                            colnr = LpPrice.colprim(lp, ref drow[0], ref nzdrow, false, 1, ref candidatecount, false, ref d);
                             LpCls.clear_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
                             if ((dualoffset == 0) && (colnr > 0))
                             {
@@ -1855,7 +1857,7 @@ RetryRow:
                 }
 
                 /* Check if we are allowed to iterate on the chosen column and row */
-                if (objLpCls.is_action(lp.spx_action, lp_lib.ACTION_ITERATE))
+                if (LpCls.is_action(lp.spx_action, lp_lib.ACTION_ITERATE))
                 {
 
                     lastnr = lp.var_basic[rownr];
@@ -1869,7 +1871,7 @@ RetryRow:
                         minitcount = 0;
                     }
                     int Parameter = 0;
-                    minit = LpCls.performiteration(lp, rownr, colnr, theta, primal, (bool)((stallaccept != Convert.ToBoolean(lp_types.AUTOMATIC))), ref prow, ref nzprow, ref pcol, ref Parameter, ref boundswaps);
+                    minit = LpCls.performiteration(lp, rownr, colnr, theta, primal, (bool)((stallaccept != Convert.ToBoolean(lp_types.AUTOMATIC))), ref prow, ref nzprow[0], ref pcol, ref Parameter, ref boundswaps);
 
                     /* Check if we should abandon iterations on finding that there is no
                       hope that this branch can improve on the incumbent B&B solution */
@@ -1905,7 +1907,7 @@ RetryRow:
 		update_reducedcosts(lp, primal, lastnr, colnr, prow, drow);
 	  }
 #endif
-                    if ((minit == lp_lib.ITERATE_MAJORMAJOR) && (lastnr <= lp.rows) && objLpCls.is_fixedvar(lp, lastnr))
+                    if ((minit == lp_lib.ITERATE_MAJORMAJOR) && (lastnr <= lp.rows) && LpCls.is_fixedvar(lp, lastnr))
                     {
                         lp.fixedvars--;
                     }
@@ -1994,7 +1996,7 @@ RetryRow:
             for (i = 1; i <= lp.rows; i++)
             {
                 j = lp.var_basic[i];
-                if ((j <= lp.rows) && objLpCls.is_fixedvar(lp, j))
+                if ((j <= lp.rows) && LpCls.is_fixedvar(lp, j))
                 {
                     lp.fixedvars++;
                 }
@@ -2060,7 +2062,7 @@ RetryRow:
                 }
                 primalfeasible = LpCls.isPrimalFeasible(lp, lprec.epsprimal, null, ref primaloffset);
 
-                if (objLpCls.userabort(lp, -1))
+                if (LpCls.userabort(lp, -1))
                 {
                     break;
                 }
@@ -2212,7 +2214,7 @@ RetryRow:
             int i;
             lprec hlp;
             bool ret;
-            double[] duals;
+            double[][] duals=null;
             LpCls objLpCls = new LpCls();
 
             /* Create a Lagrangean solver instance */
@@ -2226,7 +2228,7 @@ RetryRow:
                 hlp.lag_bound = lpserver.bb_limitOF;
                 for (i = 1; i <= lpserver.columns; i++)
                 {
-                    objLpCls.set_mat(hlp, 0, i, objLpCls.get_mat(lpserver, 0, i));
+                    LpCls.set_mat(hlp, 0, i, LpCls.get_mat(lpserver, 0, i));
                     if (objLpCls.is_binary(lpserver, i))
                     {
                         objLpCls.set_binary(hlp, i, true);
@@ -2234,18 +2236,18 @@ RetryRow:
                     else
                     {
                         objLpCls.set_int(hlp, i, LpCls.is_int(lpserver, i));
-                        objLpCls.set_bounds(hlp, i, objLpCls.get_lowbo(lpserver, i), objLpCls.get_upbo(lpserver, i));
+                        objLpCls.set_bounds(hlp, i, LpCls.get_lowbo(lpserver, i), LpCls.get_upbo(lpserver, i));
                     }
                 }
                 /* Then fill data for the Lagrangean constraints */
                 hlp.matL = lpserver.matA;
                 LpCls.inc_lag_space(hlp, lpserver.rows, true);
-                ret = LpCls.get_ptr_sensitivity_rhs(hlp, duals, null, null);
+                ret = objLpCls.get_ptr_sensitivity_rhs(hlp, duals, null, null);
                 for (i = 1; i <= lpserver.rows; i++)
                 {
                     hlp.lag_con_type[i] = objLpCls.get_constr_type(lpserver, i);
                     hlp.lag_rhs[i] = lpserver.orig_rhs[i];
-                    hlp.lambda[i] = (ret) ? duals[i - 1] : 0.0;
+                    hlp.lambda[i] = (ret) ? duals[i - 1][0] : 0.0;
                 }
             }
 
@@ -2289,7 +2291,7 @@ RetryRow:
             }
 
             iprocessed = !lp.wasPreprocessed;
-            if (!objLpCls.preprocess(lp) || objLpCls.userabort(lp, -1))
+            if (!objLpCls.preprocess(lp) || LpCls.userabort(lp, -1))
             {
                 goto Leave;
             }
@@ -2408,13 +2410,13 @@ RetryRow:
             bool Converged;
             bool same_basis;
             //ORIGINAL LINE: double *OrigObj, *ModObj, *SubGrad, *BestFeasSol;
-            double[] OrigObj;
+            double[] OrigObj=null;
             //ORIGINAL LINE: double *ModObj;
-            double[] ModObj;
+            double[] ModObj = null;
             //ORIGINAL LINE: double *SubGrad;
-            double[] SubGrad;
+            double[] SubGrad= null;
             //ORIGINAL LINE: double *BestFeasSol;
-            double[] BestFeasSol;
+            double[] BestFeasSol = null;
             double Zub;
             double Zlb;
             double Znow;
@@ -2437,11 +2439,13 @@ RetryRow:
 
             /* Allocate iteration arrays */
             //Below Code is not required as it is memory allowcation
-            if (!lp_utils.allocREAL(lp, OrigObj, lp.columns + 1, 0) || !lp_utils.allocREAL(lp, ModObj, lp.columns + 1, 1) || !lp_utils.allocREAL(lp, SubGrad, LpCls.get_Lrows(lp) + 1, 1) || !lp_utils.allocREAL(lp, BestFeasSol, lp.sum + 1, 1))
+            
+            //NOT RQUIRED
+            /*if (!lp_utils.allocREAL(lp, OrigObj, lp.columns + 1, 0) || !lp_utils.allocREAL(lp, ModObj, lp.columns + 1, 1) || !lp_utils.allocREAL(lp, SubGrad, LpCls.get_Lrows(lp) + 1, 1) || !lp_utils.allocREAL(lp, BestFeasSol, lp.sum + 1, 1))
             {
                 lp.lag_status = lp_lib.NOMEMORY;
                 return (lp.lag_status);
-            }
+            }*/
             lp.lag_status = lp_lib.RUNNING;
 
             /* Prepare for Lagrangean iterations using results from relaxed problem */
@@ -2610,7 +2614,7 @@ RetryRow:
                     }
                     ModObj[j] = OrigObj[j] - lp_types.my_chsign(LpCls.is_maxim(lp), hold);
 #if !DirectOverrideOF
-                    objLpCls.set_mat(lp, 0, j, ModObj[j]);
+                    LpCls.set_mat(lp, 0, j, ModObj[j]);
 #endif
                 }
 
@@ -2683,7 +2687,7 @@ RetryRow:
                 {
                     lp.solution[i] = BestFeasSol[i];
                 }
-                LpCls.transfer_solution(lp, 1);
+                objLpCls.transfer_solution(lp, 1);
                 if (!LpCls.is_maxim(lp))
                 {
                     for (i = 1; i <= LpCls.get_Lrows(lp); i++)
@@ -2735,7 +2739,7 @@ RetryRow:
 #else
             for (i = 1; i <= lp.columns; i++)
             {
-                objLpCls.set_mat(lp, 0, i, OrigObj[i]);
+                LpCls.set_mat(lp, 0, i, OrigObj[i]);
             }
 #endif
 

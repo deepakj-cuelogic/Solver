@@ -2043,6 +2043,20 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
 
+        internal static void namecpy(ref string into, ref string from)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static int spaces(ref string line, int line_len)
+        { throw new NotImplementedException(); }
+
+        static int lenfield(ref string line, int line_len)
+        { throw new NotImplementedException(); }
+
+        static int MPS_getnameidx(lprec lp, ref string varname, bool tryrowfirst)
+        { throw new NotImplementedException(); }
+
 
     }
 }

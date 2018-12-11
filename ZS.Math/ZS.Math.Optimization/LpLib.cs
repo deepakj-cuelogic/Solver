@@ -403,9 +403,9 @@ namespace ZS.Math.Optimization
         public double[] full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
         public double[] edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
 
-        public double[][] drow; // sum+1: Reduced costs of the last simplex
+        public double[] drow; // sum+1: Reduced costs of the last simplex
         //ORIGINAL LINE: int *nzdrow;
-        public int[][] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
+        public int[] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
         public double[] duals; // rows_alloc+1 : The dual variables of the last LP
         public double[] full_duals; // sum_alloc+1: Final duals array expanded for deleted variables
         public double?[] dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
@@ -592,7 +592,7 @@ namespace ZS.Math.Optimization
         /// <summary>
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// </summary>
-        internal byte bb_break;           /* Solver working variable; signals break of the B&B */
+        internal bool bb_break;           /* Solver working variable; signals break of the B&B */
         internal bool wasPreprocessed;    /* The solve preprocessing was performed */
         internal bool wasPresolved;       /* The solve presolver was invoked */
         int INTfuture2;
