@@ -50,11 +50,11 @@ namespace ZS.Math.Optimization
     {
         public int level;
         //ORIGINAL LINE: int *var_basic;
-        public int var_basic;
+        public int[] var_basic;
         //ORIGINAL LINE: byte *is_basic;
         public byte is_basic;
         //ORIGINAL LINE: byte *is_lower;
-        public byte[] is_lower;
+        public bool[] is_lower;
         public int pivots;
         public basisrec previous;
     }
@@ -2933,7 +2933,7 @@ throw new NotImplementedException(); }
         { throw new NotImplementedException(); }
         public byte restore_basis(lprec lp)
         { throw new NotImplementedException(); }
-        public byte pop_basis(lprec lp, byte restore)
+        private byte pop_basis(lprec lp, byte restore)
         { throw new NotImplementedException(); }
         /// <summary>
         /// changed retrun type from byte to bool on 13/11/18

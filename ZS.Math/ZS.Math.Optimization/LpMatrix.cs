@@ -51,11 +51,15 @@ namespace ZS.Math.Optimization
         //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
         public int[][] col_end; /* columns_alloc+1 : col_end[i] is the index of the first element after column i; column[i] is stored in elements col_end[i-1] to col_end[i]-1 */
         //ORIGINAL LINE: int *col_tag;
-        public int[] col_tag; // user-definable tag associated with each column
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        // changed from 'int[][] col_tag' to 'int[] col_tag'
+        public int[][] col_tag; // user-definable tag associated with each column
 
 #if MatrixRowAccess == RAM_Index
         //ORIGINAL LINE: int *row_mat;
-        public int[] row_mat; /* mat_alloc : From index 0, row_mat contains the row-ordered index of the elements of col_mat */
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        // changed from 'int[] row_mat' to 'int[][] row_mat'
+        public int[][] row_mat; /* mat_alloc : From index 0, row_mat contains the row-ordered index of the elements of col_mat */
         /// <summary> FIX_b077d4ca-c675-4a2d-a4a9-9d70eb69cf70 19/11/18
         /// taken out from #else
         /// changed datatype from 'double' to 'double[]'
@@ -75,10 +79,16 @@ namespace ZS.Math.Optimization
         //ORIGINAL LINE: int *row_end;
         public int[][] row_end; /* rows_alloc+1 : row_end[i] is the index of the first element in row_mat after row i */
         //ORIGINAL LINE: int *row_tag;
-        public int[] row_tag; // user-definable tag associated with each row
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        // changed from 'int[] row_tag' to 'int[][] row_tag'
+        public int[][] row_tag; // user-definable tag associated with each row
 
-        public double[] colmax; // Array of maximum values of each column
-        public double[] rowmax; // Array of maximum values of each row
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        // changed from 'double[] colmax' to 'double[][] colmax'
+        public double[][] colmax; // Array of maximum values of each column
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        // changed from 'double[] rowmax' to 'double[][] rowmax'
+        public double[][] rowmax; // Array of maximum values of each row
 
         public double epsvalue; // Zero element rejection threshold
         public double infnorm; // The largest absolute value in the matrix
@@ -109,6 +119,7 @@ namespace ZS.Math.Optimization
         public const int matRowColStep = 1;
         public const int matValueStep = 1;
         static MATrec mat;
+        static MATrec mat2;
         public const int MAT_ROUNDRC = 4;
         public const int MAT_ROUNDREL = 2;
         public const int MAT_ROUNDDEFAULT = MAT_ROUNDREL;
@@ -131,6 +142,12 @@ namespace ZS.Math.Optimization
 
         //ORIGINAL CODE: #define ROW_MAT_COLNR(item)       COL_MAT_COLNR(mat->row_mat[item])
         internal static Func<int, int> ROW_MAT_COLNR = (item) => (mat.row_mat[item]);
+
+        //ORIGINAL CODE: COL_MAT2_ROWNR(item)      (mat2->col_mat_rownr[item])
+        internal static Func<int, int> COL_MAT2_ROWNR = (item) => (mat2.col_mat_rownr[item]);
+
+        //ORIGINAL LINE: COL_MAT2_VALUE(item)      (mat2->col_mat_value[item])
+        internal static Func<int, double> COL_MAT2_VALUE = (item) => (mat2.col_mat_value[item]);
 
         /*ORIGINAL CODE: 
         #define SET_MAT_ijA(item,i,j,A)   mat->col_mat_rownr[item] = i; \
@@ -222,13 +239,106 @@ namespace ZS.Math.Optimization
             return (newmat);
         }
 
-        static byte mat_memopt(MATrec mat, int rowextra, int colextra, int nzextra)
+        internal static bool mat_memopt(MATrec mat, int rowextra, int colextra, int nzextra)
         {
-            throw new NotImplementedException();
+            bool status = true;
+            int matalloc;
+            int colalloc;
+            int rowalloc;
+
+            if ((mat == null) || (rowextra < 0) || (colextra < 0) || (nzextra < 0))
+                return (0);
+
+            mat.rows_alloc = (int)commonlib.MIN(mat.rows_alloc, mat.rows + rowextra);
+            mat.columns_alloc = (int)commonlib.MIN(mat.columns_alloc, mat.columns + colextra);
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            mat.mat_alloc = (int)commonlib.MIN(mat.mat_alloc, mat.col_end[mat.columns][0] + nzextra);
+#if false
+//  rowalloc = mat->rows_alloc;
+//  colalloc = mat->columns_alloc;
+//  matalloc = mat->mat_alloc;
+#else
+            rowalloc = mat.rows_alloc + 1;
+            colalloc = mat.columns_alloc + 1;
+            matalloc = mat.mat_alloc + 1;
+#endif
+
+#if MatrixColAccess == CAM_Record
+            //NOT REQUIRED
+            //mat.col_mat = (MATitem)realloc(mat.col_mat, matalloc * sizeof(*(mat.col_mat)));
+            status &= (mat.col_mat != null);
+#else
+  status &= allocINT(mat.lp, (mat.col_mat_colnr), matalloc, AUTOMATIC) && allocINT(mat.lp, (mat.col_mat_rownr), matalloc, AUTOMATIC) && allocREAL(mat.lp, (mat.col_mat_value), matalloc, AUTOMATIC);
+#endif
+            status &= lp_utils.allocINT(mat.lp, mat.col_end, colalloc, DefineConstants.AUTOMATIC);
+            if (mat.col_tag != null)
+            {
+                status &= lp_utils.allocINT(mat.lp, mat.col_tag, colalloc, lp_types.AUTOMATIC);
+            }
+
+#if MatrixRowAccess == RAM_Index
+            status &= lp_utils.allocINT(mat.lp, (mat.row_mat), matalloc, DefineConstants.AUTOMATIC);
+
+#elif MatrixColAccess == CAM_Record
+//C++ TO C# CONVERTER TODO TASK: The memory management function 'realloc' has no equivalent in C#:
+  mat.row_mat = (MATitem) realloc(mat.row_mat, matalloc * sizeof(*(mat.row_mat)));
+  status &= (mat.row_mat != null);
+#else
+  status &= allocINT(mat.lp, (mat.row_mat_colnr), matalloc, AUTOMATIC) && allocINT(mat.lp, (mat.row_mat_rownr), matalloc, AUTOMATIC) && allocREAL(mat.lp, (mat.row_mat_value), matalloc, AUTOMATIC);
+#endif
+            status &= lp_utils.allocINT(mat.lp, mat.row_end, rowalloc, DefineConstants.AUTOMATIC);
+            if (mat.row_tag != null)
+            {
+                status &= lp_utils.allocINT(mat.lp, mat.row_tag, rowalloc, DefineConstants.AUTOMATIC);
+            }
+
+            if (mat.colmax != null)
+            {
+                status &= lp_utils.allocREAL(mat.lp, (mat.colmax), colalloc, DefineConstants.AUTOMATIC);
+            }
+            if (mat.rowmax != null)
+            {
+                status &= lp_utils.allocREAL(mat.lp, (mat.rowmax), rowalloc, DefineConstants.AUTOMATIC);
+            }
+
+            return (status);
         }
         internal static void mat_free(MATrec[] matrix)
         {
-            throw new NotImplementedException();
+            if ((matrix == null) || (matrix[0] == null))
+            {
+                return;
+            }
+
+
+#if MatrixColAccess == CAM_Record
+            //FREE(matrix.col_mat);
+#else
+  FREE(matrix.col_mat_colnr);
+  FREE(matrix.col_mat_rownr);
+  FREE(matrix.col_mat_value);
+#endif
+            //FREE(matrix.col_end);
+            //FREE(matrix.col_tag);
+
+
+#if MatrixRowAccess == RAM_Index
+            //FREE(matrix.row_mat);
+#elif MatrixColAccess == CAM_Record
+  FREE(matrix.row_mat);
+#else
+  FREE(matrix.row_mat_colnr);
+  FREE(matrix.row_mat_rownr);
+  FREE(matrix.row_mat_value);
+#endif
+            // FREE(matrix.row_end);
+            // FREE(matrix.row_tag);
+
+            //FREE(matrix.colmax);
+            //FREE(matrix.rowmax);
+
+            //FREEmatrix;
         }
         internal static bool inc_matrow_space(MATrec mat, int deltarows)
         {
@@ -253,11 +363,370 @@ namespace ZS.Math.Optimization
             }
             return (status);
         }
-        static int mat_mapreplace(MATrec mat, LLrec rowmap, LLrec colmap, MATrec insmat) { throw new NotImplementedException(); }
+
+        /* Map-based compacting+insertion of matrix elements without changing row and column indeces.
+            When mat2 is NULL, a simple compacting of non-deleted rows and columns is done. */
+        internal static int mat_mapreplace(MATrec mat, LLrec rowmap, LLrec colmap, MATrec mat2)
+        {
+            lprec lp = mat.lp;
+            int i;
+            int ib;
+            int ie;
+            int ii;
+            int j;
+            int jj;
+            int jb;
+            int je;
+            int nz;
+
+            //ORIGINAL LINE: int *colend;
+            int colend;
+
+            //ORIGINAL LINE: int *rownr;
+            int rownr;
+
+            //ORIGINAL LINE: int *rownr2;
+            int rownr2;
+            int[] indirect = null;
+
+            //ORIGINAL LINE: double *value, *value2;
+            double value;
+
+            //ORIGINAL LINE: double *value2;
+            double value2;
+            LpCls objLpCls = new LpCls();
+
+            /* Check if there is something to insert */
+            if ((mat2 != null) && ((mat2.col_tag == null) || (mat2.col_tag[0] <= 0) || (mat_nonzeros(mat2) == 0)))
+            {
+                return (0);
+            }
+
+            /* Create map and sort by increasing index in "mat" */
+            if (mat2 != null)
+            {
+                jj = mat2.col_tag[0];
+                lp_utils.allocINT(lp, indirect, jj + 1, 0);
+                indirect[0] = jj;
+                for (i = 1; i <= jj; i++)
+                {
+                    indirect[i] = i;
+                }
+
+                commonlib.hpsortex(mat2.col_tag, jj, 1, indirect.Length, 0, commonlib.compareINT, ref indirect);
+            }
+
+            /* Do the compacting */
+            mat.row_end_valid = false;
+            nz = Convert.ToInt32(mat.col_end[mat.columns]);
+            ie = 0;
+            ii = 0;
+            if ((mat2 == null) || (indirect[0] == 0))
+            {
+                je = mat.columns + 1;
+                jj = 1;
+                jb = 0;
+            }
+            else
+            {
+                je = indirect[0];
+                jj = 0;
+                do
+                {
+                    jj++;
+                    jb = mat2.col_tag[jj];
+                } while (jb <= 0);
+
+            }
+            //Added default row and column array[0][0] to mat.col_end, Need to check at runtime
+            for (j = 1, colend = mat.col_end[0][0] + 1; j <= mat.columns; j++, colend++)
+            {
+                ib = ie;
+                ie = colend;
+
+                /* Always skip (condense) replacement columns */
+                if (j == jb)
+                {
+                    jj++;
+                    if (jj <= je)
+                    {
+                        jb = mat2.col_tag[jj];
+                    }
+                    else
+                    {
+                        jb = mat.columns + 1;
+                    }
+                }
+
+                /* Only include active columns */
+                else if (lp_utils.isActiveLink(colmap, j))
+                {
+                    rownr = COL_MAT_ROWNR(ib);
+                    for (; ib < ie; ib++, rownr += matRowColStep)
+                    {
+
+                        /* Also make sure the row is active */
+                        if (lp_utils.isActiveLink(rowmap, rownr))
+                        {
+                            if (ii != ib)
+                            {
+                                COL_MAT_COPY(ii, ib);
+                            }
+                            ii++;
+                        }
+                    }
+                }
+                colend = ii;
+            }
+            if (mat2 == null)
+            {
+                goto Finish;
+            }
+
+            /* Tally non-zero insertions */
+            i = 0;
+            for (j = 1; j <= mat2.col_tag[0]; j++)
+            {
+                jj = mat2.col_tag[j];
+                if ((jj > 0) && lp_utils.isActiveLink(colmap, jj))
+                {
+                    jj = indirect[j];
+                    je = Convert.ToInt32(mat2.col_end[jj]);
+                    jb = Convert.ToInt32(mat2.col_end[jj - 1]);
+                    rownr2 = COL_MAT2_ROWNR(jb);
+                    for (; jb < je; jb++, rownr2 += matRowColStep)
+                    {
+                        if ((rownr2 > 0) && lp_utils.isActiveLink(rowmap, rownr2))
+                        {
+                            i++;
+                        }
+                    }
+                }
+            }
+
+            /* Make sure we have enough matrix space */
+            //Added row array as default [0], need to check at runtime.
+            ii = mat.col_end[0][mat.columns] + i;
+            if (mat.mat_alloc <= ii)
+            {
+                inc_mat_space(mat, i);
+            }
+
+            /* Do shifting and insertion - loop from the end going forward */
+            jj = indirect[0];
+            jj = mat2.col_tag[jj];
+            //Added row and column array as [0] to mat.col_end, need to check at runtime
+            for (j = mat.columns, colend = mat.col_end[0][0] + mat.columns, ib = colend; j > 0; j--)
+            {
+
+                /* Update indeces for this loop */
+                ie = ib;
+                colend = ii;
+                colend--;
+                ib = colend;
+
+                /* Insert new values */
+                if (j == jj)
+                {
+                    /* Only include an active column */
+                    if (lp_utils.isActiveLink(colmap, j))
+                    {
+                        jj = indirect[0];
+                        jj = indirect[jj];
+                        rownr = COL_MAT_ROWNR(ii - 1);
+                        value = COL_MAT_VALUE(ii - 1);
+                        //Added column as [0] to mat2.col_end[jj - 1], Need to check at runtime 
+                        jb = mat2.col_end[jj - 1][0];
+                        //Added column as [0] to mat2.col_end[jj], Need to check at runtime 
+                        je = mat2.col_end[jj][0] - 1;
+                        rownr2 = COL_MAT2_ROWNR(je);
+                        value2 = COL_MAT2_VALUE(je);
+
+                        /* Process constraint coefficients */
+                        for (; je >= jb; je--, rownr2 -= matRowColStep, value2 -= matValueStep)
+                        {
+                            i = rownr2;
+                            if (i == 0)
+                            {
+                                i = -1;
+                                break;
+                            }
+                            else if (lp_utils.isActiveLink(rowmap, i))
+                            {
+                                ii--;
+                                rownr = i;
+                                rownr -= matRowColStep;
+                                value = lp_types.my_chsign(objLpCls.is_chsign(lp, i), value2);
+                                value -= matValueStep;
+                            }
+                        }
+
+                        /* Then handle the objective */
+                        if (i == -1)
+                        {
+                            lp.orig_obj[j] = lp_types.my_chsign(LpCls.is_maxim(lp), value2);
+                            rownr2 -= matRowColStep;
+                            value2 -= matValueStep;
+                        }
+                        else
+                        {
+                            lp.orig_obj[j] = 0;
+                        }
+
+                    }
+                    /* Update replacement column index or break if no more candidates */
+                    jj = --indirect[0];
+                    if (jj == 0)
+                    {
+                        break;
+                    }
+                    jj = mat2.col_tag[jj];
+                    if (jj <= 0)
+                    {
+                        break;
+                    }
+                }
+                /* Shift existing values down */
+                else
+                {
+                    if (lp_utils.isActiveLink(colmap, j))
+                    {
+                        while (ie > ib)
+                        {
+                            ii--;
+                            ie--;
+                            if (ie != ii)
+                            {
+                                COL_MAT_COPY(ii, ie);
+                            }
+                        }
+                    }
+                }
+            }
+
+            /* Return the delta number of non-zero elements */
+            Finish:
+            //Added row array as default [0] to  mat.col_end[mat.columns], Need to check at runtime.
+            nz -= mat.col_end[0][mat.columns];
+
+            //NOT REQUIRED
+            //FREE(indirect);
+
+            return (nz);
+
+        }
         static int mat_matinsert(MATrec mat, MATrec insmat) { throw new NotImplementedException(); }
-        static int mat_zerocompact(MATrec mat) { throw new NotImplementedException(); }
-        static int mat_rowcompact(MATrec mat, byte dozeros) { throw new NotImplementedException(); }
-        static int mat_colcompact(MATrec mat, int prev_rows, int prev_cols) { throw new NotImplementedException(); }
+        internal static int mat_zerocompact(MATrec mat)
+        {
+            //ORIGINAL LINE: return( mat_rowcompact(mat, TRUE))
+            //SOLUTION: Method return type is int hence changed TRUE to 1.
+            return (mat_rowcompact(mat, 1));
+        }
+        internal static int mat_rowcompact(MATrec mat, bool dozeros)
+        {
+            int i;
+            int ie;
+            int ii;
+            int j;
+            int nn;
+            int colend;
+            int rownr;
+            double value;
+
+            nn = 0;
+            ie = 0;
+            ii = 0;
+            //Added default array of row and column[0] to mat.col_end. Need to check at runtime
+            for (j = 1, colend = mat.col_end[0][0] + 1; j <= mat.columns; j++, colend++)
+            {
+                i = ie;
+                ie = colend;
+                rownr = COL_MAT_ROWNR(i);
+                value = COL_MAT_VALUE(i);
+                for (; i < ie; i++, rownr += matRowColStep, value += matValueStep)
+                {
+                    if ((rownr < 0) || (dozeros && (System.Math.Abs(value) < mat.epsvalue)))
+                    {
+                        nn++;
+                        continue;
+                    }
+                    if (ii != i)
+                    {
+                        COL_MAT_COPY(ii, i);
+                    }
+                    ii++;
+                }
+                colend = ii;
+            }
+            return (nn);
+
+        }
+
+        /* Routines to compact columns and their indeces based on precoded entries */
+        internal static int mat_colcompact(MATrec mat, int prev_rows, int prev_cols)
+        {
+            int i;
+            int ii;
+            int j;
+            int k;
+            int n_del;
+            int n_sum;
+            int colend;
+            int newcolend;
+            int colnr;
+            int newcolnr;
+            bool deleted;
+            lprec lp = mat.lp;
+            presolveundorec lpundo = lp.presolve_undo;
+
+
+            n_sum = 0;
+            k = 0;
+            ii = 0;
+            newcolnr = 1;
+            //Added default row and column[0] to  mat.col_end, need to check at runtime.
+            for (j = 1, colend = newcolend = mat.col_end[0][0] + 1; j <= prev_cols; j++, colend++)
+            {
+                n_del = 0;
+                i = k;
+                k = colend;
+                for (colnr = COL_MAT_COLNR(i); i < k; i++, colnr += matRowColStep)
+                {
+                    if (colnr < 0)
+                    {
+                        n_del++;
+                        n_sum++;
+                        continue;
+                    }
+                    if (ii < i)
+                    {
+                        COL_MAT_COPY(ii, i);
+                    }
+                    if (newcolnr < j)
+                    {
+                        //NOTED ISSUE
+                        COL_MAT_COLNR(ii) = newcolnr;
+                    }
+                    ii++;
+                }
+                newcolend = ii;
+
+                deleted = (bool)(n_del > 0);
+#if 1
+	/* Do hoops in case there was an empty column */
+	deleted |= (MYBOOL)(!lp.wasPresolved && (lpundo.var_to_orig[prev_rows + j] < 0));
+
+#endif
+                /* Increment column variables if current column was not deleted */
+                if (!deleted)
+                {
+                    newcolend++;
+                    newcolnr++;
+                }
+            }
+            return (n_sum);
+
+        }
         internal static bool inc_matcol_space(MATrec mat, int deltacols)
         {
             int i;
@@ -687,7 +1156,10 @@ namespace ZS.Math.Optimization
             return (k);
         }
 
-        static MATrec mat_extractmat(MATrec mat, LLrec rowmap, LLrec colmap, byte negated) { throw new NotImplementedException(); }
+        static MATrec mat_extractmat(MATrec mat, LLrec rowmap, LLrec colmap, byte negated)
+        {
+            throw new NotImplementedException();
+        }
         static internal int mat_appendrow(MATrec mat, int count, double?[] row, int?[] colno, double mult, bool checkrowmode)
         {
             int i;
@@ -1113,7 +1585,39 @@ namespace ZS.Math.Optimization
             return true;
         }
 
-        static byte mat_indexrange(MATrec mat, int index, byte isrow, int startpos, int endpos) { throw new NotImplementedException(); }
+        internal static bool mat_indexrange(MATrec mat, int index, bool isrow, int startpos, int endpos)
+        {
+#if Paranoia
+  if (isrow && ((index < 0) || (index > mat.rows)))
+  {
+	return (0);
+  }
+  else if (!isrow && ((index < 1) || (index > mat.columns)))
+  {
+	return (0);
+  }
+#endif
+
+            if (isrow && mat_validate(mat))
+            {
+                if (index == 0)
+                {
+                    startpos = 0;
+                }
+                else
+                {
+                    startpos = Convert.ToInt32(mat.row_end[index - 1]);
+                }
+                endpos = Convert.ToInt32(mat.row_end[index]);
+            }
+            else
+            {
+                startpos = Convert.ToInt32(mat.col_end[index - 1]);
+                endpos = Convert.ToInt32(mat.col_end[index]);
+            }
+            return (true);
+
+        }
         internal static bool mat_validate(MATrec mat)
         /* Routine to make sure that row mapping arrays are valid */
         {
@@ -1535,7 +2039,25 @@ namespace ZS.Math.Optimization
             //set second [] as 0 for now for both; need to check at run time
             return (mat.col_end[colnr][0] - mat.col_end[colnr - 1][0]);
         }
-        static int mat_rowlength(MATrec mat, int rownr) { throw new NotImplementedException(); }
+        static int mat_rowlength(MATrec mat, int rownr)
+        {
+            if (mat_validate(mat))
+            {
+                if (rownr <= 0)
+                {
+                    return (Convert.ToInt32(mat.row_end[0]));
+                }
+                else
+                {
+                    //Added second array as default [0], need to check at runtime
+                    return (mat.row_end[rownr][0] - mat.row_end[rownr - 1][0]);
+                }
+            }
+            else
+            {
+                return (0);
+            }
+        }
         static internal void mat_multrow(MATrec mat, int row_nr, double mult)
         {
             int i;
@@ -2591,5 +3113,6 @@ namespace ZS.Math.Optimization
             return ((bool)(singularities <= 0));
         } // invert
 
+        static int mat_findcolumn(MATrec mat, int matindex) { throw new NotImplementedException(); }
     }
 }

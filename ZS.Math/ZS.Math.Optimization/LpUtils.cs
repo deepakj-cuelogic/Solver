@@ -452,7 +452,7 @@ namespace ZS.Math.Optimization
         }
         internal static int firstActiveLink(LLrec linkmap)
         {
-            throw new NotImplementedException();
+            return (linkmap.map[0]);
         }
         internal static int lastActiveLink(LLrec linkmap)
         {
@@ -476,7 +476,22 @@ namespace ZS.Math.Optimization
         }
         internal static int nextActiveLink(LLrec linkmap, int backitemnr)
         {
-            throw new NotImplementedException();
+            if ((backitemnr < 0) || (backitemnr > linkmap.size))
+            {
+                return (-1);
+            }
+            else
+            {
+                if (backitemnr < linkmap.lastitem)
+                {
+                    while ((backitemnr > linkmap.firstitem) && (linkmap.map[backitemnr] == 0))
+                    {
+                        backitemnr--;
+                    }
+                }
+                return (linkmap.map[backitemnr]);
+            }
+
         }
         internal static int prevActiveLink(LLrec linkmap, int forwitemnr)
         {

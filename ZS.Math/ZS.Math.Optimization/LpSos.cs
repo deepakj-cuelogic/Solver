@@ -437,7 +437,7 @@ Note: SOS_shift_col must be called before make_SOSchain! */
             int n;
             //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
             //ORIGINAL LINE: int *list;
-            int list;
+            int[] list;
             lprec lp;
 
             if (group == null)
@@ -455,10 +455,7 @@ Note: SOS_shift_col must be called before make_SOSchain! */
 #endif
 
             if (lp.var_type[column])  // & (lp_lib.ISSOS | lp_lib.ISGUB)) == 0)
-            {
                 return false;
-            }
-
             if (sosindex == 0)
             {
                 for (i = group.memberpos[column - 1]; i < group.memberpos[column]; i++)
@@ -467,9 +464,7 @@ Note: SOS_shift_col must be called before make_SOSchain! */
                     // TODO_12/10/2018
                     n = SOS_is_marked(group, k, column);
                     if (n != 0)
-                    {
-                        return (1);
-                    }
+                        return true;
                 }
             }
             else
@@ -482,14 +477,12 @@ Note: SOS_shift_col must be called before make_SOSchain! */
                 for (i = 1; i <= n; i++)
                 {
                     if (list[i] == column)
-                    {
-                        return (1);
-                    }
+                        return true;
                 }
             }
-            return (0);
-
+            return false;
         }
+
         public static byte SOS_is_active(SOSgroup group, int sosindex, int column)
         {
             int i;
@@ -544,9 +537,69 @@ Note: SOS_shift_col must be called before make_SOSchain! */
             return (0);
 
         }
-        public static bool SOS_is_full(SOSgroup group, int sosindex, int column, byte activeonly)
+        public static bool SOS_is_full(SOSgroup group, int sosindex, int column, bool activeonly)
         {
-        throw new NotImplementedException();}
+            int i;
+            int nn;
+            int n;
+            int[] list;
+            lprec lp = group.lp;
+
+#if Paranoia
+  if ((sosindex < 0) || (sosindex > group.sos_count))
+  {
+	report(lp, IMPORTANT, "SOS_is_full: Invalid SOS index %d\n", sosindex);
+	return (0);
+  }
+#endif
+
+            if (lp.var_type[column])  // & (lp_lib.ISSOS | lp_lib.ISGUB)) == 0
+                return false;
+
+            if (sosindex == 0)
+            {
+                for (i = group.memberpos[column - 1]; i < group.memberpos[column]; i++)
+                {
+                    nn = group.membership[i];
+                    if (SOS_is_full(group, nn, column, activeonly))
+                        return true;
+                }
+            }
+            else if (SOS_is_member(group, sosindex, column))
+            {
+
+                list = group.sos_list[sosindex - 1].members;
+                n = list[0] + 1;
+                nn = list[n];
+
+                /* Info: Last item in the active list is non-zero if the current SOS is full */
+                if (list[n + nn] != 0)
+                    return true;
+
+                if (!activeonly)
+                {
+                    /* Spool to last active variable */
+                    for (i = nn - 1; (i > 0) && (list[n + i] == 0); i--)
+                    {
+                        ;
+                    }
+                    /* Having found it, check if subsequent variables are set (via bounds) as inactive */
+                    if (i > 0)
+                    {
+                        nn -= i; // Compute unused active slots
+                        i = SOS_member_index(group, sosindex, list[n + i]);
+                        for (; (nn > 0) && (list[i] < 0); i++, nn--)
+                        {
+                            ;
+                        }
+                        if (nn == 0)
+                            return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         public static byte SOS_can_activate(SOSgroup group, int sosindex, int column)
         {
             int i;

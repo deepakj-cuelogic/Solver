@@ -1,4 +1,6 @@
 ﻿#define PricerDefaultOpt
+#define LowerStorageModel 
+#define BasisStorageModel 
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -214,6 +216,12 @@ namespace ZS.Math.Optimization
         {
             set_sense(lp, true);
         }
+
+        internal static void set_obj_in_basis(lprec lp, bool obj_in_basis)
+        {
+            lp.obj_in_basis = (bool)(obj_in_basis == true);
+        }
+
 
         internal new lprec make_lp(int rows, int columns)
         {
@@ -1519,6 +1527,396 @@ namespace ZS.Math.Optimization
             return ((bool)((lp.row_type != null) && ((lp.row_type[0] & ROWTYPE_CHSIGN) == ROWTYPE_GE)));
         }
 
+        internal static bool str_set_rh_vec(lprec lp, string rh_string)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void set_rh_vec(lprec lp, ref double rh)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new double get_rh_range(lprec lp, int rownr)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool set_rh_upper(lprec lp, int rownr, double value)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new double get_rh_upper(lprec lp, int rownr)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool set_var_priority(lprec lp)
+        /* Experimental automatic variable ordering/priority setting */
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool is_negative(lprec lp, int colnr)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool is_SOS_var(lprec lp, int colnr)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool get_bounds(lprec lp, int column, ref double lower, ref double upper)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool get_bounds_tighter(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_simplextype(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void set_simplextype(lprec lp, int simplextype)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool del_columnex(lprec lp, LLrec colmap)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool del_varnameex(lprec lp, hashelem[][] namelist, int items, hashtable ht, int varnr, LLrec varmap)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool str_add_column(lprec lp, string col_string)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool add_column(lprec lp, ref double column)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool set_column(lprec lp, int colnr, ref double column)
+        {
+            throw new NotImplementedException();
+        }
+        internal static new bool del_constraintex(lprec lp, LLrec rowmap)
+        {
+            throw new NotImplementedException();
+        }
+        internal static new bool set_rowex(lprec lp, int rownr, int count, ref double row, ref int colno)
+        {
+            throw new NotImplementedException();
+        }
+        internal static new bool set_row(lprec lp, int rownr, ref double row)
+        {
+            throw new NotImplementedException();
+        }
+        internal static new bool set_obj_fn(lprec lp, ref double row)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void varmap_delete(lprec lp, int @base, int delta, LLrec varmap)
+        {
+            int i;
+            int ii;
+            int j;
+            bool preparecompact = (bool)(varmap != null);
+            presolveundorec psundo = lp.presolve_undo;
+
+            /* Set the model "dirty" if we are deleting row of constraint */
+            lp.model_is_pure &= (bool)((lp.solutioncount == 0) && !preparecompact);
+
+            /* Don't do anything if
+               1) variables aren't locked yet, or
+               2) the constraint was added after the variables were locked */
+            if (!lp.varmap_locked)
+            {
+#if false
+//   if(lp->names_used)
+//     varmap_lock(lp);
+//   else
+//     return;
+#else
+                if (!lp.model_is_pure && lp.names_used)
+                {
+                    varmap_lock(lp);
+                }
+#endif
+            }
+
+            /* Do mass deletion via a linked list */
+            preparecompact = (bool)(varmap != null);
+            if (preparecompact)
+            {
+                preparecompact = (bool)(@base > lp.rows); // Set TRUE for columns
+                for (j = lp_utils.firstInactiveLink(varmap); j != 0; j = lp_utils.nextInactiveLink(varmap, j))
+                {
+                    i = j;
+                    if (preparecompact)
+                    {
+#if Paranoia
+		if (SOS_is_member(lp.SOS, 0, j))
+		{
+		  report(lp, SEVERE, "varmap_delete: Deleting variable %d, which is in a SOS!\n", j);
+		}
+#endif
+                        i += lp.rows;
+                    }
+                    ii = psundo.var_to_orig[i];
+                    if (ii > 0) // It was an original variable; reverse sign of index to flag deletion
+                    {
+                        psundo.var_to_orig[i] = -ii;
+                    }
+                    else // It was a non-original variable; add special code for deletion
+                    {
+                        psundo.var_to_orig[i] = -(psundo.orig_rows + psundo.orig_columns + i);
+                    }
+                }
+                return;
+            }
+
+            /* Do legacy simplified version if we are doing batch delete operations */
+            preparecompact = (bool)(@base < 0);
+            if (preparecompact)
+            {
+                @base = -@base;
+                if (@base > lp.rows)
+                {
+                    @base += (psundo.orig_rows - lp.rows);
+                }
+                for (i = @base; i < @base - delta; i++)
+                {
+                    ii = psundo.var_to_orig[i];
+                    if (ii > 0) // It was an original variable; reverse sign of index to flag deletion
+                    {
+                        psundo.var_to_orig[i] = -ii;
+                    }
+                    else // It was a non-original variable; add special code for deletion
+                    {
+                        psundo.var_to_orig[i] = -(psundo.orig_rows + psundo.orig_columns + i);
+                    }
+                }
+                return;
+            }
+
+            /* We are deleting an original constraint/column;
+               1) clear mapping of original to deleted
+               2) shift the deleted variable to original mappings left
+               3) decrement all subsequent original-to-current pointers
+            */
+            if (varmap_canunlock(lp))
+            {
+                lp.varmap_locked = false;
+            }
+            for (i = @base; i < @base - delta; i++)
+            {
+                ii = psundo.var_to_orig[i];
+                if (ii > 0)
+                {
+                    psundo.orig_to_var[ii] = 0;
+                }
+            }
+            for (i = @base; i <= lp.sum + delta; i++)
+            {
+                ii = i - delta;
+                psundo.var_to_orig[i] = psundo.var_to_orig[ii];
+            }
+
+            i = 1;
+            j = psundo.orig_rows;
+            if (@base > lp.rows)
+            {
+                i += j;
+                j += psundo.orig_columns;
+            }
+            ii = @base - delta;
+            for (; i <= j; i++)
+            {
+                if (psundo.orig_to_var[i] >= ii)
+                {
+                    psundo.orig_to_var[i] += delta;
+                }
+            }
+
+        }
+
+        /* Utility routine group for constraint and column deletion/insertion
+   mapping in relation to the original set of constraints and columns */
+        internal static new void varmap_lock(lprec lp)
+        {
+            lp_presolve.presolve_fillUndo(lp, lp.rows, lp.columns, true);
+            lp.varmap_locked = true;
+        }
+
+
+        internal static new bool varmap_validate(lprec lp, int varno)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void varmap_compact(lprec lp, int prev_rows, int prev_cols)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        internal static new bool shift_rowdata(lprec lp, int @base, int delta, LLrec usedmap)
+        /* Note: Assumes that "lp->rows" HAS NOT been updated to the new count */
+        {
+            int i;
+            int ii;
+
+            /* Shift sparse matrix row data */
+            if (lp.matA.is_roworder)
+            {
+                lp_matrix.mat_shiftcols(lp.matA, ref @base, delta, usedmap);
+            }
+            else
+            {
+               lp_matrix.mat_shiftrows(lp.matA, ref @base, delta, usedmap);
+            }
+
+            /* Shift data down (insert row), and set default values in positive delta-gap */
+            if (delta > 0)
+            {
+
+                /* Shift row data */
+                for (ii = lp.rows; ii >= @base; ii--)
+                {
+                    i = ii + delta;
+                    lp.orig_rhs[i] = lp.orig_rhs[ii];
+                    lp.rhs[i] = lp.rhs[ii];
+                    lp.row_type[i] = lp.row_type[ii];
+                }
+
+                /* Set defaults (actual basis set in separate procedure) */
+                for (i = 0; i < delta; i++)
+                {
+                    ii = @base + i;
+                    lp.orig_rhs[ii] = 0;
+                    lp.rhs[ii] = 0;
+                    lp.row_type[ii] = ROWTYPE_EMPTY;
+                }
+            }
+
+            /* Shift data up (delete row) */
+            else if (usedmap != null)
+            {
+                for (i = 1, ii = lp_utils.firstActiveLink(usedmap); ii != 0; i++, ii = lp_utils.nextActiveLink(usedmap, ii))
+                {
+                    if (i == ii)
+                    {
+                        continue;
+                    }
+                    lp.orig_rhs[i] = lp.orig_rhs[ii];
+                    lp.rhs[i] = lp.rhs[ii];
+                    lp.row_type[i] = lp.row_type[ii];
+                }
+                delta = i - lp.rows - 1;
+            }
+            else if (delta < 0)
+            {
+
+                /* First make sure we don't cross the row count border */
+                if (@base - delta - 1 > lp.rows)
+                {
+                    delta = @base - lp.rows - 1;
+                }
+
+                /* Shift row data (don't shift basis indexes here; done in next step) */
+                for (i = @base; i <= lp.rows + delta; i++)
+                {
+                    ii = i - delta;
+                    lp.orig_rhs[i] = lp.orig_rhs[ii];
+                    lp.rhs[i] = lp.rhs[ii];
+                    lp.row_type[i] = lp.row_type[ii];
+                }
+            }
+
+            shift_basis(lp, @base, delta, usedmap, true);
+            shift_rowcoldata(lp, @base, delta, usedmap, true);
+            inc_rows(lp, delta);
+
+            return true;
+        }
+
+
+        /* Utility group for incrementing row and column vector storage space */
+        internal static new void inc_rows(lprec lp, int delta)
+        {
+            throw new NotImplementedException();
+        }
+
+        /* Problem manipulation routines */
+        internal static new bool set_obj(lprec lp, int colnr, double value)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool str_set_obj_fn(lprec lp, string row_string)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool add_lag_con(lprec lp, ref double row, int con_type, double rhs)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool str_add_lag_con(lprec lp, string row_string, int con_type, double rhs)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool set_columnex(lprec lp, int colnr, int count, ref double column, ref int rowno)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void set_preferdual(lprec lp, bool dodual)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void set_bounds_tighter(lprec lp, bool tighten)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool set_var_weights(lprec lp, ref double weights)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new double get_rh_lower(lprec lp, int rownr)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool set_rh_range(lprec lp, int rownr, double deltavalue)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool set_rh_lower(lprec lp, int rownr, double value)
+        {
+            throw new NotImplementedException();
+        }
+
         internal new void set_sense(lprec lp, bool maximize)
         {
             maximize = (bool)(maximize != false);
@@ -1892,7 +2290,7 @@ namespace ZS.Math.Optimization
             {
                 ii = rownr;
 
-                hold = lp_types.my_chsign(lp.is_chsign(lp, (mat.is_roworder) ? colnr : ii), value);
+                hold = lp_types.my_chsign(is_chsign(lp, (mat.is_roworder) ? colnr : ii), value);
                 hold = lp_scale.unscaled_mat(lp, hold, ii, colnr);
                 if (nzrow == null)
                 {
@@ -2029,7 +2427,7 @@ namespace ZS.Math.Optimization
                 for (; i < ie; i++)
                 {
                     j = lp_matrix.ROW_MAT_COLNR(i);
-                    a = lp.get_mat_byindex(lp, i, 1, 0);
+                    a = get_mat_byindex(lp, i, true, false);
                     if (lp.matA.is_roworder)
                     {
                         chsign = lp.is_chsign(lp, j);
@@ -2461,7 +2859,7 @@ namespace ZS.Math.Optimization
                 /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
                 if (lp.obj_in_basis)
                 {
-                    column[0] = lp.get_OF_active(lp, lp.rows + col_nr, mult);
+                    column[0] = get_OF_active(lp, lp.rows + col_nr, mult);
                     if (column[0] != 0)
                     {
                         nzcount++;
@@ -2475,7 +2873,7 @@ namespace ZS.Math.Optimization
                 /* Get the objective as row 0, optionally adjusting the objective for phase 1 */
                 if (lp.obj_in_basis)
                 {
-                    value = lp.get_OF_active(lp, lp.rows + col_nr, mult);
+                    value = get_OF_active(lp, lp.rows + col_nr, mult);
                     if (value != 0)
                     {
                         nzcount++;
@@ -2673,6 +3071,46 @@ namespace ZS.Math.Optimization
             ///#endif
             return (result);
         }
+
+        internal static new bool is_slackbasis(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void set_OF_override(lprec lp, ref double ofVector)
+        /* The purpose of this function is to set, or clear if NULL, the
+           ofVector[0..columns] as the active objective function instead of
+           the one stored in the A-matrix. See also lag_solve().*/
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new string get_str_constr_class(lprec lp, int con_class)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new double get_constr_value(lprec lp, int rownr, int count, ref double primsolution, ref int nzindex)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        internal static new string get_str_constr_type(lprec lp, int con_type)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool get_column(lprec lp, int colnr, ref double column)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_constr_class(lprec lp, int rownr)
+        {
+            throw new NotImplementedException();
+        }
+
 
         internal new static void set_OF_p1extra(lprec lp, double p1extra)
         {
@@ -3953,6 +4391,94 @@ internal static class StringFunctions
             return (ok);
         }
 
+        internal static new bool dualize_lp(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_Ncolumns(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_Norig_rows(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+        internal static new int get_Nrows(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_solutioncount(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_solutionlimit(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+        internal static new bool get_sensitivity_obj(lprec lp, ref double objfrom, ref double objtill)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void set_solutionlimit(lprec lp, int limit)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_Norig_columns(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        /* ---------------------------------------------------------------------------------- */
+        /* Core routines for lp_solve                                                         */
+        /* ---------------------------------------------------------------------------------- */
+        internal static new int get_status(lprec lp)
+        {
+            return (lp.spx_status);
+        }
+
+        internal static new bool resize_lp(lprec lp, int rows, int columns)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new string get_statustext(lprec lp, int statuscode)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void free_lp(lprec[] plp)
+        {
+            if (plp != null)
+            {
+                lprec lp = plp[0];
+                if (lp != null)
+                {
+                    delete_lp(lp);
+                }
+                plp[0] = null;
+            }
+        }
+
+
+        internal static bool get_SOS(lprec lp, int index, ref string name, ref int sostype, ref int priority, ref int count, ref int sosvars, ref double weights)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        /* Make a copy of the existing model using (mostly) high-level
+   construction routines to simplify future maintainance. */
+        internal static new lprec copy_lp(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
         internal new lprec[] read_freemps(FileStream filename, int options)
         {
             lprec[] lp = null;
@@ -4770,7 +5296,7 @@ internal static class StringFunctions
             LpCls objLpCls = new LpCls();
             string msg;
 
-            if (objLpCls.userabort(lp, MSG_ITERATION))
+            if (userabort(lp, MSG_ITERATION))
             {
                 return (minitNow);
             }
@@ -5175,6 +5701,62 @@ internal static class StringFunctions
             return (g);
         }
 
+        internal new static bool compare_basis(lprec lp)
+        /* Compares the last pushed basis with the currently active basis */
+        {
+            int i;
+            int j;
+            bool same_basis = true;
+
+            if (lp.bb_basis == null)
+                return false;
+
+            /* Loop over basis variables until a mismatch (order can be different) */
+            i = 1;
+            while (same_basis && (i <= lp.rows))
+            {
+                j = 1;
+                while (same_basis && (j <= lp.rows))
+                {
+                    same_basis = (bool)(lp.bb_basis.var_basic[i] != lp.var_basic[j]);
+                    j++;
+                }
+                same_basis = !same_basis;
+                i++;
+            }
+            /* Loop over bound status indicators until a mismatch */
+            i = 1;
+            while (same_basis && (i <= lp.sum))
+            {
+                same_basis = (lp.bb_basis.is_lower[i] && lp.is_lower[i]);
+                i++;
+            }
+
+            return (same_basis);
+        }
+
+        private static bool validate_bounds(lprec lp, double[] upbo, double[] lowbo)
+        /* Check if all bounds are Explicitly set working bounds to given vectors without pushing or popping */
+        {
+            bool ok;
+            int i;
+
+            ok = (bool)((upbo != null) || (lowbo != null));
+            if (ok)
+            {
+                for (i = 1; i <= lp.sum; i++)
+                {
+                    if ((lowbo[i] > upbo[i]) || (lowbo[i] < lp.orig_lowbo[i]) || (upbo[i] > lp.orig_upbo[i]))
+                    {
+                        break;
+                    }
+                }
+                ok = (bool)(i > lp.sum);
+            }
+            return (ok);
+        }
+
+
         //Changed By: CS Date:28/11/2018
         internal new static bool restore_basis(lprec lp)
         /* Restore values from the previously pushed / saved basis without popping it */
@@ -5212,6 +5794,295 @@ internal static class StringFunctions
             }
             return (ok);
         }
+
+        internal static new void set_infinite(lprec lp, double infinite)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_infinite(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_epsperturb(lprec lp, double epsperturb)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_epsperturb(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_epspivot(lprec lp, double epspivot)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_epspivot(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_epsint(lprec lp, double epsint)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_epsint(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_epsb(lprec lp, double epsb)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_epsb(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_epsd(lprec lp, double epsd)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_epsd(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_epsel(lprec lp, double epsel)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_epsel(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new bool set_epslevel(lprec lp, int epslevel)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_scaling(lprec lp, int scalemode)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_scaling(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new bool is_scaletype(lprec lp, int scaletype)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_scalelimit(lprec lp, double scalelimit)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_scalelimit(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_improve(lprec lp, int improve)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_improve(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_lag_trace(lprec lp, byte lag_trace)
+        { throw new NotImplementedException(); }
+
+        internal static new bool is_lag_trace(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_pivoting(lprec lp, int piv_rule)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_pivoting(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_break_at_first(lprec lp, byte break_at_first)
+        { throw new NotImplementedException(); }
+
+        internal static new bool is_break_at_first(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_bb_floorfirst(lprec lp, int bb_floorfirst)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_bb_floorfirst(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_break_at_value(lprec lp, double break_at_value)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_break_at_value(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_negrange(lprec lp, double negrange)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_negrange(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_max_level(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_working_objective(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_var_primalresult(lprec lp, int index)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_var_dualresult(lprec lp, int index)
+        { throw new NotImplementedException(); }
+
+        internal static new bool get_ptr_variables(lprec lp, double[][] @var)
+        { throw new NotImplementedException(); }
+
+        internal static new bool get_ptr_constraints(lprec lp, double[][] constr)
+        { throw new NotImplementedException(); }
+
+        internal static new bool get_constraints(lprec lp, ref double constr)
+        { throw new NotImplementedException(); }
+
+        internal static new bool get_sensitivity_rhs(lprec lp, ref double duals, ref double dualsfrom, ref double dualstill)
+        { throw new NotImplementedException(); }
+
+        internal static bool get_basis(lprec lp, ref int bascolumn, bool nonbasic)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool get_sensitivity_objex(lprec lp, ref double objfrom, ref double objtill, ref double objfromvalue, ref double objtillvalue)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static int bin_count(lprec lp, bool working)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new string get_origcol_name(lprec lp, int colnr)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new string get_origrow_name(lprec lp, int rownr)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool get_dual_solution(lprec lp, ref double rc)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool write_XLI(lprec lp, ref string filename, ref string options, bool results)
+        {
+            throw new NotImplementedException();
+        }
+
+        /* External language interface routines */
+        /* DON'T MODIFY */
+        internal static new lprec read_XLI(ref string xliname, ref string modelname, ref string dataname, ref string options, int verbose)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        internal static new bool has_XLI(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool get_primal_solution(lprec lp, double[] pv)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool get_ptr_primal_solution(lprec lp, double[][] pv)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static int get_nameindex(lprec lp, ref string varname, bool isrow)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void set_use_names(lprec lp, bool isrow, bool use_names)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool get_ptr_dual_solution(lprec lp, double[][] rc)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool is_use_names(lprec lp, bool isrow)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool get_lambda(lprec lp, ref double lambda)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool get_ptr_lambda(lprec lp, double[][] lambda)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_lp_index(lprec lp, int orig_index)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_orig_index(lprec lp, int lp_index)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new bool is_feasible(lprec lp, ref double values, double threshold)
+        /* Recommend to use threshold = lp->epspivot */
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int column_in_lp(lprec lp, ref double testcolumn)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static double compute_violation(lprec lp, int row_nr)
+        /* Returns the bound violation of a given basic variable; the return
+           value is negative if it is below is lower bound, it is positive
+           if it is greater than the upper bound, and zero otherwise. */
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool isPrimalSimplex(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool isPhase1(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static int findBasicFixedvar(lprec lp, int afternr, bool slacksonly)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool isDegenerateBasis(lprec lp, int basisvar)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void default_basis(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new int get_basiscrash(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void reset_basis(lprec lp)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static new void set_basiscrash(lprec lp, int mode)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool set_basis(lprec lp, ref int bascolumn, bool nonbasic) // Added by KE
+        {
+            throw new NotImplementedException();
+        }
+
 
         internal new static bool is_BasisReady(lprec lp)
         {
@@ -5520,6 +6391,145 @@ internal static class StringFunctions
             */
             return true;
         }
+
+        internal static int unload_basis(lprec lp, bool restorelast)
+        {
+            int levelsunloaded = 0;
+
+            if (lp.bb_basis != null)
+            {
+                while (pop_basis(lp, restorelast))
+                {
+                    levelsunloaded++;
+                }
+            }
+            return (levelsunloaded);
+        }
+
+        internal new static int unload_BB(lprec lp)
+        {
+            int levelsunloaded = 0;
+
+            /* uncomment if required // TODO_12/11/2018
+            ERROR: Cannot convert type 'ZS.Math.Optimization.BBrec' to 'bool'
+            if (lp.bb_bounds != null)
+            {
+                while ((bool)lp_mipbb.pop_BB(lp.bb_bounds))
+                {
+                    levelsunloaded++;
+                }
+            }
+            */
+            return (levelsunloaded);
+        }
+
+        /* Bounds updating and unloading routines; requires that the
+   current values for upbo and lowbo are in the original base. */
+        private static int perturb_bounds(lprec lp, BBrec perturbed, bool doRows, bool doCols, bool includeFIXED)
+        {
+            int i;
+            int ii;
+            int n = 0;
+            double new_lb;
+            double new_ub;
+            double[] upbo;
+            double[] lowbo;
+
+            if (perturbed == null)
+            {
+                return (n);
+            }
+
+            /* Map reference bounds to previous state, i.e. cumulate
+               perturbations in case of persistent problems */
+            upbo = perturbed.upbo;
+            lowbo = perturbed.lowbo;
+
+            /* Set appropriate target variable range */
+            i = 1;
+            ii = lp.rows;
+            if (!doRows)
+            {
+                i += ii;
+            }
+            if (!doCols)
+            {
+                ii = lp.sum;
+            }
+
+            /* Perturb (expand) finite variable bounds randomly */
+            for (; i <= ii; i++)
+            {
+
+                /* Don't perturb regular slack variables */
+                if ((i <= lp.rows) && (lowbo[i] == 0) && (upbo[i] >= lp.infinite))
+                {
+                    continue;
+                }
+
+                new_lb = lowbo[i];
+                new_ub = upbo[i];
+
+                /* Don't perturb fixed variables if not specified */
+                if (!includeFIXED && (new_ub == new_lb))
+                {
+                    continue;
+                }
+
+                /* Lower bound for variables (consider implementing RHS here w/contentmode== AUTOMATIC) */
+                if ((i > lp.rows) && (new_lb < lp.infinite))
+                {
+                    new_lb = lp_utils.rand_uniform(lp, RANDSCALE) + 1;
+                    new_lb *= lp.epsperturb;
+                    lowbo[i] -= new_lb;
+                    n++;
+                }
+
+                /* Upper bound */
+                if (new_ub < lp.infinite)
+                {
+                    new_ub = lp_utils.rand_uniform(lp, RANDSCALE) + 1;
+                    new_ub *= lp.epsperturb;
+                    upbo[i] += new_ub;
+                    n++;
+                }
+            }
+
+            /* Make sure we start from scratch */
+            set_action(ref lp.spx_action, ACTION_REBASE);
+
+            return (n);
+        }
+
+
+        private new static bool impose_bounds(lprec lp, ref double upbo, ref double lowbo)
+        /* Explicitly set working bounds to given vectors without pushing or popping */
+        {
+            bool ok;
+
+            ok = (bool)((upbo != null) || (lowbo != null));
+            if (ok)
+            {
+                /*NOT REQUIRED
+                if ((upbo != null) && (upbo != lp.upbo))
+                {
+                    MEMCOPY(lp.upbo, upbo, lp.sum + 1);
+                }
+                if ((lowbo != null) && (lowbo != lp.lowbo))
+                {
+                    MEMCOPY(lp.lowbo, lowbo, lp.sum + 1);
+                }
+                */
+                if (lp.bb_bounds != null)
+                {
+                    lp.bb_bounds.UBzerobased = false;
+                }
+                set_action(ref lp.spx_action, ACTION_REBASE);
+            }
+            set_action(ref lp.spx_action, ACTION_RECOMPUTE);
+            return (ok);
+        }
+
 
         internal static new void delete_lp(lprec lp)
         {
@@ -5924,7 +6934,7 @@ internal static class StringFunctions
             }
         }
 
-        internal new static int get_basiscolumn(lprec lp, int j, int[] rn, double?[] bj)
+        internal static int get_basiscolumn(lprec lp, int j, int[] rn, double?[] bj)
         /* This routine returns sparse vectors for all basis
            columns, including the OF dummy (index 0) and slack columns.
            NOTE that the index usage is nonstandard for lp_solve, since
@@ -6744,6 +7754,33 @@ internal static class StringFunctions
 
         }
 
+        /* Optimize memory usage */
+        internal static new bool memopt_lp(lprec lp, int rowextra, int colextra, int nzextra)
+        {
+            bool status = false;
+
+            if (lp == null)
+            {
+                return (status);
+            }
+
+            status = lp_matrix.mat_memopt(lp.matA, rowextra, colextra, nzextra) && (++rowextra > 0) && (++colextra > 0) && (++nzextra > 0);
+
+#if false
+//  if(status) {
+//    int colalloc = lp->columns_alloc - MIN(lp->columns_alloc, lp->columns + colextra),
+//        rowalloc = lp->rows_alloc    - MIN(lp->rows_alloc,    lp->rows + rowextra);
+//
+//    status = inc_lag_space(lp, rowalloc, FALSE) &&
+//             inc_row_space(lp, rowalloc) &&
+//             inc_col_space(lp, colalloc);
+//  }
+#endif
+
+            return (status);
+        }
+
+
         /* Preprocessing and postprocessing functions */
         private static int identify_GUB(lprec lp, bool mark)
         {
@@ -7109,6 +8146,125 @@ internal static class StringFunctions
             return (value);
         }
 
+        public void print_str(lprec lp, ref string str)
+        { throw new NotImplementedException(); }
+
+        internal static new byte print_debugdump(lprec lp, ref string filename)
+        { throw new NotImplementedException(); }
+
+        internal static new void print_scales(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void print_duals(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void print_constraints(lprec lp, int columns)
+        { throw new NotImplementedException(); }
+
+        internal static new void print_solution(lprec lp, int columns)
+        { throw new NotImplementedException(); }
+
+        internal static new void print_objective(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void print_lp(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void print_tableau(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void unscale(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new lprec read_freempsex(object userhandle, read_modeldata_func read_modeldata, int options)
+        { throw new NotImplementedException(); }
+
+        internal static new lprec read_freeMPS(ref string filename, int options)
+        { throw new NotImplementedException(); }
+
+        internal static new lprec read_mps(FILE filename, int options)
+        { throw new NotImplementedException(); }
+
+
+
+        /* ---------------------------------------------------------------------------------- */
+        /* Parameter setting and retrieval functions                                          */
+        /* ---------------------------------------------------------------------------------- */
+        internal static new void set_timeout(lprec lp, int sectimeout)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_timeout(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_verbose(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_print_sol(lprec lp, int print_sol)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_print_sol(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_debug(lprec lp, byte debug)
+        { throw new NotImplementedException(); }
+
+        internal static new bool is_debug(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_trace(lprec lp, byte trace)
+        { throw new NotImplementedException(); }
+
+        internal static new bool is_trace(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_anti_degen(lprec lp, int anti_degen)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_anti_degen(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_presolve(lprec lp, int presolvemode, int maxloops)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_presolve(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_presolveloops(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_maxpivot(lprec lp, int max_num_inv)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_maxpivot(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_bb_rule(lprec lp, int bb_rule)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_bb_rule(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_bb_depthlimit(lprec lp, int bb_maxlevel)
+        { throw new NotImplementedException(); }
+
+        internal static new int get_bb_depthlimit(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_obj_bound(lprec lp, double obj_bound)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_obj_bound(lprec lp)
+        { throw new NotImplementedException(); }
+
+        internal static new void set_mip_gap(lprec lp, byte absolute, double mip_gap)
+        { throw new NotImplementedException(); }
+
+        internal static new double get_mip_gap(lprec lp, byte absolute)
+        { throw new NotImplementedException(); }
+
+        internal static new bool set_var_branch(lprec lp, int colnr, int branch_mode)
+        { throw new NotImplementedException(); }
+
         private static int row_intstats(lprec lp, int rownr, int pivcolnr, ref int maxndec, ref int plucount, ref int intcount, ref int intval, ref double valGCD, ref double pivcolval)
         {
             int jb;
@@ -7386,7 +8542,9 @@ internal static class StringFunctions
                 }
 
 #if LowerStorageModel
+                /*NOT REQUIRED
                 MEMCOPY(newbasis.is_lower, islower, sum);
+                */
 #else
                 for (sum = 1; sum <= lp.sum; sum++)
                 {
@@ -7398,7 +8556,9 @@ internal static class StringFunctions
 #endif
 
 #if BasisStorageModel
+                /*NOT REQUIRED
                     MEMCOPY(newbasis.is_basic, isbasic, lp.sum + 1);
+                    */
 #endif
                 //MEMCOPY(newbasis.var_basic, basisvar, lp.rows + 1);
 
@@ -8027,7 +9187,7 @@ internal static class StringFunctions
             }
 
             /* Check if the SOS'es happen to already be satisified */
-            i = lp_SOS.SOS_is_satisfied(lp.SOS, 0, ref lp.solution[0]);
+            i = lp_SOS.SOS_is_satisfied(lp.SOS, 0, ref lp.solution);
             if ((i == lp_SOS.SOS_COMPLETE) || (i == lp_SOS.SOS_INCOMPLETE))
             {
                 return (-1);
@@ -8065,6 +9225,157 @@ internal static class StringFunctions
   }
 #endif
             return (@var);
+        }
+
+        internal static new int find_sc_bbvar(lprec lp, ref int count)
+        {
+            int i;
+            int ii;
+            int n;
+            int bestvar;
+            int firstsc;
+            int lastsc;
+            double hold;
+            double holdINT = 1;
+            double bestval;
+            double OFval;
+            double randval;
+            double scval;
+            bool reversemode;
+            bool greedymode;
+            bool randomizemode;
+            bool pseudocostmode;
+            bool pseudocostsel;
+            bestvar = 0;
+            if ((lp.sc_vars == 0) || (count > 0))
+            {
+                return (bestvar);
+            }
+
+            reversemode = is_bb_mode(lp, NODE_WEIGHTREVERSEMODE);
+            greedymode = is_bb_mode(lp, NODE_GREEDYMODE);
+            randomizemode = is_bb_mode(lp, NODE_RANDOMIZEMODE);
+            pseudocostmode = is_bb_mode(lp, NODE_PSEUDOCOSTMODE);
+            pseudocostsel = is_bb_rule(lp, NODE_PSEUDOCOSTSELECT) || is_bb_rule(lp, NODE_PSEUDONONINTSELECT) || is_bb_rule(lp, NODE_PSEUDORATIOSELECT);
+
+            bestvar = 0;
+            bestval = -lp.infinite;
+            hold = 0;
+            randval = 1;
+            firstsc = 0;
+            lastsc = lp.columns;
+
+            for (n = 1; n <= lp.columns; n++)
+            {
+                ii = get_var_priority(lp, n);
+                i = lp.rows + ii;
+                if (lp.bb_varactive[ii] != 0 && is_sc_violated(lp, ii) && ! lp_SOS.SOS_is_marked(lp.SOS, 0, ii))
+                {
+
+                    /* Do tallies */
+                    count++;
+                    lastsc = i;
+                    if (firstsc <= 0)
+                    {
+                        firstsc = i;
+                    }
+                    scval = get_pseudorange(lp.bb_PseudoCost, ii, BB_SC);
+
+                    /* Select default pricing/weighting mode */
+                    if (pseudocostmode)
+                    {
+                        OFval = get_pseudonodecost(lp.bb_PseudoCost, ii, BB_SC, lp.solution[i]);
+                    }
+                    else
+                    {
+                        OFval = lp_types.my_chsign(is_maxim(lp), get_mat(lp, 0, ii));
+                    }
+
+                    if (randomizemode)
+                    {
+                        randval = System.Math.Exp(lp_utils.rand_uniform(lp, 1.0));
+                    }
+
+                    /* Find the maximum pseudo-cost of a variable (don't apply pseudocostmode here) */
+                    if (pseudocostsel)
+                    {
+                        if (pseudocostmode)
+                        {
+                            hold = OFval;
+                        }
+                        else
+                        {
+                            hold = get_pseudonodecost(lp.bb_PseudoCost, ii, BB_SC, lp.solution[i]);
+                        }
+                        hold *= randval;
+                        if (greedymode)
+                        {
+                            if (pseudocostmode) // Override!
+                            {
+                                OFval = lp_types.my_chsign(is_maxim(lp), get_mat(lp, 0, ii));
+                            }
+                            hold *= OFval;
+                        }
+                        hold = lp_types.my_chsign(reversemode, hold);
+                    }
+                    else
+                    {
+                        /* Find the variable with the largest sc gap (closest to the sc mean) */
+                        if (is_bb_rule(lp, NODE_FRACTIONSELECT))
+                        {
+                            hold = (lp.solution[i] / scval) % holdINT;
+                            holdINT = hold - 1;
+                            if (System.Math.Abs(holdINT) > hold)
+                            {
+                                hold = holdINT;
+                            }
+                            if (greedymode)
+                            {
+                                hold *= OFval;
+                            }
+                            hold = lp_types.my_chsign(reversemode, hold) * scval * randval;
+                        }
+                        else
+                        /* Do first or last violated sc index selection (default) */
+                        /* if(is_bb_rule(lp, NODE_FIRSTSELECT)) */
+                        {
+                            if (reversemode)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                bestvar = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    /* Select better, check for ties, and split by proximity to 0.5*sc_lobound */
+                    if (hold > bestval)
+                    {
+                        if ((bestvar == 0) || (hold > bestval + epsprimal) || (System.Math.Abs((lp.solution[i] / scval) % holdINT) - 0.5) < System.Math.Abs((lp.solution[bestvar] / get_pseudorange(lp.bb_PseudoCost, bestvar - lp.rows, BB_SC)) % holdINT) - 0.5)
+                        {
+                            bestval = hold;
+                            bestvar = i;
+                        }
+                    }
+                }
+            }
+
+            if (is_bb_rule(lp, NODE_FIRSTSELECT) && reversemode)
+                bestvar = lastsc;
+            return (bestvar);
+        }
+
+        internal static bool is_sc_violated(lprec lp, int column)
+        {
+            int varno;
+            double tmpreal;
+
+            varno = lp.rows + column;
+            tmpreal = lp_scale.unscaled_value(lp, lp.sc_lobound[column], varno);
+            return ((bool)((tmpreal > 0) && (lp.solution[varno] < tmpreal) && (lp.solution[varno] > 0))); // ...and the Z lowerbound is violated
         }
 
 
