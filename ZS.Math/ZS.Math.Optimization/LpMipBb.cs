@@ -239,7 +239,7 @@ namespace ZS.Math.Optimization
                 {
                     new_bound = lp_utils.modf(BB.lastsolution / LpCls.get_pseudorange(lp.bb_PseudoCost, k, BB.vartype), temp);
                     //NOTED ISSUE
-                    if (isnan(new_bound))
+                    if (new_bound == double.NaN)
                     {
                         new_bound = 0;
                     }

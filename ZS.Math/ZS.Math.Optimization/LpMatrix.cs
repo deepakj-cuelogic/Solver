@@ -2181,7 +2181,7 @@ namespace ZS.Math.Optimization
         }
 
         /* Combined equation solution and matrix product for simplex operations */
-        internal static bool fsolve(lprec lp, int varin, double?[] pcol, int[] nzidx, double roundzero, double ofscalar, bool prepareupdate)
+        internal static bool fsolve(lprec lp, int varin, double[] pcol, int[] nzidx, double roundzero, double ofscalar, bool prepareupdate)
         {
             bool ok = true;
             LpCls objLpCls = new LpCls();

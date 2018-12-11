@@ -373,9 +373,26 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
 
-        internal static byte isINT(lprec lp, double value)
+        internal static bool isINT(lprec lp, double value)
         {
-            throw new NotImplementedException();
+#if false
+//  return( (bool) (modf(fabs(value)+lp->epsint, &value) < 2*lp->epsint) );
+#elif true
+  value = System.Math.Abs(value) + lp.epsint;
+  return ((bool)(lp_types.my_reldiff(value, System.Math.Floor(value)) < 2 * lp.epsint));
+#elif false
+//  double hold;
+//  value = fabs(value);
+//  hold = pow(10, MIN(-2, log10(value+1)+log10(lp->epsint)));
+//  return( (bool) (modf(value+lp->epsint, &value) < 2*hold) );
+#elif false
+//  value -= (double)floor(value);
+//  return( (bool) ((value < lp->epsint) || (value > (1 - lp->epsint)) );
+#else
+            value += lp.epsint;
+            return ((bool)(System.Math.Abs(value - System.Math.Floor(value)) < 2 * lp.epsint));
+#endif
+
         }
         internal static byte isOrigFixed(lprec lp, int varno)
         {

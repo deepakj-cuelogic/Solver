@@ -430,9 +430,66 @@ Note: SOS_shift_col must be called before make_SOSchain! */
         public static byte SOS_is_GUB(SOSgroup group, int sosindex)
         {
         throw new NotImplementedException();}
-        public static byte SOS_is_marked(SOSgroup group, int sosindex, int column)
+        public static bool SOS_is_marked(SOSgroup group, int sosindex, int column)
         {
-        throw new NotImplementedException();}
+            int i;
+            int k;
+            int n;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *list;
+            int list;
+            lprec lp;
+
+            if (group == null)
+            {
+                return false;
+            }
+            lp = group.lp;
+
+#if Paranoia
+  if ((sosindex < 0) || (sosindex > group.sos_count))
+  {
+	report(lp, IMPORTANT, "SOS_is_marked: Invalid SOS index %d\n", sosindex);
+	return (0);
+  }
+#endif
+
+            if (lp.var_type[column])  // & (lp_lib.ISSOS | lp_lib.ISGUB)) == 0)
+            {
+                return false;
+            }
+
+            if (sosindex == 0)
+            {
+                for (i = group.memberpos[column - 1]; i < group.memberpos[column]; i++)
+                {
+                    k = group.membership[i];
+                    // TODO_12/10/2018
+                    n = SOS_is_marked(group, k, column);
+                    if (n != 0)
+                    {
+                        return (1);
+                    }
+                }
+            }
+            else
+            {
+                list = group.sos_list[sosindex - 1].members;
+                n = list[0];
+
+                /* Search for the variable (normally always faster to do linear search here) */
+                column = -column;
+                for (i = 1; i <= n; i++)
+                {
+                    if (list[i] == column)
+                    {
+                        return (1);
+                    }
+                }
+            }
+            return (0);
+
+        }
         public static byte SOS_is_active(SOSgroup group, int sosindex, int column)
         {
             int i;
@@ -487,7 +544,7 @@ Note: SOS_shift_col must be called before make_SOSchain! */
             return (0);
 
         }
-        public static byte SOS_is_full(SOSgroup group, int sosindex, int column, byte activeonly)
+        public static bool SOS_is_full(SOSgroup group, int sosindex, int column, byte activeonly)
         {
         throw new NotImplementedException();}
         public static byte SOS_can_activate(SOSgroup group, int sosindex, int column)
@@ -753,9 +810,170 @@ Note: SOS_shift_col must be called before make_SOSchain! */
         public static int SOS_fix_list(SOSgroup group, int sosindex, int variable, ref double bound, ref int varlist, byte isleft, DeltaVrec changelog)
         {
         throw new NotImplementedException();}
-        public static int SOS_is_satisfied(SOSgroup group, int sosindex, ref double solution)
+        public static int SOS_is_satisfied(SOSgroup group, int sosindex, ref double[] solution)
+        /* Determine if the SOS is satisfied for the current solution vector;
+The return code is in the range [-2..+2], depending on the type of
+satisfaction.  Positive return value means too many non-zero values,
+negative value means set incomplete:
+
+          -2: Set member count not full (SOS3)
+          -1: Set member count not full
+           0: Set is full (also returned if the SOS index is invalid)
+           1: Too many non-zero sequential variables
+           2: Set consistency error
+
+*/
         {
-        throw new NotImplementedException();}
+            int i;
+            int n;
+            int nn;
+            int count;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *list;
+            int[] list=null;
+            int type;
+            int status = 0;
+            lprec lp = group.lp;
+
+#if Paranoia
+  if ((sosindex < 0) || (sosindex > group.sos_count))
+  {
+	report(lp, IMPORTANT, "SOS_is_satisfied: Invalid index %d\n", sosindex);
+	return (SOS_COMPLETE);
+  }
+#endif
+
+            if ((sosindex == 0) && (group.sos_count == 1))
+            {
+                sosindex = 1;
+            }
+
+            if (sosindex == 0)
+            {
+                for (i = 1; i <= group.sos_count; i++)
+                {
+                    status = SOS_is_satisfied(group, i, ref solution);
+                    if ((status != SOS_COMPLETE) && (status != SOS_INCOMPLETE))
+                    {
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                type = SOS_get_type(group, sosindex);
+                list = group.sos_list[sosindex - 1].members;
+                n = list[0] + 1;
+                nn = list[n];
+
+                /* Count the number of active SOS variables */
+                for (i = 1; i <= nn; i++)
+                {
+                    if (list[n + i] == 0)
+                    {
+                        break;
+                    }
+                }
+                count = i - 1;
+                if (count == nn)
+                {
+                    status = SOS_COMPLETE; // Set is full
+                }
+                else
+                {
+                    status = SOS_INCOMPLETE; // Set is partial
+                }
+
+                /* Find index of the first active variable; fail if some are non-zero */
+                if (count > 0)
+                {
+                    nn = list[n + 1];
+                    for (i = 1; i < n; i++)
+                    {
+                        if ((System.Math.Abs(list[i]) == nn) || (solution[lp.rows + System.Math.Abs(list[i])] != 0))
+                        {
+                            break;
+                        }
+                    }
+                    if (System.Math.Abs(list[i]) != nn)
+                    {
+                        status = SOS_INTERNALERROR; // Set consistency error (leading set variables are non-zero)
+                    }
+                    else
+                    {
+                        /* Scan active SOS variables until we find a non-zero value */
+                        while (count > 0)
+                        {
+                            if (solution[lp.rows + System.Math.Abs(list[i])] != 0)
+                            {
+                                break;
+                            }
+                            i++;
+                            count--;
+                        }
+                        /* Scan active non-zero SOS variables; break at first non-zero (rest required to be zero) */
+                        while (count > 0)
+                        {
+                            if (solution[lp.rows + System.Math.Abs(list[i])] == 0)
+                            {
+                                break;
+                            }
+                            i++;
+                            count--;
+                        }
+                        if (count > 0)
+                        {
+                            status = SOS_INTERNALERROR; // Set consistency error (active set variables are zero)
+                        }
+                    }
+                }
+                else
+                {
+                    i = 1;
+                    /* There are no active variables; see if we have happened to find a valid header */
+                    while ((i < n) && (solution[lp.rows + System.Math.Abs(list[i])] == 0))
+                    {
+                        i++;
+                    }
+                    count = 0;
+                    while ((i < n) && (count <= nn) && (solution[lp.rows + System.Math.Abs(list[i])] != 0))
+                    {
+                        count++;
+                        i++;
+                    }
+                    if (count > nn)
+                    {
+                        status = SOS_INFEASIBLE; // Too-many sequential non-zero variables
+                    }
+                }
+
+                /* Scan the trailing set of SOS variables; fail if some are non-zero */
+                if (status <= 0)
+                {
+                    n--;
+                    while (i <= n)
+                    {
+                        if (solution[lp.rows + System.Math.Abs(list[i])] != 0)
+                        {
+                            break;
+                        }
+                        i++;
+                    }
+                    if (i <= n)
+                    {
+                        status = SOS_INFEASIBLE; // Too-many sequential non-zero variables
+                    }
+
+                    /* Code member deficiency for SOS3 separately */
+                    else if ((status == -1) && (type <= SOS3))
+                    {
+                        status = SOS3_INCOMPLETE;
+                    }
+                }
+
+            }
+            return (status);
+        }
         public static byte SOS_is_feasible(SOSgroup group, int sosindex, ref double solution)
         {
         throw new NotImplementedException();}

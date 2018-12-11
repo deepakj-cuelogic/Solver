@@ -399,7 +399,8 @@ namespace ZS.Math.Optimization
         // changed from double to double?[] on 27/11/18
         public double?[] best_solution; /* sum_alloc+1 : Solution array of optimal 'Integer' LP,
                                    structured as the solution array above */
-        public double full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
+        // changed from double to double[] on 10/12/18
+        public double[] full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
         public double[] edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
 
         public double[][] drow; // sum+1: Reduced costs of the last simplex
@@ -475,7 +476,8 @@ namespace ZS.Math.Optimization
         public bool[] var_type; // sum_alloc+1 : TRUE if variable must be integer
 
         /* Data for multiple pricing */
-        public multirec multivars;
+        // changed from 'multirec multivars' to 'multirec[] multivars' on 10/12/18
+        public multirec[] multivars;
         public int multiblockdiv; // The divisor used to set or augment pricing block
 
         /* Variable (column) parameters */
@@ -590,7 +592,7 @@ namespace ZS.Math.Optimization
         /// <summary>
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// </summary>
-        internal bool bb_break;           /* Solver working variable; signals break of the B&B */
+        internal byte bb_break;           /* Solver working variable; signals break of the B&B */
         internal bool wasPreprocessed;    /* The solve preprocessing was performed */
         internal bool wasPresolved;       /* The solve presolver was invoked */
         int INTfuture2;
@@ -658,7 +660,7 @@ namespace ZS.Math.Optimization
         internal double bb_limitOF;         /* "Dual" bound / limit to final optimal MIP solution */
         internal double bb_heuristicOF;     /* Set initial "at least better than" guess for objective function
                                (can significantly speed up B&B iterations) */
-        double bb_parentOF;        /* The OF value of the previous BB simplex */
+        internal double bb_parentOF;        /* The OF value of the previous BB simplex */
         internal double bb_workOF;          /* The unadjusted OF value for the current best solution */
 
         /* Internal work arrays allocated as required */
@@ -817,7 +819,7 @@ namespace ZS.Math.Optimization
         getpackedfunc get_basiscolumn;
         get_OF_activefunc get_OF_active;
         getMDOfunc getMDO;
-        invertfunc invert;
+        internal static invertfunc invert;
         set_actionfunc set_action;
         is_actionfunc is_action;
         clear_actionfunc clear_action;
@@ -2189,7 +2191,7 @@ namespace ZS.Math.Optimization
             }
             return (value);
         }
-        public double get_mat_byindex(lprec lp, int matindex, byte isrow, byte adjustsign)
+        private static double get_mat_byindex(lprec lp, int matindex, byte isrow, byte adjustsign)
         { throw new NotImplementedException(); }
         public int get_nonzeros(lprec lp)
         { throw new NotImplementedException(); }
@@ -2907,7 +2909,7 @@ namespace ZS.Math.Optimization
         /* Solution-related functions */
         public double compute_dualslacks(lprec lp, int target, double[][] dvalues, int[][] nzdvalues, bool dosum)
         { throw new NotImplementedException(); }
-        public byte solution_is_int(lprec lp, int index, byte checkfixed)
+        private bool solution_is_int(lprec lp, int index, byte checkfixed)
         { throw new NotImplementedException(); }
         public byte bb_better(lprec lp, int target, int mode)
         { 

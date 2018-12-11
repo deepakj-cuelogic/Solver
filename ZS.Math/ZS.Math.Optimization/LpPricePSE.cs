@@ -110,7 +110,7 @@ namespace ZS.Math.Optimization
                 else if (value < 0)
                 {
                     msg = "getPricer: Invalid %s reduced cost norm %g at index %d\n";
-                    //NOTED ISSUE
+                    // TODO_12/10/2018
                     lp.report(lp, lp_lib.SEVERE, ref msg, lp_types.my_if(Convert.ToBoolean(isdual), "dual", "primal"), value, item);
                 }
                 ///#endif
@@ -140,10 +140,12 @@ namespace ZS.Math.Optimization
             //lp_types.AUTOMATIC is byte and copmared with boolean type need to check at runtime.
             if (isdual == Convert.ToBoolean(lp_types.AUTOMATIC))
             {
+                // TODO_12/10/2018
                 isdual = Convert.ToInt32(lp.edgeVector[0]);
             }
             else
             {
+                // TODO_12/10/2018
                 lp.edgeVector[0] = isdual;
             }
 
@@ -151,7 +153,7 @@ namespace ZS.Math.Optimization
 
             /* Determine strategy and check if we have strategy fallback for the primal */
             isDEVEX = objLpCls.is_piv_rule(lp, lp_lib.PRICER_DEVEX);
-            if (isDEVEX == null && (isdual > 0))
+            if (isDEVEX == null && (isdual))
             {
                 isDEVEX = objLpCls.is_piv_mode(lp, lp_lib.PRICE_PRIMALFALLBACK);
             }
@@ -159,7 +161,7 @@ namespace ZS.Math.Optimization
             /* Check if we only need to do the simple DEVEX initialization */
             if (!objLpCls.is_piv_mode(lp, lp_lib.PRICE_TRUENORMINIT))
             {
-                if (isdual > 0)
+                if (isdual)
                 {
                     for (i = 1; i <= m; i++)
                     {
@@ -189,7 +191,7 @@ namespace ZS.Math.Optimization
             }
 
             //changed from 'if (isdual)' to 'if (isdual > 0)'
-            if (isdual > 0)
+            if (isdual)
             {
 
                 /* Extract the rows of the basis inverse and compute their squared norms */
@@ -197,7 +199,7 @@ namespace ZS.Math.Optimization
                 for (i = 1; i <= m; i++)
                 {
                     int? nzidx = null;
-                    lp_matrix.bsolve(lp, i, ref sEdge[0], ref nzidx, 0, 0.0);
+                    lp_matrix.bsolve(lp, i, ref sEdge, ref nzidx, 0, 0.0);
 
                     /* Compute the edge norm */
                     seNorm = 0;
@@ -223,6 +225,15 @@ namespace ZS.Math.Optimization
                     {
                         continue;
                     }
+
+                    /*double?[] sE = null;
+                    if(sEdge!= null)
+                    {
+                        for(int idx=0;idx<sEdge.Length;idx++)
+                        {
+                            sE[idx] = sEdge[idx];
+                        }
+                    }*/
 
                     lp_matrix.fsolve(lp, i, sEdge, null, 0, 0.0, false);
 
@@ -403,6 +414,9 @@ namespace ZS.Math.Optimization
                 //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                 //ORIGINAL LINE: int *coltarget;
                 int coltarget = 0;
+                string memVector = "";
+                int nzinput = 0;
+                int nzoutput = 0;
 
                 //NOT REQUIRED
                 //ok = allocREAL(lp, vTemp, m + 1, 1) && allocREAL(lp, vAlpha, n + 1, 1);
@@ -418,13 +432,18 @@ namespace ZS.Math.Optimization
                 }
 
                 /* Initialize column target array */
-                //NOTED ISSUE
-                coltarget = (int)lp_utils.mempool_obtainVector(lp.workarrays, lp.sum + 1, sizeof(int));
-                ok = lp_matrix.get_colIndexA(lp, lp_lib.SCAN_SLACKVARS + lp_lib.SCAN_USERVARS + lp_lib.USE_NONBASICVARS, coltarget, false);
-                if (!ok)
+                // FIX_133d8fd1-d4bf-4e73-ac14-1bb037ba574f 29/11/18
+                int id = 0;
+                bool res = int.TryParse(lp_utils.mempool_obtainVector(lp.workarrays, lp.sum + 1, sizeof(int)), out id);
+                if (res)
                 {
-                    lp_utils.mempool_releaseVector(lp.workarrays, ref Convert.ToString(coltarget), 0);
-                    return (ok);
+                    ok = lp_matrix.get_colIndexA(lp, lp_lib.SCAN_SLACKVARS + lp_lib.SCAN_USERVARS + lp_lib.USE_NONBASICVARS, coltarget, false);
+                    if (!ok)
+                    {
+                        memVector = coltarget.ToString();
+                        lp_utils.mempool_releaseVector(lp.workarrays, ref memVector, 0);
+                        return (ok);
+                    }
                 }
 
                 /* Don't need to compute cross-products with DEVEX */
@@ -444,15 +463,20 @@ namespace ZS.Math.Optimization
                     //NOTED ISSUE
                     lp_matrix.bsolve(lp, -1, ref vTemp, ref Para, lp.epsmachine * lp_lib.DOUBLEROUND, 0.0);
                     vTemp[0] = 0;
-                    lp_matrix.prod_xA(lp, coltarget, vTemp, null, lp.epsmachine, 0.0, vEdge, null, lp_matrix.MAT_ROUNDDEFAULT);
+                    nzinput = 0;
+                    nzoutput = 0;
+                    lp_matrix.prod_xA(lp, ref coltarget, ref vTemp[0], ref nzinput, lp.epsmachine, 0.0, ref vEdge[0], ref nzoutput, lp_matrix.MAT_ROUNDDEFAULT);
                 }
 
                 /* Compute Sigma and then Alpha */
                 int? Parameter = null;
                 lp_matrix.bsolve(lp, rownr, ref vTemp, ref Parameter, 0 * lp_lib.DOUBLEROUND, 0.0);
                 vTemp[0] = 0;
-                lp_matrix.prod_xA(lp, coltarget, vTemp, null, lp.epsmachine, 0.0, vAlpha, null, lp_matrix.MAT_ROUNDDEFAULT);
-                lp_utils.mempool_releaseVector(lp.workarrays, (string)coltarget, 0);
+                nzinput = 0;
+                nzoutput = 0;
+                lp_matrix.prod_xA(lp, ref coltarget, ref vTemp[0], ref nzinput, lp.epsmachine, 0.0, ref vAlpha[0], ref nzoutput, lp_matrix.MAT_ROUNDDEFAULT);
+                string memv = coltarget.ToString();
+                lp_utils.mempool_releaseVector(lp.workarrays, ref memv, 0);
 
                 /* Update the squared steepest edge norms; first store some constants */
                 cEdge = lp.edgeVector[colnr];
@@ -564,7 +588,7 @@ namespace ZS.Math.Optimization
             {
                 if (pcol == null)
                 {
-                    lp_matrix.fsolve(lp, colnr, ref w[0], null, 0.0, 0.0, false);
+                    lp_matrix.fsolve(lp, colnr, w, null, 0.0, 0.0, false);
                 }
                 else
                 {

@@ -36,7 +36,7 @@ namespace ZS.Math.Optimization
         /* Various interaction elements                                                       */
         /* ---------------------------------------------------------------------------------- */
         //TODO: return type can  be changed to bool??
-        internal new bool userabort(lprec lp, int message)
+        internal static new bool userabort(lprec lp, int message)
         {
             bool abort;
             int spx_save;
@@ -66,7 +66,7 @@ namespace ZS.Math.Optimization
         private new static int yieldformessages(lprec lp)
         {
             //changed timeNow() to Convert.ToDouble(DateTime.Now)
-            if ((lp.sectimeout > 0) && ((Convert.ToDouble(DateTime.Now) - lp.timestart) - (double)lp.sectimeout > 0))
+            if ((lp.sectimeout > 0) && ((Convert.ToDouble(DateTime.Now) - Convert.ToDouble(lp.timestart)) - (double)lp.sectimeout > 0))
             {
                 lp.spx_status = TIMEOUT;
             }
@@ -77,7 +77,7 @@ namespace ZS.Math.Optimization
                 /* Check for command to restart the B&B */
                 if ((retcode == ACTION_RESTART) && (lp.bb_level > 1))
                 {
-                    lp.bb_break = DefineConstants.AUTOMATIC;
+                    lp.bb_break = lp_types.AUTOMATIC;
                     retcode = 0;
                 }
                 return (retcode);
@@ -130,7 +130,7 @@ namespace ZS.Math.Optimization
             //TODO: datatype(return type) can be changed to bool from byte?
             bool ok;
             //TODO:FILE output = stdout;
-            // ORIGINAL LINE: ok = (MYBOOL)((filename == NULL) || (*filename == 0) || ((output = fopen(filename, "w")) != NULL));
+            // ORIGINAL LINE: ok = (bool)((filename == NULL) || (*filename == 0) || ((output = fopen(filename, "w")) != NULL));
             using (StreamWriter sw = new StreamWriter(filename))
             {
                 ok = ((filename == null) || (filename == ""));
@@ -153,10 +153,10 @@ namespace ZS.Math.Optimization
         private new double time_elapsed(lprec lp)
         {
             if (lp.timeend > 0)
-                return (lp.timeend - lp.timestart);
+                return (lp.timeend - Convert.ToDouble(lp.timestart));
             else
                 // ORIGINAL LINE: return (timeNow() - lp->timestart);
-                return (Convert.ToDouble(DateTime.Now) - lp.timestart);
+                return (Convert.ToDouble(DateTime.Now) - Convert.ToDouble(lp.timestart));
         }
 
         private void put_bb_nodefunc(lprec lp, lphandleint_intfunc newnode, object bbnodehandle)
@@ -1237,7 +1237,7 @@ namespace ZS.Math.Optimization
             return true;
         }
 
-        internal new double get_lowbo(lprec lp, int colnr)
+        internal static new double get_lowbo(lprec lp, int colnr)
         {
             double value;
 
@@ -1266,7 +1266,7 @@ namespace ZS.Math.Optimization
             return ((lp.var_type[colnr] && ISINTEGER));
         }
 
-        internal new bool set_rh(lprec lp, int rownr, double value)
+        internal static new bool set_rh(lprec lp, int rownr, double value)
         {
             if ((rownr > lp.rows) || (rownr < 0))
             {
@@ -1574,7 +1574,7 @@ namespace ZS.Math.Optimization
             /// PREVIOUS: lp.sc_lobound[colnr] = must_be_sc;
             /// ERROR IN PREVIOUS: Cannot implicitly convert type 'bool' to 'double'
             /// FIX 1: changed set_semicont parameter from 'bool' to 'uint' 
-            /// REF: lp_types.h: definition for MYBOOL says 'could be unsigned int'
+            /// REF: lp_types.h: definition for bool says 'could be unsigned int'
             /// need to check while implementing
             /// </summary>
             lp.sc_lobound[colnr] = must_be_sc;
@@ -1908,7 +1908,7 @@ namespace ZS.Math.Optimization
             return (n);
         }
 
-        public new double get_mat(lprec lp, int rownr, int colnr)
+        public static new double get_mat(lprec lp, int rownr, int colnr)
         {
             double value;
             int elmnr;
@@ -2110,7 +2110,7 @@ namespace ZS.Math.Optimization
             return (Ok);
         }
 
-        private new bool is_chsign(lprec lp, int rownr)
+        private static new bool is_chsign(lprec lp, int rownr)
         {
             return ((bool)((lp.row_type[rownr] & ROWTYPE_CONSTRAINT) == ROWTYPE_CHSIGN));
         }
@@ -2204,7 +2204,7 @@ namespace ZS.Math.Optimization
             if (enteringCol > lp.rows && lp.is_basic[enteringCol])
             {
                 msg = "set_basisvar: Entering variable %d is already basic at iter %.0f\n";
-                report(lp, IMPORTANT, ref msg, enteringCol, (double)get_total_iter(lp));
+                lp.report(lp, IMPORTANT, ref msg, enteringCol, (double)get_total_iter(lp));
             }
             ///#endif
 
@@ -2664,7 +2664,7 @@ namespace ZS.Math.Optimization
                     ii--;
                 }
             }
-            //ORIGINAL LINE: result = (MYBOOL)(ii == 0);
+            //ORIGINAL LINE: result = (bool)(ii == 0);
             result = ((bool)(ii == 0));
             Done:
             ///#if false
@@ -3131,7 +3131,7 @@ namespace ZS.Math.Optimization
             return (get_origrow_name(lp, rownr));
         }
 
-        internal new string get_col_name(lprec lp, int colnr)
+        internal static new string get_col_name(lprec lp, int colnr)
         {
             lp_report objlp_report = new lp_report();
             if ((colnr > lp.columns + 1) || (colnr < 1))
@@ -3519,7 +3519,7 @@ internal static class StringFunctions
             return ((bool)(get_piv_rule(lp) == rule));
         }
 
-        internal new static bool check_degeneracy(lprec lp, ref double?[] pcol, ref int degencount)
+        internal static bool check_degeneracy(lprec lp, ref double?[] pcol, ref int degencount)
         {
             /* Check if the entering column Pi=Inv(B)*a is likely to produce improvement;
            (cfr. Istvan Maros: CTOTSM p. 233) */
@@ -3823,6 +3823,30 @@ internal static class StringFunctions
 
             return (lp_presolve.inc_presolve_space(lp, delta, isrows) && LpPricePSE.resizePricer(lp));
         }
+
+        internal new static void free_duals(lprec lp)
+        {
+            /*NOT REQUIRED
+            FREE(lp.duals);
+            FREE(lp.full_duals);
+            FREE(lp.dualsfrom);
+            FREE(lp.dualstill);
+            FREE(lp.objfromvalue);
+            FREE(lp.objfrom);
+            FREE(lp.objtill);
+            */
+        }
+
+        internal static void replaceBasisVar(lprec lp, int rownr, int @var, int[] var_basic, bool[] is_basic)
+        {
+            int @out;
+
+            @out = var_basic[rownr];
+            var_basic[rownr] = @var;
+            is_basic[@out] = false;
+            is_basic[@var] = true;
+        }
+
 
         internal new static bool inc_row_space(lprec lp, int deltarows)
         {
@@ -5306,6 +5330,45 @@ internal static class StringFunctions
             */
         }
 
+        private void get_partialprice(lprec lp, ref int blockcount, ref int[] blockstart, bool isrow)
+        {
+            partialrec blockdata;
+
+            /* Determine partial target (rows or columns) */
+            if (isrow)
+            {
+                blockdata = lp.rowblocks;
+            }
+            else
+            {
+                blockdata = lp.colblocks;
+            }
+
+            blockcount = LpPrice.partial_countBlocks(lp, isrow);
+            if ((blockdata != null) && (blockstart != null))
+            {
+                int i = 0;
+                int k = blockcount;
+                if (!isrow)
+                {
+                    i++;
+                }
+                /*NOT REQUIRED
+                MEMCOPY(blockstart, blockdata.blockend + i, k - i);
+                */
+                if (!isrow)
+                {
+                    k -= i;
+                    for (i = 0; i < k; i++)
+                    {
+                        blockstart[i] -= lp.rows;
+                    }
+                }
+            }
+
+        }
+
+
         /* Solution-related functions */
         internal new static bool bb_better(lprec lp, int target, int mode)
         /* Must handle four modes (logic assumes Min!):
@@ -5838,7 +5901,7 @@ internal static class StringFunctions
 
             return (feasible);
         }
-        internal new bool is_fixedvar(lprec lp, int varnr)
+        internal static new bool is_fixedvar(lprec lp, int varnr)
         {
             if (lp.bb_bounds == null)
             {
@@ -5912,7 +5975,7 @@ internal static class StringFunctions
             return ((bool)((lp.do_presolve == testmask) || ((lp.do_presolve & testmask) != 0)));
         }
 
-        internal new bool set_mat(lprec lp, int rownr, int colnr, double value)
+        internal static new bool set_mat(lprec lp, int rownr, int colnr, double value)
         {
             string msg = "";
             if ((rownr < 0) || (rownr > lp.rows))
@@ -5946,14 +6009,14 @@ internal static class StringFunctions
             }
         }
 
-        internal new double get_upbo(lprec lp, int colnr)
+        internal static new double get_upbo(lprec lp, int colnr)
         {
             double value;
 
             if ((colnr > lp.columns) || (colnr < 1))
             {
                 string msg = "get_upbo: Column %d out of range\n";
-                report(lp, IMPORTANT, ref msg, colnr);
+                lp.report(lp, IMPORTANT, ref msg, colnr);
                 return (0);
             }
 
@@ -6049,11 +6112,11 @@ internal static class StringFunctions
                 }
                 if (dualsfrom != null)
                 {
-                    dualsfrom[0][0] = Convert.ToDouble(lp.dualsfrom + 1);
+                    dualsfrom[0][0] = Convert.ToDouble(lp.dualsfrom) + 1;
                 }
                 if (dualstill != null)
                 {
-                    dualstill[0][0] = Convert.ToDouble(lp.dualstill + 1);
+                    dualstill[0][0] = Convert.ToDouble(lp.dualstill) + 1;
                 }
             }
             return (true);
@@ -6216,6 +6279,23 @@ internal static class StringFunctions
             return (lp.row_type[rownr]);
         }
 
+        internal static int get_multiprice(lprec lp, bool getabssize)
+        {
+            if ((lp.multivars == null) || (lp.multivars.used == 0))
+            {
+                return (0);
+            }
+            if (getabssize)
+            {
+                return (lp.multivars.size);
+            }
+            else
+            {
+                return (lp.multiblockdiv);
+            }
+        }
+
+
         internal bool set_partialprice(lprec lp, int blockcount, ref int? blockstart, bool isrow)
         {
             int ne;
@@ -6347,6 +6427,44 @@ internal static class StringFunctions
 
             return (true);
         } // set_partialprice
+
+
+
+        internal new static bool set_multiprice(lprec lp, int multiblockdiv)
+        {
+            /* See if we are resetting multiply priced column structures */
+            if (multiblockdiv != lp.multiblockdiv)
+            {
+                if (multiblockdiv < 1)
+                {
+                    multiblockdiv = 1;
+                }
+                lp.multiblockdiv = multiblockdiv;
+                LpPrice.multi_free((lp.multivars));
+            }
+            return true;
+        }
+
+        internal static bool solution_is_int(lprec lp, int index, bool checkfixed)
+        {
+#if true
+  return ((bool)(lp_utils.isINT(lp, lp.solution[index]) && (!checkfixed || is_fixedvar(lp, index))));
+#else
+            if (lp_utils.isINT(lp, lp.solution[index]))
+            {
+                if (checkfixed)
+                {
+                    return (is_fixedvar(lp, index));
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            return false;
+#endif
+        } // solution_is_int
+
 
         internal new bool preprocess(lprec lp)
         {
@@ -6502,9 +6620,9 @@ internal static class StringFunctions
                     lp_matrix.mat_multcol(lp.matA, j, -1, true);
                     if (lp.var_is_free == null)
                     {
-                        if (!lp_utils.allocINT(lp, (int)lp.var_is_free, commonlib.MAX(lp.columns, lp.columns_alloc) + 1, 1))
+                        if (!lp_utils.allocINT(lp, lp.var_is_free, (int)commonlib.MAX(lp.columns, lp.columns_alloc) + 1, 1))
                         {
-                            return (0);
+                            return false;
                         }
                     }
                     lp.var_is_free[j] = -j; // Indicator UB and LB are switched, with no helper variable added
@@ -6626,6 +6744,231 @@ internal static class StringFunctions
 
         }
 
+        /* Preprocessing and postprocessing functions */
+        private static int identify_GUB(lprec lp, bool mark)
+        {
+            int i;
+            int j;
+            int jb;
+            int je;
+            int k;
+            int knint;
+            int srh;
+            double rh;
+            double mv;
+            double tv;
+            double bv;
+            MATrec mat = lp.matA;
+
+            if ((lp.equalities == 0) || !lp_matrix.mat_validate(mat))
+            {
+                return (0);
+            }
+
+            k = 0;
+            for (i = 1; i <= lp.rows; i++)
+            {
+
+                /* Check if it is an equality constraint */
+                if (!is_constr_type(lp, i, EQ))
+                {
+                    continue;
+                }
+
+                rh = get_rh(lp, i);
+                srh = (int)lp_types.my_sign(rh);
+                knint = 0;
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                je = mat.row_end[i][0];
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                for (jb = mat.row_end[i - 1][0]; jb < je; jb++)
+                {
+                    j = lp_matrix.ROW_MAT_COLNR(jb);
+
+                    /* Check for validity of the equation elements */
+                    if (!is_int(lp, j))
+                    {
+                        knint++;
+                    }
+                    if (knint > 1)
+                    {
+                        break;
+                    }
+
+                    mv = get_mat_byindex(lp, jb, true, false);
+                    if (System.Math.Abs(lp_types.my_reldiff(mv, rh)) > epsprimal)
+                    {
+                        break;
+                    }
+
+                    tv = mv * get_upbo(lp, j);
+                    bv = get_lowbo(lp, j);
+#if false
+//      if((fabs(my_reldiff(tv, rh)) > lp->epsprimal) || (bv != 0))
+#else
+                    if ((srh * (tv - rh) < - epsprimal) || (bv != 0))
+                    {
+#endif
+                        break;
+                    }
+                }
+
+                /* Update GUB count and optionally mark the GUB */
+                if (jb == je)
+                {
+                    k++;
+                    if (mark)
+                    {
+                        lp.row_type[i] |= ROWTYPE_GUB;
+                    }
+                    else if (!mark) // == lp_types.AUTOMATIC
+                    {
+                        break;
+                    }
+                }
+
+            }
+            return (k);
+        }
+
+        /* This routine compares an existing basic solution to a recomputed one;
+   Note that the routine must provide for the possibility that the order of the
+   basis variables can be changed by the inversion engine. */
+        private static int verify_solution(lprec lp, bool reinvert, ref string info)
+        {
+            int i;
+            int ii;
+            int n;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'int[] oldmap' to 'int[][] oldmap'; need to check at run time
+            int[][] oldmap = null;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *newmap;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'int newmap' to 'int[][] newmap'; need to check at run time
+            int[][] newmap = null;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *refmap = null;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'int? refmap' to 'int?[][] refmap'; need to check at run time
+            int[][] refmap = null;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: double *oldrhs, err, errmax;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'double oldrhs' to 'double[][] oldrhs'; need to check at run time
+            double[][] oldrhs = null;
+            double err;
+            double errmax;
+
+            lp_utils.allocINT(lp, oldmap, lp.rows + 1, 0);
+            lp_utils.allocINT(lp, newmap, lp.rows + 1, 0);
+            lp_utils.allocREAL(lp, oldrhs, lp.rows + 1, 0);
+
+            /* Get sorted mapping of the old basis */
+            for (i = 0; i <= lp.rows; i++)
+            {
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                oldmap[i][0] = i;
+            }
+            if (reinvert)
+            {
+                lp_utils.allocINT(lp, refmap, lp.rows + 1, 0);
+                /*NOT REQUIRED
+                MEMCOPY(refmap, lp.var_basic, lp.rows + 1);
+                */
+               commonlib.sortByINT(oldmap[0], refmap[0], lp.rows, 1, true);
+            }
+
+            /* Save old and calculate the new RHS vector */
+            /*NOT REQUIRED
+            MEMCOPY(oldrhs, lp.rhs, lp.rows + 1);
+            */
+            if (reinvert)
+            {
+                lp_matrix.invert(lp, INITSOL_USEZERO, false);
+            }
+            else
+            {
+                recompute_solution(lp, INITSOL_USEZERO);
+            }
+
+            /* Get sorted mapping of the new basis */
+            for (i = 0; i <= lp.rows; i++)
+            {
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                newmap[i][0] = i;
+            }
+            if (reinvert)
+            {
+                /*NOT REQUIRED
+                MEMCOPY(refmap, lp.var_basic, lp.rows + 1);
+                */
+                commonlib.sortByINT(newmap[0], refmap[0], lp.rows, 1, true);
+            }
+
+            /* Identify any gap */
+            errmax = 0;
+            ii = -1;
+            n = 0;
+            for (i = lp.rows; i > 0; i--)
+            {
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] (3) as 0 for now; need to check at run time
+                err = System.Math.Abs(lp_types.my_reldiff(oldrhs[oldmap[i][0]][0], lp.rhs[newmap[i][0]]));
+                if (err > epsprimal)
+                {
+                    n++;
+                    if (err > errmax)
+                    {
+                        ii = i;
+                        errmax = err;
+                    }
+                }
+            }
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] (2) as 0 for now; need to check at run time
+            err = System.Math.Abs(lp_types.my_reldiff(oldrhs[i][0], lp.rhs[i]));
+            if (err < lp.epspivot)
+            {
+                i--;
+                err = 0;
+            }
+            else
+            {
+                n++;
+                if (ii < 0)
+                {
+                    ii = 0;
+                    errmax = err;
+                }
+            }
+            if (n > 0)
+            {
+                lp.report(lp, IMPORTANT, "verify_solution: Iter %.0f %s - %d errors; OF %g, Max @row %d %g\n", (double)get_total_iter(lp), my_if(info == null, "", info), n, err, newmap[ii], errmax);
+            }
+            /*NOT REQUIRED
+            // Copy old results back (not possible for inversion) 
+            if (!reinvert)
+            {
+                MEMCOPY(lp.rhs, oldrhs, lp.rows + 1);
+            }
+
+            FREE(oldmap);
+            FREE(newmap);
+            FREE(oldrhs);
+            if (reinvert)
+            {
+                FREE(refmap);
+            }
+            */
+            return (ii);
+        }
+
+
         /* Pre- and post processing functions, i.a. splitting free variables */
         internal static bool pre_MIPOBJ(lprec lp)
         {
@@ -6647,7 +6990,7 @@ internal static class StringFunctions
             return (true);
         }
 
-        internal double MIP_stepOF(lprec lp)
+        internal static double MIP_stepOF(lprec lp)
         /* This function tries to find a non-zero minimum improvement
            if the OF contains all integer variables (logic only applies if we are
            looking for a single solution, not possibly several equal-valued ones). */
@@ -6830,7 +7173,7 @@ internal static class StringFunctions
                         }
                         else
                         {
-                            pivcolval = objLpCls.get_mat_byindex(lp, jb, 1, 0);
+                            pivcolval = get_mat_byindex(lp, jb, true, false);
                         }
                         continue;
                     }
@@ -6849,7 +7192,7 @@ internal static class StringFunctions
                     }
                     else
                     {
-                        rowval = objLpCls.get_mat_byindex(lp, jb, 1, 0);
+                        rowval = get_mat_byindex(lp, jb, true, false);
                     }
                     if (rowval > 0)
                     {
@@ -6905,7 +7248,7 @@ internal static class StringFunctions
                         continue;
                     }
                 }
-                f = System.Math.Abs(objLpCls.get_mat(lp, rownr, j));
+                f = System.Math.Abs(get_mat(lp, rownr, j));
                 /* f = fmod(f, 1); */
                 f -= System.Math.Floor(f + epsvalue);
                 /*
@@ -6938,7 +7281,7 @@ internal static class StringFunctions
             return (basi);
         }
 
-        internal double get_mat_byindex(lprec lp, int matindex, bool isrow, bool adjustsign)
+        internal static double get_mat_byindex(lprec lp, int matindex, bool isrow, bool adjustsign)
         /* Note that this function does not adjust for sign-changed GT constraints! */
         {
             //ORIGINAL LINE: int *rownr, *colnr;
@@ -6968,7 +7311,7 @@ internal static class StringFunctions
             }
         }
 
-        internal new bool is_bb_mode(lprec lp, int bb_mask)
+        internal static new bool is_bb_mode(lprec lp, int bb_mask)
         {
             return ((bool)((lp.bb_rule & bb_mask) > 0));
         }
@@ -6979,7 +7322,7 @@ internal static class StringFunctions
             value = System.Math.Ceiling(value);
             if (value != 0)
             {
-                if (lp.columns_scaled && objLpCls.is_integerscaling(lp))
+                if (lp.columns_scaled && is_integerscaling(lp))
                 {
                     value = lp_scale.scaled_value(lp, value, colnr);
                     if (epsscale != 0)
@@ -6993,11 +7336,11 @@ internal static class StringFunctions
             return (value);
         }
 
-        internal new bool is_integerscaling(lprec lp)
+        internal static new bool is_integerscaling(lprec lp)
         {
             return (is_scalemode(lp, SCALE_INTEGERS));
         }
-        internal new bool is_scalemode(lprec lp, int testmask)
+        internal static new bool is_scalemode(lprec lp, int testmask)
         {
             return ((bool)((lp.scalemode & testmask) != 0));
         }
@@ -7098,6 +7441,60 @@ internal static class StringFunctions
             }
         }
 
+        internal static bool set_pseudocosts(lprec lp, double[] clower, double[] cupper, ref int updatelimit)
+        {
+            int i;
+
+            if ((lp.bb_PseudoCost == null) || ((clower == null) && (cupper == null)))
+            {
+                return false;
+            }
+            for (i = 1; i <= lp.columns; i++)
+            {
+                if (clower != null)
+                {
+                    lp.bb_PseudoCost.LOcost[i].value = clower[i];
+                }
+                if (cupper != null)
+                {
+                    lp.bb_PseudoCost.UPcost[i].value = cupper[i];
+                }
+            }
+            if (updatelimit != null)
+            {
+                lp.bb_PseudoCost.updatelimit = updatelimit;
+            }
+            return true;
+        }
+
+
+        internal static bool get_pseudocosts(lprec lp, double[] clower, double[] cupper, ref int updatelimit)
+        {
+            int i;
+
+            if ((lp.bb_PseudoCost == null) || ((clower == null) && (cupper == null)))
+            {
+                return false;
+            }
+            for (i = 1; i <= lp.columns; i++)
+            {
+                if (clower != null)
+                {
+                    clower[i] = lp.bb_PseudoCost.LOcost[i].value;
+                }
+                if (cupper != null)
+                {
+                    cupper[i] = lp.bb_PseudoCost.UPcost[i].value;
+                }
+            }
+            if (updatelimit != null)
+            {
+                updatelimit = lp.bb_PseudoCost.updatelimit;
+            }
+            return true;
+        }
+
+
         internal new static double get_pseudorange(BBPSrec pc, int mipvar, int varcode)
         {
             if (varcode == BB_SC)
@@ -7110,6 +7507,103 @@ internal static class StringFunctions
             }
         }
 
+        /* INLINE */
+        internal static new bool is_bb_rule(lprec lp, int bb_rule)
+        {
+            return ((bool)((lp.bb_rule & NODE_STRATEGYMASK) == bb_rule));
+        }
+
+
+        internal static void update_pseudocost(BBPSrec pc, int mipvar, int varcode, bool capupper, double varsol)
+        {
+            double OFsol = 1;
+            double uplim;
+            MATitem PS;
+            bool nonIntSelect = is_bb_rule(pc.lp, NODE_PSEUDONONINTSELECT);
+
+            /* Establish input values;
+               Note: The pseudocosts are normalized to the 0-1 range! */
+            uplim = get_pseudorange(pc, mipvar, varcode);
+            varsol = ((varsol / uplim) % OFsol);
+
+            /* Set reference value according to pseudocost mode */
+            if (nonIntSelect)
+            {
+                OFsol = pc.lp.bb_bounds.lastvarcus; // The count of MIP infeasibilities
+            }
+            else
+            {
+                OFsol = pc.lp.solution[0]; // The problem's objective function value
+            }
+
+            if (varsol == double.NaN)
+            {
+                pc.lp.bb_parentOF = OFsol;
+                return;
+            }
+
+            /* Point to the applicable (lower or upper) bound and increment attempted update count */
+            if (capupper)
+            {
+                PS = pc.LOcost[mipvar];
+            }
+            else
+            {
+                PS = pc.UPcost[mipvar];
+                varsol = 1 - varsol;
+            }
+            PS.colnr++;
+
+            /* Make adjustment to divisor if we are using the ratio pseudo-cost approach */
+            if (is_bb_rule(pc.lp, NODE_PSEUDORATIOSELECT))
+            {
+                // TODO_12/10/2018
+                varsol *= capupper;
+            }
+
+            /* Compute the update (consider weighting in favor of most recent) */
+            mipvar = pc.updatelimit;
+            if (((mipvar <= 0) || (PS.rownr < mipvar)) && (System.Math.Abs(varsol) > pc.lp.epspivot))
+            {
+                /* We are interested in the change in the MIP measure (contribution to increase
+                   or decrease, as the case may be) and not its last value alone. */
+                PS.value = PS.value * PS.rownr + (pc.lp.bb_parentOF - OFsol) / (varsol * uplim);
+                PS.rownr++;
+                PS.value /= PS.rownr;
+                /* Check if we have enough information to restart */
+                if (PS.rownr == mipvar)
+                {
+                    pc.updatesfinished++;
+                    if (is_bb_mode(pc.lp, NODE_RESTARTMODE) && (pc.updatesfinished / (2.0 * pc.lp.int_vars) > pc.restartlimit))
+                    {
+                        pc.lp.bb_break = lp_types.AUTOMATIC;
+                        pc.restartlimit *= 2.681; // KE: Who can figure this one out?
+                        if (pc.restartlimit > 1)
+                        {
+                            pc.lp.bb_rule -= NODE_RESTARTMODE;
+                        }
+                        string msg = "update_pseudocost: Restarting with updated pseudocosts\n";
+                        pc.lp.report(pc.lp, NORMAL, ref msg);
+                    }
+                }
+            }
+            pc.lp.bb_parentOF = OFsol;
+        }
+
+
+        internal static double get_pseudobranchcost(BBPSrec pc, int mipvar, bool dofloor)
+        {
+            if (dofloor)
+            {
+                return (pc.LOcost[mipvar].value);
+            }
+            else
+            {
+                return (pc.UPcost[mipvar].value);
+            }
+        }
+
+
         internal new static double get_pseudonodecost(BBPSrec pc, int mipvar, int vartype, double varsol)
         {
             double hold = 0;
@@ -7117,8 +7611,7 @@ internal static class StringFunctions
 
             uplim = get_pseudorange(pc, mipvar, vartype);
             varsol = lp_utils.modf(varsol / uplim, hold);
-            //NOTED ISSUE
-            if (isnan(varsol))
+            if (varsol == double.NaN)
             {
                 varsol = 0;
             }
@@ -7134,7 +7627,7 @@ internal static class StringFunctions
             value = System.Math.Floor(value);
             if (value != 0)
             {
-                if (lp.columns_scaled && objLpCls.is_integerscaling(lp))
+                if (lp.columns_scaled && is_integerscaling(lp))
                 {
                     value = lp_scale.scaled_value(lp, value, colnr);
                     if (epsscale != 0)
@@ -7160,17 +7653,505 @@ internal static class StringFunctions
         }
         internal static bool free_pseudoclass(BBPSrec PseudoClass)
         {
-            BBPSrec target = PseudoClass[0];
+            BBPSrec target = PseudoClass;
 
             //NOT REQUIRED
             //FREE(target.LOcost);
             //FREE(target.UPcost);
             target = target.secondary;
             //FREE(PseudoClass);
-            PseudoClass[0] = target;
+            PseudoClass = target;
 
             return ((bool)(target != null));
         }
+
+        private static int find_int_bbvar(lprec lp, ref int count, BBrec BB, ref bool isfeasible)
+        {
+            int i;
+            int ii;
+            int n;
+            int k;
+            int bestvar;
+            int depthmax;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'int nonint' to 'int[][] nonint'; need to check at run time
+            int[][] nonint = null;
+            double hold;
+            double holdINT=0;
+            double bestval;
+            double OFval;
+            double randval;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: double *lowbo = BB->lowbo;
+            double[] lowbo = BB.lowbo;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: double *upbo = BB->upbo;
+            double[] upbo = BB.upbo;
+            bool reversemode = false;
+            bool greedymode = false;
+            bool depthfirstmode = false;
+            bool breadthfirstmode = false;
+            bool randomizemode = false;
+            bool? rcostmode = null;
+            bool pseudocostmode = false;
+            bool? pseudocostsel = null;
+            bool pseudostrong = false;
+            bool isINT = false;
+            bool valINT = false;
+
+            if ((lp.int_vars == 0) || (count > 0))
+            {
+                return (0);
+            }
+            if (lp.bb_usenode != null)
+            {
+                i = lp.bb_usenode(lp, lp.bb_nodehandle, BB_INT);
+                if (i >= 0)
+                {
+                    if (i > 0)
+                    {
+                        (count)++;
+                    }
+                    return (i);
+                }
+            }
+
+            reversemode = is_bb_mode(lp, NODE_WEIGHTREVERSEMODE);
+            greedymode = is_bb_mode(lp, NODE_GREEDYMODE);
+            randomizemode = is_bb_mode(lp, NODE_RANDOMIZEMODE);
+            depthfirstmode = is_bb_mode(lp, NODE_DEPTHFIRSTMODE);
+            breadthfirstmode = is_bb_mode(lp, NODE_BREADTHFIRSTMODE) && (bool)(lp.bb_level <= lp.int_vars);
+            rcostmode = (bool)(BB.lp.solutioncount > 0) && is_bb_mode(lp, NODE_RCOSTFIXING); // 15/2/8 peno enabled NODE_RCOSTFIXING again because a fix is found. See lp_simplex.c NODE__RCOSTFIXING fix
+            pseudocostmode = is_bb_mode(lp, NODE_PSEUDOCOSTMODE);
+            pseudocostsel = is_bb_rule(lp, NODE_PSEUDOCOSTSELECT) || is_bb_rule(lp, NODE_PSEUDONONINTSELECT) || is_bb_rule(lp, NODE_PSEUDORATIOSELECT);
+            pseudostrong = false && pseudocostsel != null && rcostmode == null && is_bb_mode(lp, NODE_STRONGINIT);
+
+            /* Fill list of non-ints */
+            lp_utils.allocINT(lp, nonint, lp.columns + 1, 0);
+            n = 0;
+            depthmax = -1;
+            if (isfeasible != null)
+            {
+                isfeasible = true;
+            }
+            BB.lastrcf = 0;
+            for (k = 1; (k <= lp.columns); k++)
+            {
+                ii = get_var_priority(lp, k);
+                isINT = is_int(lp, ii);
+                i = lp.rows + ii;
+
+                /* Tally reduced cost fixing opportunities for ranged non-basic nonINTs */
+                if (isINT == null)
+                {
+#if UseMilpExpandedRCF
+	  if (rcostmode != null)
+	  {
+		bestvar = rcfbound_BB(BB, i, isINT, null, isfeasible);
+		if (bestvar != FR)
+		{
+		  BB.lastrcf++;
+		}
+	  }
+#endif
+                }
+                else
+                {
+
+                    valINT = solution_is_int(lp, i, false);
+
+                    /* Skip already fixed variables */
+                    if (lowbo[i] == upbo[i])
+                    {
+
+                        /* Check for validity */
+#if Paranoia
+		if (valINT == null)
+		{
+		  report(lp, IMPORTANT, "find_int_bbvar: INT var %d was fixed at %d, but computed as %g at node %.0f\n", ii, (int) lowbo[i], lp.solution[i], (double) lp.bb_totalnodes);
+		  lp.bb_break = 1;
+		  lp.spx_status = UNKNOWNERROR;
+		  bestvar = 0;
+		  goto Done;
+		}
+#endif
+                    }
+
+                    /* The variable has not yet been fixed */
+                    else
+                    {
+
+                        /* Tally reduced cost fixing opportunities (also when the
+                           variables are integer-valued at the current relaxation) */
+                        if (rcostmode != null)
+                        {
+                            bestvar = lp_mipbb.rcfbound_BB(BB, i, isINT, 0, ref isfeasible);
+                            if (bestvar != FR)
+                            {
+                                BB.lastrcf++;
+                            }
+                        }
+                        else
+                        {
+                            bestvar = FR;
+                        }
+
+                        /* Only qualify variable as branching node if it is non-integer and
+                           it will not be subsequently fixed via reduced cost fixing logic */
+                        if (valINT == null && (bestvar >= FR))
+                        {
+
+                            n++;
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            //set second [] as 0 for now; need to check at run time
+                            nonint[n][0] = ii;
+                            commonlib.SETMAX(depthmax, lp.bb_varactive[ii]);
+                        }
+                    }
+
+                }
+            }
+#if UseMilpSlacksRCF
+  /* Optionally also tally slacks */
+  if (rcostmode)
+  {
+	for (i = 1; (i <= lp.rows) && (BB.lastrcf == 0); i++)
+	{
+	  /* Skip already fixed slacks (equalities) */
+	  if (lowbo[i] < upbo[i])
+	  {
+		bestvar = rcfbound_BB(BB, i, 0, null, isfeasible);
+		if (bestvar != FR)
+		{
+		  BB.lastrcf++;
+		}
+	  }
+	}
+  }
+#endif
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            nonint[0][0] = n;
+            count = n;
+            bestvar = 0;
+            if (n == 0) // No non-integers found
+            {
+                goto Done;
+            }
+
+            bestval = -lp.infinite;
+            hold = 0;
+            randval = 1;
+
+            /* Sort non-ints by depth in case we have breadthfirst or depthfirst modes */
+            if ((lp.bb_level > 1) && (depthmax > 0) && (depthfirstmode || breadthfirstmode))
+            {
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //changed from 'int[] depths' to 'int[][] depths'; need to check at run time
+                int[][] depths = null;
+
+                /* Fill attribute array and make sure ordinal order breaks ties during sort */
+                lp_utils.allocINT(lp, depths, n + 1, 0);
+                for (i = 1; i <= n; i++)
+                {
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 (2) for now; need to check at run time
+                    depths[i][0] = (depthfirstmode ? n + 1 - i : i) + (n + 1) * lp.bb_varactive[nonint[i][0]];
+                }
+
+               commonlib.hpsortex(depths, n, 1, nonint.Length, depthfirstmode, commonlib.compareINT, ref nonint[0]);
+                /*NOT REQUIRED
+                FREE(depths);
+                */
+            }
+            /* Do simple firstselect handling */
+            if (is_bb_rule(lp, NODE_FIRSTSELECT))
+            {
+                if (reversemode)
+                {
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0  (2) for now; need to check at run time
+                    bestvar = lp.rows + nonint[nonint[0][0]][0];
+                }
+                else
+                {
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    bestvar = lp.rows + nonint[1][0];
+                }
+            }
+
+            else
+            {
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                for (n = 1; n <= nonint[0][0]; n++)
+                {
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    ii = nonint[n][0];
+                    i = lp.rows + ii;
+
+                    /* Do the naive detection */
+                    if (n == 1)
+                    {
+                        bestvar = i;
+                    }
+
+                    /* Should we do a "strong" pseudo-cost initialization or an incremental update? */
+                    if (pseudostrong && (commonlib.MAX(lp.bb_PseudoCost.LOcost[ii].rownr, lp.bb_PseudoCost.UPcost[ii].rownr) < lp.bb_PseudoCost.updatelimit) && (MAX(lp.bb_PseudoCost.LOcost[ii].colnr, lp.bb_PseudoCost.UPcost[ii].colnr) < 5 * lp.bb_PseudoCost.updatelimit))
+                    {
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp_mipbb. strongbranch_BB(lp, BB, ii, BB_INT, nonint[0][0]);
+                    }
+
+                    /* Select default pricing/weighting mode */
+                    if (pseudocostmode)
+                    {
+                        OFval = get_pseudonodecost(lp.bb_PseudoCost, ii, BB_INT, lp.solution[i]);
+                    }
+                    else
+                    {
+                        OFval = lp_types.my_chsign(is_maxim(lp), get_mat(lp, 0, ii));
+                    }
+
+                    if (randomizemode)
+                    {
+                        randval = System.Math.Exp(lp_utils.rand_uniform(lp, 1.0));
+                    }
+
+                    /* Find the maximum pseudo-cost of a variable (don't apply pseudocostmode here) */
+                    if ((pseudocostsel != null) ? pseudocostmode : false)
+                    {
+                        if (pseudocostmode)
+                        {
+                            hold = OFval;
+                        }
+                        else
+                        {
+                            hold = get_pseudonodecost(lp.bb_PseudoCost, ii, BB_INT, lp.solution[i]);
+                        }
+                        hold *= randval;
+                        if (greedymode)
+                        {
+                            if (pseudocostmode) // Override!
+                            {
+                                OFval = lp_types.my_chsign(is_maxim(lp), get_mat(lp, 0, ii));
+                            }
+                            hold *= OFval;
+                        }
+                        hold = lp_types.my_chsign(reversemode, hold);
+                    }
+                    else
+                    {
+                        /* Find the variable with the largest gap to its bounds (distance from being fixed) */
+                        if (is_bb_rule(lp, NODE_GAPSELECT))
+                        {
+                            hold = lp.solution[i];
+                            holdINT = hold - lp_scale.unscaled_value(lp, upbo[i], i);
+                            hold -= lp_scale.unscaled_value(lp, lowbo[i], i);
+                            if (System.Math.Abs(holdINT) > hold)
+                            {
+                                hold = holdINT;
+                            }
+                            if (greedymode)
+                            {
+                                hold *= OFval;
+                            }
+                            hold = lp_types.my_chsign(reversemode, hold) * randval;
+                        }
+                        else
+                        {
+                            /* Find the variable with the largest integer gap (closest to 0.5) */
+                            if (is_bb_rule(lp, NODE_FRACTIONSELECT))
+                            {
+                                hold = lp.solution[i] % holdINT;
+                                holdINT = hold - 1;
+                                if (System.Math.Abs(holdINT) > hold)
+                                {
+                                    hold = holdINT;
+                                }
+                                if (greedymode)
+                                {
+                                    hold *= OFval;
+                                }
+                                hold = lp_types.my_chsign(reversemode, hold) * randval;
+                            }
+                            else
+                            {
+                                /* Find the "range", most flexible variable */
+                                if (is_bb_rule(lp, NODE_RANGESELECT))
+                                {
+                                    hold = lp_scale.unscaled_value(lp, upbo[i] - lowbo[i], i);
+                                    if (greedymode)
+                                    {
+                                        hold *= OFval;
+                                    }
+                                    hold = lp_types.my_chsign(reversemode, hold) * randval;
+                                }
+                            }
+                        }
+                    }
+
+                    /* Select better, check for ties, and split by proximity to 0.5 */
+                    if (hold > bestval)
+                    {
+                        if ((hold > bestval + epsprimal) || (System.Math.Abs(lp.solution[i] % holdINT) - 0.5) < System.Math.Abs(lp.solution[bestvar] % holdINT) - 0.5)
+                        {
+                            bestval = hold;
+                            bestvar = i;
+                        }
+                    }
+                }
+            }
+
+            Done:
+            /*NOT REQUIRED
+            FREE(nonint);
+            */
+            return (bestvar);
+        }
+
+        internal static int find_sos_bbvar(lprec lp, ref int count, bool intsos)
+        {
+            int k;
+            int i;
+            int j;
+            int @var;
+
+            @var = 0;
+            if ((lp.SOS == null) || (count > 0))
+            {
+                return (@var);
+            }
+
+            /* Check if the SOS'es happen to already be satisified */
+            i = lp_SOS.SOS_is_satisfied(lp.SOS, 0, ref lp.solution[0]);
+            if ((i == lp_SOS.SOS_COMPLETE) || (i == lp_SOS.SOS_INCOMPLETE))
+            {
+                return (-1);
+            }
+
+            /* Otherwise identify a SOS variable to enter B&B */
+            for (k = 0; k < lp.sos_vars; k++)
+            {
+                i = (lp.sos_priority[k] != null) ? Convert.ToInt32(lp.sos_priority[k]) : 0;
+#if Paranoia
+	if ((i < 1) || (i > lp.columns))
+	{
+	  report(lp, SEVERE, "find_sos_bbvar: Invalid SOS variable map %d at %d\n", i, k);
+	}
+#endif
+                j = lp.rows + i;
+                if (!lp_SOS.SOS_is_marked(lp.SOS, 0, i) && !lp_SOS.SOS_is_full(lp.SOS, 0, i, 0))
+                {
+                    /*    if(!SOS_is_marked(lp->SOS, 0, i) && !SOS_is_full(lp->SOS, 0, i, TRUE)) { */
+                    if (!intsos || is_int(lp, i))
+                    {
+                        count++;
+                        if (@var == 0)
+                        {
+                            @var = j;
+                            break;
+                        }
+                    }
+                }
+            }
+#if Paranoia
+  if ((@var > 0) && !SOS_is_member(lp.SOS, 0, @var - lp.rows))
+  {
+	 report(lp, SEVERE, "find_sos_bbvar: Found variable %d, which is not a SOS!\n", @var);
+  }
+#endif
+            return (@var);
+        }
+
+
+        internal static new int get_var_priority(lprec lp, int colnr)
+        {
+            if ((colnr > lp.columns) || (colnr < 1))
+            {
+                string msg = "get_var_priority: Column {0} out of range\n";
+                lp.report(lp, IMPORTANT, ref msg, colnr);
+                return (0);
+            }
+
+            if (lp.var_priority == null)
+            {
+                return (colnr);
+            }
+            else
+            {
+                return ((lp.var_priority[colnr - 1] != null) ? Convert.ToInt32(lp.var_priority[colnr - 1]) : 0);
+            }
+
+        }
+
+
+
+        internal new static BBPSrec init_pseudocost(lprec lp, int pseudotype)
+        {
+            int i;
+            double PSinitUP;
+            double PSinitLO;
+            BBPSrec newitem;
+            bool isPSCount;
+
+            /* Allocate memory */
+            newitem = new BBPSrec();
+            newitem.lp = lp;
+            /*NOT REQUIRED
+            newitem.LOcost = (MATitem)malloc((lp.columns + 1) * sizeof(*newitem.LOcost));
+            newitem.UPcost = (MATitem)malloc((lp.columns + 1) * sizeof(*newitem.UPcost));
+            */
+            newitem.secondary = null;
+
+            /* Initialize with OF values */
+            newitem.pseodotype = (pseudotype & NODE_STRATEGYMASK);
+            isPSCount = ((pseudotype & NODE_PSEUDONONINTSELECT) != 0);
+            for (i = 1; i <= lp.columns; i++)
+            {
+                newitem.LOcost[i].rownr = 1; // Actual updates
+                newitem.LOcost[i].colnr = 1; // Attempted updates
+                newitem.UPcost[i].rownr = 1;
+                newitem.UPcost[i].colnr = 1;
+
+                /* Initialize with the plain OF value as conventional usage suggests, or
+                   override in case of pseudo-nonint count strategy */
+                PSinitUP = lp_types.my_chsign(is_maxim(lp), get_mat(lp, 0, i));
+                PSinitLO = -PSinitUP;
+                if (isPSCount)
+                {
+                    /* Set default assumed reduction in the number of non-ints by choosing this variable;
+                       KE changed from 0 on 30 June 2004 and made two-sided selectable.  Note that the
+                       typical value range is <0..1>, with a positive bias for an "a priori" assumed
+                       fast-converging (low "MIP-complexity") model. Very hard models may require
+                       negative initialized values for one or both. */
+                    PSinitUP = 0.1 * 0;
+#if false
+//      PSinitUP = my_chsign(PSinitUP < 0, PSinitUP);
+//      PSinitLO = -PSinitUP;
+#else
+                    PSinitLO = PSinitUP;
+#endif
+                }
+                newitem.UPcost[i].value = PSinitUP;
+                newitem.LOcost[i].value = PSinitLO;
+            }
+            newitem.updatelimit = lp.bb_PseudoUpdates;
+            newitem.updatesfinished = 0;
+            newitem.restartlimit = DEF_PSEUDOCOSTRESTART;
+
+            /* Let the user get an opportunity to initialize pseudocosts */
+            if (userabort(lp, MSG_INITPSEUDOCOST))
+            {
+                lp.spx_status = USERABORT;
+            }
+
+            return (newitem);
+        }
+
 
         internal static bool pop_basis(lprec lp, bool restore)
         /* Pop / free, and optionally restore the previously "pushed" / saved basis */
@@ -7322,6 +8303,16 @@ internal static class StringFunctions
 
             lp.wasPreprocessed = false;
         }
+
+        internal new static void transfer_solution_var(lprec lp, int uservar)
+        {
+            if (lp.varmap_locked && (bool)((lp.do_presolve & PRESOLVE_LASTMASKMODE) != PRESOLVE_NONE))
+            {
+                uservar += lp.rows;
+                lp.full_solution[lp.presolve_undo.orig_rows + lp.presolve_undo.var_to_orig[uservar]] = (lp.best_solution[uservar] != null) ? Convert.ToDouble(lp.best_solution[uservar]): 0;
+            }
+        }
+
 
         /* Calculate sensitivity duals */
         internal new static bool construct_sensitivity_duals(lprec lp)
@@ -7704,6 +8695,59 @@ internal static class StringFunctions
             }
         }
 
+        internal static int findBasisPos(lprec lp, int notint, int[] var_basic)
+        {
+            int i;
+
+            if (var_basic == null)
+            {
+                var_basic = lp.var_basic;
+            }
+            for (i = lp.rows; i > 0; i--)
+            {
+                if (var_basic[i] == notint)
+                {
+                    break;
+                }
+            }
+            return (i);
+        }
+
+        internal new static bool check_if_less(lprec lp, double x, double y, int variable)
+        {
+            if (y < x - lp_scale.scaled_value(lp, lp.epsint, variable))
+            {
+                if (lp.bb_trace)
+                {
+                    string msg = "check_if_less: Invalid new bound {0} should be < {1} for {2}\n";
+                   lp.report(lp, NORMAL, ref msg, x, y, get_col_name(lp, variable));
+                }
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+
+        /* Various basis utility routines */
+        internal static int findNonBasicSlack(lprec lp, bool[] is_basic)
+        {
+            int i;
+
+            for (i = lp.rows; i > 0; i--)
+            {
+                if (!is_basic[i])
+                {
+                    break;
+                }
+            }
+            return (i);
+        }
+
+
+
         internal static bool post_MIPOBJ(lprec lp)
         {
 #if MIPboundWithOF
@@ -7767,7 +8811,7 @@ internal static class StringFunctions
                     {
                         msg = "get_ptr_sensitivity_objex: Sensitivity unknown\n";
                         lp.report(lp, CRITICAL, ref msg);
-                        return (0);
+                        return false;
                     }
                     construct_sensitivity_duals(lp);
                     if ((lp.objfromvalue == null))
@@ -7814,6 +8858,214 @@ internal static class StringFunctions
             return true;
 #endif
         }
+
+        internal new static void construct_solution(lprec lp, ref double target)
+        {
+            int i;
+            int j;
+            int basi;
+            double f;
+            double epsvalue = epsprimal;
+            double[] solution = null;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: double *value;
+            double value;
+            //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
+            //ORIGINAL LINE: int *rownr;
+            int rownr;
+            MATrec mat = lp.matA;
+
+            if (target == null)
+            {
+                solution = lp.solution;
+            }
+            else
+            {
+                solution[0] = target;
+            }
+
+            /* Initialize OF and slack variables. */
+            for (i = 0; i <= lp.rows; i++)
+            {
+#if LegacySlackDefinition
+	if (i == 0)
+	{
+	  f = unscaled_value(lp, -lp.orig_rhs[i], i);
+	}
+	else
+	{
+	  j = lp.presolve_undo.var_to_orig[i];
+	  if (j > 0)
+	  {
+		f = lp.presolve_undo.fixed_rhs[j];
+		f = unscaled_value(lp, f, i);
+	  }
+	  else
+	  {
+		f = 0;
+	  }
+	}
+#else
+                f = lp.orig_rhs[i];
+                if ((i > 0) && !lp.is_basic[i] && !lp.is_lower[i])
+                {
+#if SlackInitMinusInf
+	  f -= my_chsign(is_chsign(lp, i), Math.Abs(lp.upbo[i]));
+	}
+#else
+                    f -= lp_types.my_chsign(is_chsign(lp, i), System.Math.Abs(lp.lowbo[i] + lp.upbo[i]));
+#endif
+                    f = lp_scale.unscaled_value(lp, -f, i);
+#endif
+                    solution[i] = f;
+                }
+
+                /* Initialize user variables to their lower bounds. */
+                for (i = lp.rows + 1; i <= lp.sum; i++)
+                {
+                    solution[i] = lp.lowbo[i];
+                }
+
+                /* Add values of user basic variables. */
+                for (i = 1; i <= lp.rows; i++)
+                {
+                    basi = lp.var_basic[i];
+                    if (basi > lp.rows)
+                    {
+                        solution[basi] += lp.rhs[i];
+                    }
+                }
+
+                /* 1. Adjust non-basic variables at their upper bounds,
+                   2. Unscale all user variables,
+                   3. Optionally do precision management. */
+                for (i = lp.rows + 1; i <= lp.sum; i++)
+                {
+                    if (!lp.is_basic[i] && !lp.is_lower[i])
+                    {
+                        solution[i] += lp.upbo[i];
+                    }
+                    solution[i] = lp_scale.unscaled_value(lp, solution[i], i);
+#if xImproveSolutionPrecision
+	if (is_int(lp, i - lp.rows))
+	{
+	  solution[i] = restoreINT(solution[i], lp.epsint);
+	}
+	else
+	{
+	  solution[i] = restoreINT(solution[i], lp.epsprimal);
+	}
+#endif
+                }
+
+                /* Compute the OF and slack values "in extentio" */
+                for (j = 1; j <= lp.columns; j++)
+                {
+                    f = solution[lp.rows + j];
+                    if (f != 0)
+                    {
+                        solution[0] += f * lp_scale.unscaled_mat(lp, lp.orig_obj[j], 0, j);
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        i = mat.col_end[j - 1][0];
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        basi = mat.col_end[j][0];
+                        rownr = lp_matrix.COL_MAT_ROWNR(i);
+                        value = lp_matrix.COL_MAT_VALUE(i);
+                        for (; i < basi; i++, rownr += lp_matrix.matRowColStep, value += lp_matrix.matValueStep)
+                        {
+                            solution[rownr] += f * lp_scale.unscaled_mat(lp, value, rownr, j);
+                        }
+                    }
+                }
+
+                /* Do slack precision management and sign reversal if necessary */
+                for (i = 0; i <= lp.rows; i++)
+                {
+#if ImproveSolutionPrecision
+	my_roundzero(solution[i], epsvalue);
+#endif
+                    if (is_chsign(lp, i))
+                    {
+                        solution[i] = lp_types.my_flipsign(solution[i]);
+                    }
+                }
+
+                /* Record the best real-valued solution and compute a simple MIP solution limit */
+                if (target == null)
+                {
+                    if (is_infinite(lp, lp.real_solution))
+                    {
+                        lp.bb_workOF = lp.rhs[0];
+                        lp.real_solution = solution[0];
+                        if (is_infinite(lp, lp.bb_limitOF))
+                        {
+                            lp.bb_limitOF = lp.real_solution;
+                        }
+                        else
+                        {
+                            if (is_maxim(lp))
+                            {
+                               commonlib.SETMIN(lp.bb_limitOF, lp.real_solution);
+                            }
+                            else
+                            {
+                                commonlib.SETMAX(lp.bb_limitOF, lp.real_solution);
+                            }
+                        }
+
+                        /* Do MIP-related tests and computations */
+                        if ((lp.int_vars > 0) && lp_matrix.mat_validate(lp.matA))
+                        { // && !lp->wasPresolved uncommented by findings of William H. Patton. The code was never executed when the test was there. The code has effect in an integer model with all integer objective coeff. to cut-off optimization and thus make it faster
+                            double fixedOF = lp_scale.unscaled_value(lp, lp.orig_rhs[0], 0);
+
+                            /* Check if we have an all-integer OF */
+                            basi = lp.columns;
+                            for (j = 1; j <= basi; j++)
+                            {
+                                f = System.Math.Abs(get_mat(lp, 0, j)) + lp.epsint / 2;
+                                if (f > lp.epsint)
+                                { // If coefficient is 0 then it doesn't influence OF, even it variable is not integer
+                                    if (!is_int(lp, j) || (f % 1 > lp.epsint))
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+
+                            /* If so, we can round up the fractional OF */
+                            if (j > basi)
+                            {
+                                f = lp_types.my_chsign(is_maxim(lp), lp.real_solution) + fixedOF;
+                                f = System.Math.Floor(f + (1 - epsvalue));
+                                f = lp_types.my_chsign(is_maxim(lp), f - fixedOF);
+                                if (is_infinite(lp, lp.bb_limitOF))
+                                {
+                                    lp.bb_limitOF = f;
+                                }
+                                else if (is_maxim(lp))
+                                {
+                                   commonlib.SETMIN(lp.bb_limitOF, f);
+                                }
+                                else
+                                {
+                                    commonlib.SETMAX(lp.bb_limitOF, f);
+                                }
+                            }
+                        }
+
+                        /* Check that a user limit on the OF is feasible */
+                        if ((lp.int_vars > 0) && (lp_types.my_chsign(is_maxim(lp), lp_types.my_reldiff((lp.best_solution[0] != null) ? Convert.ToDouble(lp.best_solution[0]) : 0,  lp.bb_limitOF)) < -epsvalue))
+                        {
+                            lp.spx_status = INFEASIBLE;
+                            lp.bb_break = true;
+                        }
+                    }
+                }
+            }
+            }/* construct_solution */
+
 
         internal static int check_solution(lprec lp, int lastcolumn, double?[] solution, double[] upbo, double[] lowbo, double tolerance)
         {
@@ -8189,14 +9441,14 @@ internal static class StringFunctions
             }
         }
 
-        private new double get_rh(lprec lp, int rownr)
+        private static new double get_rh(lprec lp, int rownr)
         {
             double value;
 
             if ((rownr > lp.rows) || (rownr < 0))
             {
                 string msg = "get_rh: Row %d out of range";
-                report(lp, IMPORTANT, ref msg, rownr);
+                lp.report(lp, IMPORTANT, ref msg, rownr);
                 return (0.0);
             }
 
@@ -8219,5 +9471,167 @@ internal static class StringFunctions
         {
             return ((lp.lp_name != null) ? lp.lp_name : (string)"");
         }
+
+        internal static void transfer_solution(lprec lp, bool dofinal)
+        {
+            int i;
+            int ii;
+
+            /*NOT REQUIRED
+            MEMCOPY(lp.best_solution, lp.solution, lp.sum + 1);
+            */
+
+            /* Round integer solution values to actual integers */
+            if (is_integerscaling(lp) && (lp.int_vars > 0))
+            {
+                for (i = 1; i <= lp.columns; i++)
+                {
+                    if (is_int(lp, i))
+                    {
+                        ii = lp.rows + i;
+                        lp.best_solution[ii] = System.Math.Floor((lp.best_solution[ii] != null) ? Convert.ToDouble(lp.best_solution[ii]) : 0.0 + 0.5);
+                    }
+                }
+            }
+
+            /* Transfer to full solution vector in the case of presolved eliminations */
+            if (dofinal != null && lp.varmap_locked && (bool)((lp.do_presolve & PRESOLVE_LASTMASKMODE) != PRESOLVE_NONE))
+            {
+                presolveundorec psundo = lp.presolve_undo;
+
+                lp.full_solution[0] = (lp.best_solution[0] != null) ? Convert.ToDouble(lp.best_solution[0]) : 0.0;
+                for (i = 1; i <= lp.rows; i++)
+                {
+                    ii = psundo.var_to_orig[i];
+#if Paranoia
+	  if ((ii < 0) || (ii > lp.presolve_undo.orig_rows))
+	  {
+		report(lp, SEVERE, "transfer_solution: Invalid mapping of row index %d to original index '%d'\n", i, ii);
+	  }
+#endif
+                    lp.full_solution[ii] = (lp.best_solution[i] != null) ? Convert.ToDouble(lp.best_solution[i]) : 0.0;
+                }
+                for (i = 1; i <= lp.columns; i++)
+                {
+                    ii = psundo.var_to_orig[lp.rows + i];
+#if Paranoia
+	  if ((ii < 0) || (ii > lp.presolve_undo.orig_columns))
+	  {
+		report(lp, SEVERE, "transfer_solution: Invalid mapping of column index %d to original index '%d'\n", i, ii);
+	  }
+#endif
+                    lp.full_solution[psundo.orig_rows + ii] = (lp.best_solution[lp.rows + i] != null) ? Convert.ToDouble(lp.best_solution[lp.rows + i]) : 0;
+                }
+            }
+
+        }
+
+        private static new int prepare_GUB(lprec lp)
+        {
+            int i;
+            int j;
+            int jb;
+            int je;
+            int k;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'int[] members' to 'int[][] members' need to check at run time
+            int[][] members = null;
+            double rh;
+            string GUBname = new string(new char[16]);
+            MATrec mat = lp.matA;
+
+            if ((lp.equalities == 0) || ! lp_utils.allocINT(lp, members, lp.columns + 1, 1) || ! lp_matrix.mat_validate(mat))
+            {
+                return (0);
+            }
+
+            for (i = 1; i <= lp.rows; i++)
+            {
+
+                /* Check if it has been marked as a GUB */
+                if (((lp.row_type[i] & ROWTYPE_GUB) == 0))
+
+                {
+                    continue;
+                }
+
+                /* Pick up the GUB column indeces */
+                k = 0;
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                je = mat.row_end[i][0];
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                for (jb = mat.row_end[i - 1][0], k = 0; jb < je; jb++)
+                {
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    members[k][0] = lp_matrix.ROW_MAT_COLNR(jb);
+                    k++;
+                }
+
+                /* Add the GUB */
+                j = GUB_count(lp) + 1;
+                GUBname = string.Format("GUB_{0:D}", i);
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set [][] as 0 for now; need to check at run time
+                add_GUB(lp, ref GUBname, j, k, ref members[0][0]);
+
+                /* Unmark the GUBs */
+                clear_action(ref (lp.row_type[i]), ROWTYPE_GUB);
+
+                /* Standardize coefficients to 1 if necessary */
+                rh = get_rh(lp, i);
+                if (System.Math.Abs(lp_types.my_reldiff(rh, 1)) > epsprimal)
+                {
+                    set_rh(lp, i, 1);
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    for (jb = mat.row_end[i - 1][0]; jb < je; jb++)
+                    {
+                        j = lp_matrix.ROW_MAT_COLNR(jb);
+                        set_mat(lp, i, j, 1);
+                    }
+                }
+
+            }
+            /*NOT REQUIRED
+            FREE(members);
+            */
+            return (GUB_count(lp));
+        }
+
+        private static new int add_GUB(lprec lp, ref string name, int priority, int count, ref int gubvars)
+        {
+            SOSrec GUB;
+            int k;
+
+#if Paranoia
+  if (count < 0)
+  {
+	report(lp, IMPORTANT, "add_GUB: Invalid GUB member count %d\n", count);
+	return (0);
+  }
+#endif
+
+            /* Make size in the list to handle another GUB record */
+            if (lp.GUB == null)
+            {
+                lp.GUB = lp_SOS.create_SOSgroup(lp);
+            }
+
+            /* Create and append GUB to list */
+            double? weights = null;
+            int?[] gv = null;
+            gv[0] = gubvars;
+            GUB = lp_SOS.create_SOSrec(lp.GUB, ref name, 1, priority, count, ref gv, ref weights);
+            GUB.isGUB = 1;
+            k = lp_SOS.append_SOSgroup(lp.GUB, GUB);
+
+            return (k);
+
+        }
+
+
     }
 }

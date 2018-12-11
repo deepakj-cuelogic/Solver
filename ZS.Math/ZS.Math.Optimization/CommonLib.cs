@@ -373,9 +373,9 @@ namespace ZS.Math.Optimization
         /// Please check usage and do changes appropriately 
         /// </summary>
         // ORIGINAL LINE: int CMP_CALLMODEL compareINT(const void *current, const void *candidate);
-        private static int compareINT(object current, object candidate)
+        internal static int compareINT(object current, object candidate)
         {
-            throw new NotImplementedException();
+            return Convert.ToInt32((CMP_COMPARE((int)current, (int)candidate)));
         }
         /// <summary>
         /// Please check usage and do changes appropriately 
@@ -385,13 +385,207 @@ namespace ZS.Math.Optimization
         {
             return (int)(CMP_COMPARE((double)current, (double)candidate));
         }
-        private static void hpsort(object attributes, int count, int offset, int recsize, byte descending, findCompare_func findCompare)
+
+        /* Heap sort function (procedurally based on the Numerical Recipes version,
+   but expanded and generalized to hande any object with the use of
+   qsort-style comparison operator).  An expanded version is also implemented,
+   where interchanges are reflected in a caller-initialized integer "tags" list. */
+        private static void hpsort(object attributes, int count, int offset, int recsize, bool descending, findCompare_func findCompare)
         {
-            throw new NotImplementedException();
+            //C++ TO C# CONVERTER NOTE: 'register' variable declarations are not supported in C#:
+            //ORIGINAL LINE: register int i, j, k, ir, order;
+            int i;
+            int j;
+            int k;
+            int ir;
+            int order;
+            //C++ TO C# CONVERTER NOTE: 'register' variable declarations are not supported in C#:
+            //ORIGINAL LINE: register char *hold, *base;
+            //C++ TO C# CONVERTER TODO TASK: Pointer arithmetic is detected on this variable, so pointers on this variable are left unchanged:
+            string hold;
+            string @base;
+            string save="";
+
+            if (count < 2)
+            {
+                return;
+            }
+            offset -= 1;
+            attributes = CMP_ATTRIBUTES(attributes, offset, recsize);
+            @base = CMP_ATTRIBUTES(attributes, 1, recsize).ToString();
+            /*NOT REQUIRED
+            save = (string)malloc(recsize);
+            */
+
+            if (descending)
+            {
+                order = -1;
+            }
+            else
+            {
+                order = 1;
+            }
+
+            k = (count >> 1) + 1;
+            ir = count;
+
+            for (;;)
+            {
+                /*NOT REQUIRED
+                if (k > 1)
+                {
+                    MEMCOPY(save, CMP_ATTRIBUTES(--k), recsize);
+                }
+                else
+                {
+                */
+                    hold = CMP_ATTRIBUTES(attributes, ir, recsize).ToString();
+                /*NOT REQUIRED
+                    MEMCOPY(save, hold, recsize);
+                    MEMCOPY(hold, @base, recsize);
+                    if (--ir == 1)
+                    {
+                        MEMCOPY(@base, save, recsize);
+                        break;
+                    }
+                }
+                */
+
+                i = k;
+                j = k << 1;
+                while (j <= ir)
+                {
+                    hold = CMP_ATTRIBUTES(attributes, j, recsize).ToString();
+                    if ((j < ir) && (findCompare(hold, Convert.ToInt32(CMP_ATTRIBUTES(attributes, (j + 1), recsize)) * order) < 0))
+                    {
+                        hold += recsize;
+                        j++;
+                    }
+                    if (findCompare(save, hold) * order < 0)
+                    {
+                        /*NOT REQUIRED
+                        MEMCOPY(CMP_ATTRIBUTES(i), hold, recsize);
+                        */
+                        i = j;
+                        j <<= 1;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                /*NOT REQUIRED
+                MEMCOPY(CMP_ATTRIBUTES(i), save, recsize);
+                */
+            }
+            /*NOT REQUIRED
+            FREE(save);
+            */
         }
-        private static void hpsortex(object attributes, int count, int offset, int recsize, byte descending, findCompare_func findCompare, ref int tags)
+        internal static void hpsortex(object attributes, int count, int offset, int recsize, bool descending, findCompare_func findCompare, ref int[] tags)
         {
-            throw new NotImplementedException();
+            if (count < 2)
+            {
+                return;
+            }
+            if (tags == null)
+            {
+                hpsort(attributes, count, offset, recsize, descending, findCompare);
+                return;
+            }
+            else
+            {
+                int i;
+                int j;
+                int k;
+                int ir;
+                int order;
+                string hold;
+                string @base;
+                string save ="";
+                int savetag;
+
+                offset -= 1;
+                attributes = (((string)attributes) + ((double)offset) * (double)recsize);
+                tags[0] += offset;
+                @base = (((string)attributes) + ((double)1) * (double)recsize);
+                /*NOT REQUIRED
+                save = (string)malloc(recsize);
+                */
+            if (descending)
+                {
+                    order = -1;
+                }
+                else
+                {
+                    order = 1;
+                }
+
+                k = (count >> 1) + 1;
+                ir = count;
+
+                for (;;)
+                {
+                    if (k > 1)
+                    {
+                        /*NOT REQUIRED
+                        MEMCOPY(save, CMP_ATTRIBUTES(--k), recsize);
+                        */
+                        savetag = tags[k];
+                    }
+                    else
+                    {
+                        hold = (((string)attributes) + ((double)ir) * (double)recsize);
+                        /*NOT REQUIRED
+                        MEMCOPY(save, hold, recsize);
+                        MEMCOPY(hold, @base, recsize);
+                        */
+                        savetag = tags[ir];
+                        tags[ir] = tags[1];
+                        if (--ir == 1)
+                        {
+                            /*NOT REQUIRED
+                            MEMCOPY(@base, save, recsize);
+                            */
+                            tags[1] = savetag;
+                            break;
+                        }
+                    }
+
+                    i = k;
+                    j = k << 1;
+                    while (j <= ir)
+                    {
+                        hold = CMP_ATTRIBUTES(attributes,j, recsize).ToString();
+                        if ((j < ir) && (findCompare(hold, Convert.ToInt32(CMP_ATTRIBUTES(attributes,(j + 1),recsize)) * order) < 0))
+                        {
+                            hold += recsize;
+                            j++;
+                        }
+                        if (findCompare(save, hold) * order < 0)
+                        {
+                            /*NOT REQUIRED
+                            MEMCOPY(CMP_ATTRIBUTES(i), hold, recsize);
+                            */
+                            tags[i] = tags[j];
+                            i = j;
+                            j <<= 1;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    /*NOT REQUIRED
+                    MEMCOPY(CMP_ATTRIBUTES(i), save, recsize);
+                    */
+                    tags[i] = savetag;
+                }
+                /*NOT REQUIRED
+                FREE(save);
+                */
+            }
+
         }
 
         private static void QS_swap(QSORTrec[] a, int i, int j)
@@ -436,7 +630,7 @@ namespace ZS.Math.Optimization
             int iswaps = 0;
 
             /* Check and initialize */
-            if (count <= 1)
+                if (count <= 1)
             {
                 goto Finish;
             }
@@ -633,7 +827,7 @@ namespace ZS.Math.Optimization
 
         internal static double timeNow()
         {
-            #if INTEGERTIME
+#if INTEGERTIME
 //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
   return ((double)time(null));
 #elif CLOCKTIME
@@ -672,62 +866,68 @@ namespace ZS.Math.Optimization
 //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
   return (timeBase + (double) now.QuadPart / (double) freq.QuadPart);
 #else
-        timeb buf = new timeb();
+            /* can use Time.Now() instead??
+            timeb buf = new timeb();
+            */
 
-//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
-  ftime(&buf);
-//C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
-  return ((double)buf.time + ((double) buf.millitm) / 1000.0);
-#endif
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            /* can use Time.Now() instead??
+              ftime(&buf);
+              */
+            //C++ TO C# CONVERTER TODO TASK: The following statement was not recognized, possibly due to an unrecognized macro:
+            /* can use Time.Now() instead??
+              return ((double)buf.time + ((double) buf.millitm) / 1000.0);
+            #endif
+            */
+            return Convert.ToDouble(DateTime.Now);
+                    }
 
-        }
+                private static void blockWriteBOOL(FILE output, ref string label, ref byte myvector, int first, int last, byte asRaw)
+                    {
+                        throw new NotImplementedException();
+                    }
+                    private static void blockWriteINT(FILE output, ref string label, ref int myvector, int first, int last)
+                    {
+                        throw new NotImplementedException();
+                    }
+                    private static void blockWriteREAL(FILE output, ref string label, ref double myvector, int first, int last)
+                    {
+                        throw new NotImplementedException();
+                    }
 
-    private static void blockWriteBOOL(FILE output, ref string label, ref byte myvector, int first, int last, byte asRaw)
-        {
-            throw new NotImplementedException();
-        }
-        private static void blockWriteINT(FILE output, ref string label, ref int myvector, int first, int last)
-        {
-            throw new NotImplementedException();
-        }
-        private static void blockWriteREAL(FILE output, ref string label, ref double myvector, int first, int last)
-        {
-            throw new NotImplementedException();
-        }
+                    private static void printvec(int n, ref double x, int modulo)
+                    {
+                        throw new NotImplementedException();
+                    }
+                    private static void printmatSQ(int size, int n, ref double X, int modulo)
+                    {
+                        throw new NotImplementedException();
+                    }
+                    private static void printmatUT(int size, int n, ref double U, int modulo)
+                    {
+                        throw new NotImplementedException();
+                    }
 
-        private static void printvec(int n, ref double x, int modulo)
-        {
-            throw new NotImplementedException();
-        }
-        private static void printmatSQ(int size, int n, ref double X, int modulo)
-        {
-            throw new NotImplementedException();
-        }
-        private static void printmatUT(int size, int n, ref double U, int modulo)
-        {
-            throw new NotImplementedException();
-        }
+                    private static uint catchFPU(uint mask)
+                    {
+                        throw new NotImplementedException();
+                    }
 
-        private static uint catchFPU(uint mask)
-        {
-            throw new NotImplementedException();
-        }
+            #if _MSC_VER
+            private static  int fileCount(ref string filemask)
+            {
+            throw new NotImplementedException(); 
+                    }
+            private static  byte fileSearchPath(ref string envvar, ref string searchfile, ref string foundpath)
+            {
+            throw new NotImplementedException(); 
+                    }
+            #endif
 
-#if _MSC_VER
-private static  int fileCount(ref string filemask)
-{
-throw new NotImplementedException(); 
-        }
-private static  byte fileSearchPath(ref string envvar, ref string searchfile, ref string foundpath)
-{
-throw new NotImplementedException(); 
-        }
-#endif
-
-    }
+                }
 
 
-    /* This defines a 16 byte sort record (in both 32 and 64 bit OS-es) */
+                /* This defines a 16 byte sort record (in both 32 and 64 bit OS-es) */
     public class QSORTrec1
     {
         public object ptr;
@@ -777,4 +977,5 @@ throw new NotImplementedException();
         public QSORTrec6 real2 = new QSORTrec6();
         public QSORTrec7 int4 = new QSORTrec7();
     }
+#endif
 }

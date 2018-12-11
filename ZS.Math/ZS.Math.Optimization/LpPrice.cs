@@ -21,7 +21,7 @@ namespace ZS.Math.Optimization
 
             /* Solve for "local reduced cost" */
             LpCls.set_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
-            int[] nullpara = null;
+            int?[] nullpara = null;
             double[] nullpara2 = null;
             //ORIGINAL LINE: compute_reducedcosts(lp, true, rownr, null, 1, prow, nzprow, null, null, lp_matrix.MAT_ROUNDDEFAULT);
             compute_reducedcosts(lp, true, rownr, ref nullpara, true, ref prow, ref nzprow, ref nullpara2, ref nullpara, lp_matrix.MAT_ROUNDDEFAULT);
@@ -52,7 +52,7 @@ namespace ZS.Math.Optimization
             return (bestindex);
         }
 
-        internal static void compute_reducedcosts(lprec lp, bool? isdual, int row_nr, ref int?[] coltarget, bool? dosolve, ref double[] prow, ref int[] nzprow, ref double[] drow, ref int[] nzdrow, int roundmode)
+        internal static void compute_reducedcosts(lprec lp, bool? isdual, int row_nr, ref int?[] coltarget, bool? dosolve, ref double?[] prow, ref int[] nzprow, ref double[] drow, ref int?[] nzdrow, int roundmode)
         {
             LpCls objLpCls = new LpCls();
             double epsvalue = lprec.epsvalue; // Any larger value can produce a suboptimal result
@@ -989,6 +989,23 @@ namespace ZS.Math.Optimization
             }
             return (testOK);
         }
+
+        internal static void multi_free(multirec[] multi)
+        {
+            if ((multi == null) || (multi[0] == null))
+            {
+                return;
+            }
+            /*NOT REQUIRED
+            FREE(multi.items);
+            FREE(multi.valueList);
+            FREE(multi.indexSet);
+            FREE(multi.freeList);
+            FREE(multi.sortedList);
+            FREEmulti;
+            */
+        }
+
 
         internal static int partial_countBlocks(lprec lp, bool isrow)
         {
