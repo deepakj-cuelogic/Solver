@@ -1043,7 +1043,7 @@ namespace ZS.Math.Optimization
         }
 
         /* Find the primal simplex leaving basic column variable */
-        internal static int rowprim(lprec lp, int colnr, ref double theta, ref double?[] pcol, ref int? nzpcol, bool forceoutEQ, ref double xviol)
+        internal static int rowprim(lprec lp, int colnr, ref double theta, ref double[] pcol, ref int? nzpcol, bool forceoutEQ, ref double xviol)
         {
             int i;
             int ii;
@@ -1781,7 +1781,7 @@ namespace ZS.Math.Optimization
 
         //Changed By: CS Date:28/11/2018
         /* Computation of reduced costs */
-        internal static void update_reducedcosts(lprec lp, bool isdual, int leave_nr, int enter_nr, double?[] prow, double drow)
+        internal static void update_reducedcosts(lprec lp, bool isdual, int leave_nr, int enter_nr, double[] prow, double drow)
         {
             /* "Fast" update of the dual reduced cost vector; note that it must be called
                after the pivot operation and only applies to a major "true" iteration */

@@ -2393,7 +2393,7 @@ namespace ZS.Math.Optimization
 
         /* Retrieve a column vector from the data matrix [1..rows, rows+1..rows+columns];
            needs __WINAPI call model since it may be called from BFPs */
-        internal static int obtain_column(lprec lp, int varin, ref double?[] pcol, ref int[] nzlist, ref int maxabs)
+        internal static int obtain_column(lprec lp, int varin, ref double[] pcol, ref int[] nzlist, ref int maxabs)
         {
             double value = lp_types.my_chsign(lp.is_lower[0], -1);
             if (varin > lp.rows)
@@ -3519,7 +3519,7 @@ internal static class StringFunctions
             return ((bool)(get_piv_rule(lp) == rule));
         }
 
-        internal static bool check_degeneracy(lprec lp, ref double?[] pcol, ref int degencount)
+        internal static bool check_degeneracy(lprec lp, ref double[] pcol, ref int degencount)
         {
             /* Check if the entering column Pi=Inv(B)*a is likely to produce improvement;
            (cfr. Istvan Maros: CTOTSM p. 233) */
@@ -4749,7 +4749,7 @@ internal static class StringFunctions
         }
 
         //Changed By: CS Date:28/11/2018
-        internal static bool performiteration(lprec lp, int rownr, int varin, double theta, bool primal, bool allowminit, ref double[] prow, ref int nzprow, ref double?[] pcol, ref int nzpcol, ref int boundswaps)
+        internal static bool performiteration(lprec lp, int rownr, int varin, double theta, bool primal, bool allowminit, ref double[] prow, ref int nzprow, ref double[] pcol, ref int nzpcol, ref int boundswaps)
         {
             int varout;
             double pivot;
