@@ -303,6 +303,8 @@ namespace ZS.Math.Optimization
             return true;
         }
 
+        static bool verifyMDO(lprec lp, ref int col_end, ref int row_nr, int rowmax, int colmax)
+        { throw new NotImplementedException(); }
 
     }
 }

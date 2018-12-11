@@ -2627,5 +2627,30 @@ namespace ZS.Math.Optimization
             return (blockdata);
         }
 
+        static int partial_activeBlocks(lprec lp, bool isrow)
+        { throw new NotImplementedException(); }
+
+        static void partial_freeBlocks(partialrec[] blockdata)
+        { throw new NotImplementedException(); }
+
+        static void longdual_testset(lprec lp, int which, int rownr, ref double prow, ref int nzprow, ref double drow, ref int nzdrow)
+        { throw new NotImplementedException(); }
+
+        static int partial_blockNextPos(lprec lp, int block, bool isrow)
+        { throw new NotImplementedException(); }
+
+        static bool partial_isVarActive(lprec lp, int varno, bool isrow)
+        { throw new NotImplementedException(); }
+
+        static int multi_size(multirec multi)
+        { throw new NotImplementedException(); }
+
+        static double multi_valueList(multirec multi)
+        { throw new NotImplementedException(); }
+
+        static int multi_getvar(multirec multi, int item)
+        { throw new NotImplementedException(); }
+
+
     }
 }
