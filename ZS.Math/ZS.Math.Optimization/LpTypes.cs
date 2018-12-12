@@ -150,7 +150,7 @@ namespace ZS.Math.Optimization
         internal QSORTrec[] sortedList;      /* List of pointers to "pricerec" items in sorted order */
         double[] stepList;          /* Working array (values in sortedList order) */
         internal double[] valueList;         /* Working array (values in sortedList order) */
-        internal int?[] indexSet;             /* The final exported index list of pivot variables */
+        internal int[] indexSet;             /* The final exported index list of pivot variables */
         internal int active;                 /* Index of currently active multiply priced row/column */
         internal int retries;
         //Changed By: CS Date:28/11/2018

@@ -9,7 +9,7 @@ namespace ZS.Math.Optimization
     {
         /* Find an entering column for the case that the specified basic variable
         is fixed or zero - typically used for artificial variable elimination */
-        internal static int find_rowReplacement(lprec lp, int rownr, ref double?[] prow, ref int[] nzprow)
+        internal static int find_rowReplacement(lprec lp, int rownr, ref double[] prow, ref int[] nzprow)
         {
             /* The logic in this section generally follows Chvatal: Linear Programming, p. 130
            Basically, the function is a specialized coldual(). */
@@ -21,7 +21,7 @@ namespace ZS.Math.Optimization
 
             /* Solve for "local reduced cost" */
             LpCls.set_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
-            int?[] nullpara = null;
+            int[] nullpara = null;
             double[] nullpara2 = null;
             //ORIGINAL LINE: compute_reducedcosts(lp, true, rownr, null, 1, prow, nzprow, null, null, lp_matrix.MAT_ROUNDDEFAULT);
             compute_reducedcosts(lp, true, rownr, ref nullpara, true, ref prow, ref nzprow, ref nullpara2, ref nullpara, lp_matrix.MAT_ROUNDDEFAULT);
@@ -32,10 +32,10 @@ namespace ZS.Math.Optimization
             bestvalue = 0;
             for (i = 1; i <= lp.sum - System.Math.Abs(lp.P1extraDim); i++)
             {
-                if (!lp.is_basic[i] && !lp_LUSOL.is_fixedvar(lp, i) && (System.Math.Abs(prow[i]) > bestvalue))
+                if (!lp.is_basic[i] && !lp_LUSOL.is_fixedvar(lp, i) && (System.Math.Abs((sbyte)prow[i]) > bestvalue))
                 {
                     bestindex = i;
-                    bestvalue = System.Math.Abs(prow[i]);
+                    bestvalue = System.Math.Abs((sbyte)prow[i]);
                 }
             }
 
@@ -52,7 +52,7 @@ namespace ZS.Math.Optimization
             return (bestindex);
         }
 
-        internal static void compute_reducedcosts(lprec lp, bool? isdual, int row_nr, ref int?[] coltarget, bool? dosolve, ref double?[] prow, ref int[] nzprow, ref double[] drow, ref int?[] nzdrow, int roundmode)
+        internal static void compute_reducedcosts(lprec lp, bool? isdual, int row_nr, ref int[] coltarget, bool? dosolve, ref double[] prow, ref int[] nzprow, ref double[] drow, ref int[] nzdrow, int roundmode)
         {
             LpCls objLpCls = new LpCls();
             double epsvalue = lprec.epsvalue; // Any larger value can produce a suboptimal result
@@ -60,7 +60,7 @@ namespace ZS.Math.Optimization
 
             if (isdual != null)
             {
-                lp_matrix.bsolve_xA2(lp, coltarget, row_nr, ref prow, epsvalue, nzprow, 0, drow, epsvalue, nzdrow, roundmode);
+                lp_matrix.bsolve_xA2(lp, ref coltarget[0], row_nr, ref prow[0], epsvalue, ref nzprow[0], 0, ref drow, epsvalue, ref nzdrow, roundmode);
             }
             else
             {
@@ -87,10 +87,14 @@ namespace ZS.Math.Optimization
                 {
                     ///FIX_20521988-5de6-4a36-b964-ff9504331085 26/11/18
                     /// PREVIOUS: ref bVector[0]
-                    double rhsvector = bVector[0];
+                    double[] rhsvector = new double[bVector.Count];
+                    for(int idx=0;idx<bVector.Count;idx++)
+                    {
+                        rhsvector[idx] = bVector[idx];
+                    }
                     int? nzidx = (lp.bsolveIdx != null) ? Convert.ToInt32(lp.bsolveIdx) : 0;
                     lp_matrix.bsolve(lp, 0, ref rhsvector, ref nzidx, epsvalue * lp_lib.DOUBLEROUND, 1.0);
-                    if (isdual == null && (row_nr == 0) && (lp.improve != 0 && lp_lib.IMPROVE_SOLUTION != 0) && !LpCls.refactRecent(lp) && serious_facterror(lp, ref rhsvector, lp.rows, lprec.epsvalue))
+                    if (isdual == null && (row_nr == 0) && (lp.improve != 0 && lp_lib.IMPROVE_SOLUTION != 0) && !LpCls.refactRecent(lp) && serious_facterror(lp, ref rhsvector[0], lp.rows, lprec.epsvalue))
                     {
                         lp.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
                     }
@@ -102,7 +106,8 @@ namespace ZS.Math.Optimization
                 {
                     arrbVector[idx] = bVector[idx];
                 }
-                lp_matrix.prod_xA(lp, coltarget, arrbVector, lp.bsolveIdx, epsvalue, 1.0, drow, nzdrow, roundmode);
+                int nzoutput = (nzdrow != null) ? Convert.ToInt32(nzdrow[0]) : 0;
+                lp_matrix.prod_xA(lp, ref coltarget[0], ref arrbVector[0], ref lp.bsolveIdx[0], epsvalue, 1.0, ref drow[0], ref nzoutput, roundmode);
             }
         }
 
@@ -181,8 +186,12 @@ namespace ZS.Math.Optimization
                 nc++;
 
                 /* Compute cross product for basic, non-slack column */
-                ib = mat.col_end[j - 1];
-                ie = mat.col_end[j];
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                ib = mat.col_end[j - 1][0];
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                ie = mat.col_end[j][0];
                 nz += ie - ib;
                 sum = LpCls.get_OF_active(lp, j + lp.rows, bvector);
                 for (; ib < ie; ib++)
@@ -301,7 +310,7 @@ namespace ZS.Math.Optimization
         }
 
         /* Find the primal simplex entering non-basic column variable */
-        internal static int colprim(lprec lp, ref double drow, ref int[] nzdrow, bool skipupdate, int partialloop, ref int candidatecount, bool updateinfeas, ref double xviol)
+        internal static int colprim(lprec lp, ref double[] drow, ref int[] nzdrow, bool skipupdate, int partialloop, ref int candidatecount, bool updateinfeas, ref double xviol)
         {
             int i;
             int ix;
@@ -318,7 +327,7 @@ namespace ZS.Math.Optimization
             bool collectMP = false;
 
             //ORIGINAL LINE: int *coltarget = null;
-            int?[] coltarget = null;
+            int[] coltarget = null;
             LpCls objLpCls = new LpCls();
 
             /* Identify pivot column according to pricing strategy; set
@@ -326,27 +335,27 @@ namespace ZS.Math.Optimization
             current.pivot = lprec.epsprimal; // Minimum acceptable improvement
             current.varno = 0;
             current.lp = lp;
-            current.isdual = 0;
+            current.isdual = false;
             candidate.lp = lp;
-            candidate.isdual = 0;
+            candidate.isdual = false;
             candidatecount = 0;
 
             /* Update local value of pivot setting and determine active multiple pricing set */
-            lp._piv_rule_ = objLpCls.get_piv_rule(lp);
+            lp._piv_rule_ = LpCls.get_piv_rule(lp);
 
             doLoop:
             nloop++;
             if ((lp.multivars != null) && ((lp.simplex_mode & lp_lib.SIMPLEX_PRIMAL_PRIMAL) != 0))
             {
-                collectMP = multi_mustupdate(lp.multivars);
+                collectMP = multi_mustupdate(lp.multivars[0]);
                 if (collectMP)
                 {
-                    multi_restart(lp.multivars);
+                    multi_restart(lp.multivars[0]);
                     coltarget = null;
                 }
                 else
                 {
-                    coltarget = multi_indexSet(lp.multivars, false);
+                    coltarget = multi_indexSet(lp.multivars[0], false);
                 }
             }
 
@@ -421,27 +430,27 @@ namespace ZS.Math.Optimization
             {
                 if (collectMP)
                 {
-                    if (!lp.multivars.sorted)
+                    if (!lp.multivars[0].sorted)
                     {
                         //NOTED ISSUE
-                        lp.multivars.sorted = commonlib.QS_execute(lp.multivars.sortedList, lp.multivars.used, (commonlib.findCompare_func)compareImprovementQS, null);
+                        lp.multivars[0].sorted = commonlib.QS_execute(lp.multivars[0].sortedList, lp.multivars[0].used, (commonlib.findCompare_func)compareImprovementQS, null);
                     }
-                    coltarget = multi_indexSet(lp.multivars, 1);
+                    coltarget = multi_indexSet(lp.multivars[0], true);
                 }
-                else if ((current.varno == 0) && (lp.multivars.retries == 0))
+                else if ((current.varno == 0) && (lp.multivars[0].retries == 0))
                 {
-                    ix = partial_blockStart(lp, 0);
-                    iy = partial_blockEnd(lp, 0);
-                    lp.multivars.used = 0;
-                    lp.multivars.retries++;
+                    ix = partial_blockStart(lp, false);
+                    iy = partial_blockEnd(lp, false);
+                    lp.multivars[0].used = 0;
+                    lp.multivars[0].retries++;
 
                     goto doLoop;
                 }
                 /* Shrink the candidate list */
-                lp.multivars.retries = 0;
+                lp.multivars[0].retries = 0;
                 if (current.varno != 0)
                 {
-                    multi_removevar(lp.multivars, current.varno);
+                    multi_removevar(lp.multivars[0], current.varno);
                 }
             }
 
@@ -489,8 +498,8 @@ namespace ZS.Math.Optimization
             int n = multi.used;
 
             multi.used = 0;
-            multi.sorted = 0;
-            multi.dirty = 0;
+            multi.sorted = false;
+            multi.dirty = false;
             if (multi.freeList != null)
             {
                 for (i = 1; i <= multi.size; i++)
@@ -506,16 +515,16 @@ namespace ZS.Math.Optimization
             return (n);
         }
 
-        internal static int?[] multi_indexSet(multirec multi, bool regenerate)
+        internal static int[] multi_indexSet(multirec multi, bool regenerate)
         {
             if (regenerate != null)
             {
-                int?[] parameter = null;
+                int[] parameter = null;
                 multi_populateSet(multi, ref parameter, -1);
             }
             return (multi.indexSet);
         }
-        internal static int multi_populateSet(multirec multi, ref int?[] list, int excludenr)
+        internal static int multi_populateSet(multirec multi, ref int[] list, int excludenr)
         {
             int n = 0;
             if (list == null)
@@ -553,12 +562,12 @@ namespace ZS.Math.Optimization
             {
                 delta = -1; // Step backwards - "left"
                 lp_utils.swapINT(ref start, ref end);
-                lp._piv_left_ = 1;
+                lp._piv_left_ = true;
             }
             else
             {
                 delta = 1; // Step forwards - "right"
-                lp._piv_left_ = 0;
+                lp._piv_left_ = false;
             }
         }
 
@@ -751,7 +760,7 @@ namespace ZS.Math.Optimization
         internal static bool multi_truncatingvar(multirec multi, int varnr)
         {
             LpCls objLpCls = new LpCls();
-            return (multi.truncinf && objLpCls.is_infinite(multi.lp, multi.lp.upbo[varnr]));
+            return (multi.truncinf && LpCls.is_infinite(multi.lp, multi.lp.upbo[varnr]));
         }
 
         internal static int compareImprovementQS(QSORTrec current, QSORTrec candidate)
@@ -924,7 +933,7 @@ namespace ZS.Math.Optimization
         internal static bool multi_removevar(multirec multi, int varnr)
         {
             int i = 1;
-            int?[] coltarget = multi.indexSet;
+            int[] coltarget = multi.indexSet;
 
             if (coltarget == null)
             {
@@ -1009,7 +1018,7 @@ namespace ZS.Math.Optimization
 
         internal static int partial_countBlocks(lprec lp, bool isrow)
         {
-            partialrec blockdata = IF(isrow, lp.rowblocks, lp.colblocks);
+            partialrec blockdata = (partialrec)commonlib.IF(isrow, lp.rowblocks, lp.colblocks);
 
             if (blockdata == null)
             {
@@ -1051,7 +1060,7 @@ namespace ZS.Math.Optimization
             int iz = 0;
             int Hpass;
             int k;
-            int[] nzlist;
+            int[] nzlist = null;
             double f = new double();
             double savef = new double();
             double Heps = new double();
@@ -1068,16 +1077,16 @@ namespace ZS.Math.Optimization
             string msg = "";
 
             /* Update local value of pivot setting */
-            lp._piv_rule_ = objLpCls.get_piv_rule(lp);
+            lp._piv_rule_ = LpCls.get_piv_rule(lp);
             if (nzpcol == null)
             {
-                //NOTED ISSUE
-                nzlist = (int)lp_utils.mempool_obtainVector(lp.workarrays, lp.rows + 1, System.Runtime.InteropServices.Marshal.SizeOf(nzlist));
+                int id = 0;
+                bool res = int.TryParse(lp_utils.mempool_obtainVector(lp.workarrays, lp.rows + 1, System.Runtime.InteropServices.Marshal.SizeOf(nzlist)), out id);
+                /*if(res)
+                    nzlist[0] = */
             }
             else
-            {
-                nzlist = nzpcol;
-            }
+                nzlist[0] = (nzpcol != null) ? Convert.ToInt32(nzpcol) : 0;
 
             /* Find unconditional non-zeros and optionally compute relative size of epspivot */
             epspivot = lp.epspivot;
@@ -1087,7 +1096,7 @@ namespace ZS.Math.Optimization
             k = 0;
             for (i = 1; i <= lp.rows; i++)
             {
-                p = System.Math.Abs(pcol);
+                p = System.Math.Abs(Convert.ToSByte(pcol));
                 if (p > Hlimit)
                 {
                     //ORIGINAL LINE: Hlimit = p;
@@ -1121,14 +1130,16 @@ namespace ZS.Math.Optimization
             /* Update non-zero list based on the new pivot threshold */
             ///#if UseRelativePivot_Primal
             /*  epspivot *= sqrt(lp->matA->dynrange) / lp->matA->infnorm; */
-            epspivot /= commonlib.MAX(1, System.Math.Sqrt(lp.matA.colmax[colnr]));
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 for now; need to check at run time
+            epspivot /= commonlib.MAX(1, System.Math.Sqrt(lp.matA.colmax[colnr][0]));
             iy = k;
             k = 0;
             p = 0;
             for (ii = 1; ii <= iy; ii++)
             {
                 i = nzlist[ii];
-                p = System.Math.Abs(pcol);
+                p = System.Math.Abs(Convert.ToSByte(pcol));
 
                 /* Compress the list of valid alternatives, if appropriate */
                 if (p > epspivot)
@@ -1200,13 +1211,13 @@ namespace ZS.Math.Optimization
                 for (; ii * iz <= iy; ii += iz)
                 {
                     i = nzlist[ii];
-                    f = pcol;
+                    f = pcol[0];
                     candidate.theta = f;
                     candidate.pivot = f;
                     candidate.varno = i;
 
                     /*i =*/
-                    LpCls.compute_theta(lp, i, ref candidate.theta, isupper, lp_types.my_if(lp.upbo[lp.var_basic[i]] < lprec.epsprimal, Heps / 10, Heps), true);
+                    LpCls.compute_theta(lp, i, ref candidate.theta, isupper, (double)lp_types.my_if(lp.upbo[lp.var_basic[i]] < lprec.epsprimal, Heps / 10, Heps), true);
 
                     if (System.Math.Abs(candidate.theta) >= lp.infinite)
                     {
@@ -1293,7 +1304,7 @@ namespace ZS.Math.Optimization
                 {
                     ///#if 1
                     i = 1;
-                    while ((pcol >= 0) && (i <= lp.rows))
+                    while ((pcol[0] >= 0) && (i <= lp.rows))
                     {
                         i++;
                     }
@@ -1301,7 +1312,7 @@ namespace ZS.Math.Optimization
                     { // Empty column with upper bound!
                         lp.is_lower[colnr] = !lp.is_lower[colnr];
                         /*        lp->is_lower[colnr] = FALSE; */
-                        lp.rhs[0] += lp.upbo[colnr] * pcol;
+                        lp.rhs[0] += lp.upbo[colnr] * pcol[0];
                     }
                     else // if(pcol[i]<0)
                     {
@@ -1319,8 +1330,8 @@ namespace ZS.Math.Optimization
             /* Return working array to pool */
             if (nzpcol == null)
             {
-                //NOTED ISSUE
-                lp_utils.mempool_releaseVector(lp.workarrays, (string)nzlist, 0);
+                string memvector = nzlist.ToString();
+                lp_utils.mempool_releaseVector(lp.workarrays, ref memvector, 0);
             }
 
             if (lp.spx_trace)
@@ -1578,7 +1589,7 @@ namespace ZS.Math.Optimization
                 /* Add randomization tie-braker */
                 if ((lp.piv_strategy & lp_lib.PRICE_RANDOMIZE) != 0)
                 {
-                    result = lp_types.my_sign(lp_lib.PRICER_RANDFACT - objLpCls.rand_uniform(lp, 1.0));
+                    result = (int)lp_types.my_sign(lp_lib.PRICER_RANDFACT - lp_utils.rand_uniform(lp, 1.0));
                     if (candidatevarno < currentvarno)
                     {
                         result = -result;
@@ -1644,7 +1655,7 @@ namespace ZS.Math.Optimization
             candidate.lp = lp;
 
             /* Loop over active partial row set */
-            if (objLpCls.is_action(lp.piv_strategy, lp_lib.PRICE_FORCEFULL))
+            if (LpCls.is_action(lp.piv_strategy, lp_lib.PRICE_FORCEFULL))
             {
                 k = 1;
                 iy = lp.rows;
@@ -1781,7 +1792,7 @@ namespace ZS.Math.Optimization
 
         //Changed By: CS Date:28/11/2018
         /* Computation of reduced costs */
-        internal static void update_reducedcosts(lprec lp, bool isdual, int leave_nr, int enter_nr, double[] prow, double drow)
+        internal static void update_reducedcosts(lprec lp, bool isdual, int leave_nr, int enter_nr, double[] prow, double[] drow)
         {
             /* "Fast" update of the dual reduced cost vector; note that it must be called
                after the pivot operation and only applies to a major "true" iteration */
@@ -1927,7 +1938,7 @@ namespace ZS.Math.Optimization
             }
 
             /* Update local value of pivot setting */
-            lp._piv_rule_ = objLpCls.get_piv_rule(lp);
+            lp._piv_rule_ = LpCls.get_piv_rule(lp);
 
             /* Condense list of relevant targets */
             p = 0;
@@ -2100,7 +2111,7 @@ namespace ZS.Math.Optimization
                 longsteps.dirty = (bool)(inspos > 0);
                 if (longsteps.dirty)
                 {
-                    multi_recompute(longsteps, 0, isphase2, 1);
+                    multi_recompute(longsteps, 0, isphase2, true);
                 }
             }
 
@@ -2114,7 +2125,7 @@ namespace ZS.Math.Optimization
 
             /* 4. Recompute steps and objective, and (if relevant) determine if we
                   may be suboptimal in relation to an incumbent MILP solution. */
-            return ((bool)(inspos >= 0) && ((isbatch == true) || multi_recompute(longsteps, inspos, isphase2, 1)));
+            return ((bool)(inspos >= 0) && ((isbatch == true) || multi_recompute(longsteps, inspos, isphase2, true)));
         }
 
         internal static int compareSubstitutionQS(QSORTrec current, QSORTrec candidate)
@@ -2443,7 +2454,7 @@ namespace ZS.Math.Optimization
                 multi.used = i + 1;
 #endif
             }
-            int?[] Parameter = null;
+            int[] Parameter = null;
             multi_populateSet(multi, ref Parameter, multi.active);
 
             /* Compute the entering theta and update parameters */
