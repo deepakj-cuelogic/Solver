@@ -2513,7 +2513,7 @@ namespace ZS.Math.Optimization
             return ((bool)((lp.row_type[rownr] & ROWTYPE_CONSTRAINT) == ROWTYPE_CHSIGN));
         }
 
-        internal bool add_columnex(lprec lp, int count, ref double[] column, ref int?[] rowno)
+        internal bool add_columnex(lprec lp, int count, ref double?[] column, ref int?[] rowno)
         {
             /* This function adds a data column to the current model; three cases handled:
 
@@ -6970,7 +6970,7 @@ internal static class StringFunctions
             }
         }
 
-        internal static int get_basiscolumn(lprec lp, int j, int[] rn, double[] bj)
+        internal static int get_basiscolumn(lprec lp, int j, int[][] rn, double[] bj)
         /* This routine returns sparse vectors for all basis
            columns, including the OF dummy (index 0) and slack columns.
            NOTE that the index usage is nonstandard for lp_solve, since
@@ -6995,7 +6995,7 @@ internal static class StringFunctions
             /* Process OF dummy and slack columns (always at lower bound) */
             if (j <= lp.rows)
             {
-                rn[1] = j + matbase;
+                rn[1][0] = j + matbase;
                 bj[1] = 1.0;
                 k = 1;
             }
@@ -7003,12 +7003,12 @@ internal static class StringFunctions
             else
             {
                 int maxabs = 0;
-                k = obtain_column(lp, j, ref bj, ref rn, ref maxabs);
+                k = obtain_column(lp, j, ref bj, ref rn[0], ref maxabs);
                 if (matbase != 0)
                 {
                     for (j = 1; j <= k; j++)
                     {
-                        rn[j] += matbase;
+                        rn[j][0] += matbase;
                     }
                 }
             }
@@ -7521,7 +7521,7 @@ internal static class StringFunctions
             //ORIGINAL LINE: int *new_index = null;
             //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
             //changed from 'int[] new_index' to 'int[][] new_index'; need to check at run time
-            int[][] new_index = null;
+            int?[][] new_index = null;
             double hold;
             //ORIGINAL LINE: double *new_column = null;
             //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
@@ -7713,19 +7713,21 @@ internal static class StringFunctions
                         }
                         if (new_column == null)
                         {
+                            //NOT REQUIRED
+                            /*
                             if (!lp_utils.allocREAL(lp, new_column, lp.rows + 1, 0) || !lp_utils.allocINT(lp, new_index, lp.rows + 1, 0))
                             {
                                 ok = true;
                                 break;
-                            }
+                            }*/
                         }
                         /* Avoid precision loss by turning off unscaling and rescaling */
                         /* in get_column and add_column operations; also make sure that */
                         /* full scaling information is preserved */
                         scaled = lp.scaling_used;
                         lp.scaling_used = false;
-                        k = get_columnex(lp, j, ref new_column[0], ref new_index);
-                        if (!add_columnex(lp, k, ref new_column[0], ref new_index))
+                        k = get_columnex(lp, j, ref new_column[0], ref new_index[0]);
+                        if (!add_columnex(lp, k, ref new_column[0], ref new_index[0]))
                         {
                             ok = true;
                             break;
@@ -8771,7 +8773,7 @@ internal static class StringFunctions
             if (is_bb_rule(pc.lp, NODE_PSEUDORATIOSELECT))
             {
                 // TODO_12/10/2018
-                varsol *= capupper;
+                varsol *= Convert.ToDouble(capupper);
             }
 
             /* Compute the update (consider weighting in favor of most recent) */

@@ -399,7 +399,7 @@ namespace ZS.Math.Optimization
             lp.monitor = null;
         }
 
-        internal static bool add_artificial(lprec lp, int forrownr, ref double?[] nzarray, ref int?[] idxarray)
+        internal static bool add_artificial(lprec lp, int forrownr, ref double[] nzarray, ref int?[] idxarray)
         {
             /* This routine is called for each constraint at the start of
            primloop and the primal problem is infeasible. Its
@@ -421,7 +421,7 @@ namespace ZS.Math.Optimization
                 int ii;
 
                 //ORIGINAL LINE: double *avalue = null, rhscoef, acoef;
-                double?[] avalue = null;
+                double[] avalue = null;
                 double rhscoef;
                 double acoef;
                 MATrec mat = lp.matA;
@@ -735,7 +735,7 @@ namespace ZS.Math.Optimization
             double cviolated = 0.0;
             double?[] prow = null;
             double[] pcol = null;
-            double[] drow = lp.drow;
+            double[][] drow = lp.drow;
             string msg;
 
             LpCls objLpCls = new LpCls();
@@ -744,7 +744,7 @@ namespace ZS.Math.Optimization
             int? workINT = null;
 
             //ORIGINAL LINE: int *nzdrow = lp->nzdrow;
-            int[] nzdrow = lp.nzdrow;
+            int[][] nzdrow = lp.nzdrow;
 
             if (lp.spx_trace)
             {
@@ -779,7 +779,7 @@ namespace ZS.Math.Optimization
                 for (i = 1; i <= lp.rows; i++)
                 {
                     //ORIGINAL LINE: add_artificial(lp, i, null, null);
-                    double?[] para1 = null;
+                    double[] para1 = null;
                     int?[] para2 = null;
                     add_artificial(lp, i, ref para1, ref para2);
                 }
@@ -873,7 +873,7 @@ namespace ZS.Math.Optimization
                     do
                     {
                         i++;
-                        colnr = LpPrice.colprim(lp, ref drow[0], ref nzdrow, (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), i, ref candidatecount, true, ref xviolated);
+                        colnr = LpPrice.colprim(lp, ref drow[0][0], ref nzdrow[0], (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), i, ref candidatecount, true, ref xviolated);
                     } while ((colnr == 0) && (i < LpPrice.partial_countBlocks(lp, (bool)!primal)) && LpPrice.partial_blockStep(lp, (bool)!primal));
 
                     /* Handle direct outcomes */
@@ -940,7 +940,7 @@ namespace ZS.Math.Optimization
                     }
 
                     /* Find the leaving variable that gives the most stringent bound on the entering variable */
-                    theta = drow[0];
+                    theta = drow[0][0];
                     rownr = LpPrice.rowprim(lp, colnr, ref theta, ref pcol, ref workINT, forceoutEQ, ref cviolated);
 
                     ///#if AcceptMarginalAccuracy
@@ -976,7 +976,7 @@ namespace ZS.Math.Optimization
                         if (!lp.obj_in_basis) // We must manually copy the reduced cost for RHS update
                         {
                             //NOTED ISSUE:
-                            pcol[0] = lp_types.my_chsign(!lp.is_lower[colnr], drow[0]);
+                            pcol[0] = lp_types.my_chsign(!lp.is_lower[colnr], drow[0][0]);
                         }
                         //NOTED ISSUE:
                         lp.bfp_prepareupdate(lp, rownr, colnr, ref pcol[0]);
@@ -1181,7 +1181,7 @@ namespace ZS.Math.Optimization
                     /* Do a fast update of the reduced costs in preparation for the next iteration */
                     if (minit == lp_lib.ITERATE_MAJORMAJOR)
                     {
-                        LpPrice.update_reducedcosts(lp, primal, lastnr, colnr, pcol, drow[0]);
+                        LpPrice.update_reducedcosts(lp, primal, lastnr, colnr, pcol, drow[0][0]);
                     }
                     ///#endif
 
@@ -1304,13 +1304,13 @@ namespace ZS.Math.Optimization
             //ORIGINAL LINE: double *pcol = null;
             double[] pcol = null;
             //ORIGINAL LINE: double *drow = lp->drow;
-            double[] drow = lp.drow;
+            double[] drow = lp.drow[0];
             //ORIGINAL LINE: int *nzprow = null, *workINT = null, *nzdrow = lp->nzdrow;
             int[] nzprow = null;
             //ORIGINAL LINE: int *workINT = null;
             int[] workINT = null;
             //ORIGINAL LINE: int *nzdrow = lp->nzdrow;
-            int[] nzdrow = lp.nzdrow;
+            int[] nzdrow = lp.nzdrow[0];
             string msg;
             LpCls objLpCls = new LpCls();
 
@@ -2303,7 +2303,7 @@ RetryRow:
                 lp.solutioncount = 0;
                 lp.real_solution = lp.infinite;
                 LpCls.set_action(ref lp.spx_action, lp_lib.ACTION_REBASE | lp_lib.ACTION_REINVERT);
-                lp.bb_break = false;
+                lp.bb_break = 0;
 
                 /* Do the call to the real underlying solver (note that
                    run_BB is replaceable with any compatible MIP solver) */
@@ -2869,7 +2869,7 @@ RetryRow:
             */
             if ((lp.spx_status == lp_lib.OPTIMAL) && (lp.bb_totalnodes > 0))
             {
-                if ((lp.bb_break && !LpCls.bb_better(lp, lp_lib.OF_DUALLIMIT, lp_lib.OF_TEST_BE)))
+                if (((lp.bb_break!=0) && !LpCls.bb_better(lp, lp_lib.OF_DUALLIMIT, lp_lib.OF_TEST_BE)))
                 {
                     status = lp.spx_status = lp_lib.SUBOPTIMAL;
                 }

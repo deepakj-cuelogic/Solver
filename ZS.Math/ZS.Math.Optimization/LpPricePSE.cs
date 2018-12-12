@@ -141,12 +141,12 @@ namespace ZS.Math.Optimization
             if (isdual == Convert.ToBoolean(lp_types.AUTOMATIC))
             {
                 // TODO_12/10/2018
-                isdual = Convert.ToInt32(lp.edgeVector[0]);
+                isdual = Convert.ToBoolean(lp.edgeVector[0]);
             }
             else
             {
                 // TODO_12/10/2018
-                lp.edgeVector[0] = isdual;
+                lp.edgeVector[0] = Convert.ToDouble(isdual);
             }
 
             m = lp.rows;

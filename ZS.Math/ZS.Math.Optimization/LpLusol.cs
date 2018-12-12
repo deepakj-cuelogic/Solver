@@ -31,7 +31,7 @@ namespace ZS.Math.Optimization
             /* Do the LUSOL btran */
             //NOTED ISSUE
             double[] b = new double[1];
-            b[0] = pcol[0] - Convert.ToDouble(LpBFP1.bfp_rowoffset(lp));
+            b[0] = pcol - Convert.ToDouble(LpBFP1.bfp_rowoffset(lp));
             i = objlusol.LUSOL_btran(lu.LUSOL, b, nzidx);
             if (i != commonlib.LUSOL_INFORM_LUSUCCESS)
             {
@@ -325,7 +325,7 @@ namespace ZS.Math.Optimization
                 {
                     //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
                     //changed from 'rownum' to 'rownum[0][0]'; need to check at run time
-                    nz = LpCls.get_basiscolumn(lp, i, rownum[0][0], invB.value);
+                    nz = LpCls.get_basiscolumn(lp, i, rownum, invB.value);
                     lusol.LUSOL_loadColumn(invB.LUSOL, rownum, i, invB.value, nz, 0);
                     if ((i > deltarows) && (lp.var_basic[i - deltarows] > lp.rows))
                     {
@@ -412,7 +412,7 @@ namespace ZS.Math.Optimization
             {
                 //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
                 // changed from 'rownum' to 'rownum[0][0]'
-                nz = LpCls.get_basiscolumn(lp, i, rownum[0][0], invB.value);
+                nz = LpCls.get_basiscolumn(lp, i, rownum, invB.value);
                 lusol.LUSOL_loadColumn(invB.LUSOL, rownum, i, invB.value, nz, 0);
             }
             lp.invB.set_Bidentity = 0;
@@ -498,7 +498,7 @@ namespace ZS.Math.Optimization
             public int col_pos; // The B column to be changed at the next update using data in value[.]
                                 //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                 //ORIGINAL LINE: double *value;
-            public double value;
+            public double[] value;
             //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
             //ORIGINAL LINE: double *pcol;
             public double pcol; // Reference to the elimination vector

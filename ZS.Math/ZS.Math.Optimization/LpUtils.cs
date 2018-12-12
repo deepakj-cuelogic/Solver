@@ -193,7 +193,7 @@ namespace ZS.Math.Optimization
                         msg = "mempool_obtainVector: Invalid %s existing vector selected\n";
                         lp.report(lp, lp_lib.SEVERE, ref msg, (ie < 0 ? "too small" : "occupied"));
                         lp.spx_status = lp_lib.NOMEMORY;
-                        lp.bb_break = true;
+                        lp.bb_break = 1;
                         return (newmem);
                     }
                     ///#endif

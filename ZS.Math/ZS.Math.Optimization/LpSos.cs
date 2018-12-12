@@ -207,7 +207,7 @@ Note: SOS_shift_col must be called before make_SOSchain! */
                             /* If the index is "high" then make adjustment and shift */
                             changed++;
                             ii++;
-                            list[ii] = newidx[nr];
+                            list[ii] = Convert.ToInt32(newidx[nr]);
                             weights[ii] = weights[i];
                         }
                         /*NOT REQUIRED
@@ -462,7 +462,7 @@ Note: SOS_shift_col must be called before make_SOSchain! */
                 {
                     k = group.membership[i];
                     // TODO_12/10/2018
-                    n = SOS_is_marked(group, k, column);
+                    n = Convert.ToInt32(SOS_is_marked(group, k, column));
                     if (n != 0)
                         return true;
                 }
@@ -794,7 +794,7 @@ Note: SOS_shift_col must be called before make_SOSchain! */
                 if ((lp.var_type[column]!=false) & (lp_lib.ISSOSTEMPINT) != 0)
                 {
                     //NOTED ISSUE
-                    lp.var_type[column] = lp_lib.ISSOSTEMPINT;
+                    lp.var_type[column] = Convert.ToBoolean(lp_lib.ISSOSTEMPINT);
                     objLpCls.set_int(lp, column, 0);
                 }
 

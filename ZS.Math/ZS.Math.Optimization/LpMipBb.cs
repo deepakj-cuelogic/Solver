@@ -74,10 +74,10 @@ namespace ZS.Math.Optimization
                     int ntighten = 0;
                     double deltaUL = new double();
 
-                    for (k = 1; k <= lp.nzdrow[0]; k++)
+                    for (k = 1; k <= lp.nzdrow[0][0]; k++)
                     {
                         //Added second array as [0], need to check at runtime.
-                        ii = lp.nzdrow[k];
+                        ii = lp.nzdrow[k][0];
 #if UseMilpSlacksRCF
 		isINT = 0;
 #else

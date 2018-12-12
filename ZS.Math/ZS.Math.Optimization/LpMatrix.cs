@@ -2023,7 +2023,7 @@ namespace ZS.Math.Optimization
                 mat.row_end_valid = false;
             }
 
-            if (isA && (mat.lp.var_is_free != null) && (mat.lp.var_is_free[ColumnA] > 0))
+            if (isA && (mat.lp.var_is_free != null) && (mat.lp.var_is_free[0][ColumnA] > 0))
             {
                 return (mat_setvalue(mat, RowA, Convert.ToInt32(mat.lp.var_is_free[ColumnA]), -Value, doscale));
             }

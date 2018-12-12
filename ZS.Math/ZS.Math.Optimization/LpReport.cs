@@ -146,11 +146,11 @@ namespace ZS.Math.Optimization
             report(lp, lp_lib.NORMAL, ref msg);
             for (j = 1; j <= lp.columns; j++)
             {
-                hold = objLpCls.get_mat(lp, 0, j);
+                hold = LpCls.get_mat(lp, 0, j);
                 msg = "  %-25s "  + lp_lib.MPSVALUEMASK + "\n";
                 //NEED TO CHECK, temporary avoid 
                 //ORIGINAL LINE: report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_col_name(lp, j), lp_types.my_precision(hold, lprec.epsprimal), lp_types.my_precision(hold * lp.best_solution[lp.rows + j], lprec.epsprimal), lp_types.my_precision((ret) ? objfrom[j - 1] : 0.0, lprec.epsprimal), lp_types.my_precision((ret) ? objtill[j - 1] : 0.0, lprec.epsprimal));
-                report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_col_name(lp, j));
+                report(lp, lp_lib.NORMAL, ref msg, LpCls.get_col_name(lp, j));
             }
             msg = " \n";
             report(lp, lp_lib.NORMAL, ref msg);
@@ -169,7 +169,7 @@ namespace ZS.Math.Optimization
                 msg = "  %-25s " + lp_lib.MPSVALUEMASK+""+ lp_lib.MPSVALUEMASK+""+ lp_lib.MPSVALUEMASK+""+ lp_lib.MPSVALUEMASK+ "\n";
                 //ORIGINAL LINE: report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_col_name(lp, j), my_precision(lp.best_solution[lp.rows + j], lp.epsprimal), my_precision(my_inflimit(lp, (ret) ? duals[lp.rows + j - 1] : 0.0), lp.epsprimal), my_precision((ret) ? dualsfrom[lp.rows + j - 1] : 0.0, lp.epsprimal), my_precision((ret) ? dualstill[lp.rows + j - 1] : 0.0, lp.epsprimal));
                 //Temporary some lines not considered
-                report(lp, lp_lib.NORMAL, ref msg, objLpCls.get_col_name(lp, j));
+                report(lp, lp_lib.NORMAL, ref msg, LpCls.get_col_name(lp, j));
             }
             msg = " \n";
             report(lp, lp_lib.NORMAL, ref msg);
