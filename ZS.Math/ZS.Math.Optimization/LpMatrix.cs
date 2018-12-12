@@ -141,7 +141,7 @@ namespace ZS.Math.Optimization
         internal static Func<int, int> COL_MAT_ROWNR = (item) => (mat.col_mat_rownr[item]);
 
         //ORIGINAL CODE: #define ROW_MAT_COLNR(item)       COL_MAT_COLNR(mat->row_mat[item])
-        internal static Func<int, int> ROW_MAT_COLNR = (item) => (mat.row_mat[item]);
+        internal static Func<int, int> ROW_MAT_COLNR = (item) => (Convert.ToInt32(mat.row_mat[item]));
 
         //ORIGINAL CODE: COL_MAT2_ROWNR(item)      (mat2->col_mat_rownr[item])
         internal static Func<int, int> COL_MAT2_ROWNR = (item) => (mat2.col_mat_rownr[item]);
@@ -203,7 +203,7 @@ namespace ZS.Math.Optimization
             */
         };
         //ORIGINAL CODE: #define ROW_MAT_VALUE(item)       COL_MAT_VALUE(mat->row_mat[item])
-        static Func<int, double> ROW_MAT_VALUE = (item) => COL_MAT_VALUE(mat.row_mat[item]);
+        static Func<int, double> ROW_MAT_VALUE = (item) => COL_MAT_VALUE(Convert.ToInt32(mat.row_mat[item]));
 
         /// <summary> 
         /// FIX_0693941b-e4fc-458f-bb39-e6c3540a30fc 19/11/18
@@ -247,7 +247,7 @@ namespace ZS.Math.Optimization
             int rowalloc;
 
             if ((mat == null) || (rowextra < 0) || (colextra < 0) || (nzextra < 0))
-                return (0);
+                return (false);
 
             mat.rows_alloc = (int)commonlib.MIN(mat.rows_alloc, mat.rows + rowextra);
             mat.columns_alloc = (int)commonlib.MIN(mat.columns_alloc, mat.columns + colextra);
@@ -397,7 +397,7 @@ namespace ZS.Math.Optimization
             LpCls objLpCls = new LpCls();
 
             /* Check if there is something to insert */
-            if ((mat2 != null) && ((mat2.col_tag == null) || (mat2.col_tag[0] <= 0) || (mat_nonzeros(mat2) == 0)))
+            if ((mat2 != null) && ((mat2.col_tag == null) || (Convert.ToInt32(mat2.col_tag[0]) <= 0) || (mat_nonzeros(mat2) == 0)))
             {
                 return (0);
             }
@@ -405,15 +405,16 @@ namespace ZS.Math.Optimization
             /* Create map and sort by increasing index in "mat" */
             if (mat2 != null)
             {
-                jj = mat2.col_tag[0];
-                lp_utils.allocINT(lp, indirect, jj + 1, 0);
+                jj = Convert.ToInt32(mat2.col_tag[0]);
+                //NOT REQUIRED
+                //lp_utils.allocINT(lp, indirect, jj + 1, 0);
                 indirect[0] = jj;
                 for (i = 1; i <= jj; i++)
                 {
                     indirect[i] = i;
                 }
 
-                commonlib.hpsortex(mat2.col_tag, jj, 1, indirect.Length, 0, commonlib.compareINT, ref indirect);
+                commonlib.hpsortex(mat2.col_tag, jj, 1, indirect.Length, false, commonlib.compareINT, ref indirect);
             }
 
             /* Do the compacting */
@@ -434,7 +435,7 @@ namespace ZS.Math.Optimization
                 do
                 {
                     jj++;
-                    jb = mat2.col_tag[jj];
+                    jb = Convert.ToInt32(mat2.col_tag[jj]);
                 } while (jb <= 0);
 
             }
@@ -450,7 +451,7 @@ namespace ZS.Math.Optimization
                     jj++;
                     if (jj <= je)
                     {
-                        jb = mat2.col_tag[jj];
+                        jb = Convert.ToInt32(mat2.col_tag[jj]);
                     }
                     else
                     {
@@ -485,9 +486,9 @@ namespace ZS.Math.Optimization
 
             /* Tally non-zero insertions */
             i = 0;
-            for (j = 1; j <= mat2.col_tag[0]; j++)
+            for (j = 1; j <= Convert.ToInt32(mat2.col_tag[0]); j++)
             {
-                jj = mat2.col_tag[j];
+                jj = Convert.ToInt32(mat2.col_tag[j]);
                 if ((jj > 0) && lp_utils.isActiveLink(colmap, jj))
                 {
                     jj = indirect[j];
@@ -514,7 +515,7 @@ namespace ZS.Math.Optimization
 
             /* Do shifting and insertion - loop from the end going forward */
             jj = indirect[0];
-            jj = mat2.col_tag[jj];
+            jj = Convert.ToInt32(mat2.col_tag[jj]);
             //Added row and column array as [0] to mat.col_end, need to check at runtime
             for (j = mat.columns, colend = mat.col_end[0][0] + mat.columns, ib = colend; j > 0; j--)
             {
@@ -580,7 +581,7 @@ namespace ZS.Math.Optimization
                     {
                         break;
                     }
-                    jj = mat2.col_tag[jj];
+                    jj = Convert.ToInt32(mat2.col_tag[jj]);
                     if (jj <= 0)
                     {
                         break;
@@ -620,7 +621,7 @@ namespace ZS.Math.Optimization
         {
             //ORIGINAL LINE: return( mat_rowcompact(mat, TRUE))
             //SOLUTION: Method return type is int hence changed TRUE to 1.
-            return (mat_rowcompact(mat, 1));
+            return (mat_rowcompact(mat, true));
         }
         internal static int mat_rowcompact(MATrec mat, bool dozeros)
         {
@@ -712,7 +713,7 @@ namespace ZS.Math.Optimization
                 newcolend = ii;
 
                 deleted = (bool)(n_del > 0);
-#if 1
+#if ONE
 	/* Do hoops in case there was an empty column */
 	deleted |= (MYBOOL)(!lp.wasPresolved && (lpundo.var_to_orig[prev_rows + j] < 0));
 
@@ -1512,7 +1513,7 @@ namespace ZS.Math.Optimization
 #if MatrixRowAccess == RAM_Index
             if (isrow)
             {
-                matindex = mat.row_mat[matindex];
+                matindex = Convert.ToInt32(mat.row_mat[matindex]);
             }
             if (rownr != null)
             {
@@ -1566,11 +1567,12 @@ namespace ZS.Math.Optimization
         }
         static bool mat_set_rowmap(MATrec mat, int row_mat_index, int rownr, int colnr, int col_mat_index)
         {
-            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+            
 #if MatrixRowAccess == RAM_Index
-            mat.row_mat[row_mat_index] = col_mat_index;
+            //Added second array for column as [0] , Need to check at runtime.
+            mat.row_mat[row_mat_index][0] =  col_mat_index;
 
-            //C++ TO C# CONVERTER TODO TASK: C# does not allow setting or comparing #define constants:
+            
 #elif MatrixColAccess == CAM_Record
   mat.row_mat[row_mat_index].rownr = rownr;
   mat.row_mat[row_mat_index].colnr = colnr;
@@ -2192,13 +2194,13 @@ namespace ZS.Math.Optimization
                     for (i = nz - 1; i >= j; i--)
                     {
                         k = i - j;
-                        newmat[k] = mat.col_mat[mat.row_mat[i]];
+                        newmat[k] = mat.col_mat[mat.row_mat[i][0]];
                         newmat[k].rownr = newmat[k].colnr;
                     }
                     for (i = j - 1; i >= 0; i--)
                     {
                         k = nz - j + i;
-                        newmat[k] = mat.col_mat[mat.row_mat[i]];
+                        newmat[k] = mat.col_mat[mat.row_mat[i][0]];
                         newmat[k].rownr = newmat[k].colnr;
                     }
                     //pointers are replaced by object
@@ -3006,7 +3008,7 @@ namespace ZS.Math.Optimization
 
             /* Must save spx_status since it is used to carry information about
                the presence and handling of singular columns in the matrix */
-            if (objLpCls.userabort(lp, lp_lib.MSG_INVERT))
+            if (LpCls.userabort(lp, lp_lib.MSG_INVERT))
             {
                 return (false);
             }
@@ -3077,7 +3079,7 @@ namespace ZS.Math.Optimization
             singularities = lp_LUSOL.bfp_factorize(lp, usercolB, k, usedpos, final_Renamed);
 
             /* Do user reporting */
-            if (objLpCls.userabort(lp, lp_lib.MSG_INVERT))
+            if (LpCls.userabort(lp, lp_lib.MSG_INVERT))
             {
                 goto Cleanup;
             }
@@ -3090,7 +3092,7 @@ namespace ZS.Math.Optimization
             // blockWriteLREAL(stdout, "RHS-values pre invert", lp.rhs, 0, lp.rows);
             ///#endif
             LpCls.recompute_solution(lp, shiftbounds);
-            LpPricePSE.restartPricer(lp, DefineConstants.AUTOMATIC);
+            LpPricePSE.restartPricer(lp, Convert.ToBoolean(DefineConstants.AUTOMATIC));
 
             ///#if DebugInv
             msg = "RHS-values post invert";
