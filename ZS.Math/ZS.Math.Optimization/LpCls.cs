@@ -1252,7 +1252,7 @@ namespace ZS.Math.Optimization
             if ((colnr > lp.columns) || (colnr < 1))
             {
                 string msg = "get_lowbo: Column {0} out of range\n";
-                report(lp, IMPORTANT, ref msg, colnr);
+                lp.report(lp, IMPORTANT, ref msg, colnr);
                 return (0);
             }
 
@@ -1279,7 +1279,7 @@ namespace ZS.Math.Optimization
             if ((rownr > lp.rows) || (rownr < 0))
             {
                 string msg = "set_rh: Row {0} out of range\n";
-                report(lp, IMPORTANT, ref msg, rownr);
+                lp.report(lp, IMPORTANT, ref msg, rownr);
                 return false;
             }
 
@@ -2513,7 +2513,7 @@ namespace ZS.Math.Optimization
             return ((bool)((lp.row_type[rownr] & ROWTYPE_CONSTRAINT) == ROWTYPE_CHSIGN));
         }
 
-        internal bool add_columnex(lprec lp, int count, ref double?[] column, ref int?[] rowno)
+        internal bool add_columnex(lprec lp, int count, ref double[] column, ref int?[] rowno)
         {
             /* This function adds a data column to the current model; three cases handled:
 
@@ -2643,7 +2643,9 @@ namespace ZS.Math.Optimization
            This function helps identify the helper column in 2).
         */
             //NOTED ISSUE:
-            return ((bool)((lp.var_is_free != null) && (lp.var_is_free[colnr] < 0) && (-lp.var_is_free[colnr] != colnr)));
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //set second [] as 0 (2) for now; need to check at run time
+            return ((bool)((lp.var_is_free != null) && (lp.var_is_free[colnr][0] < 0) && (-lp.var_is_free[colnr][0] != colnr)));
         }
 
         private new int get_columnex(lprec lp, int colnr, ref double[] column, ref int?[] nzrow)
@@ -2809,7 +2811,7 @@ namespace ZS.Math.Optimization
             return (varin);
         }
 
-        internal static int expand_column(lprec lp, int col_nr, ref double?[] column, ref int[] nzlist, double mult, ref int maxabs)
+        internal static int expand_column(lprec lp, int col_nr, ref double[] column, ref int[] nzlist, double mult, ref int maxabs)
         {
             int i;
             int ie;
@@ -2943,7 +2945,7 @@ namespace ZS.Math.Optimization
             return (holdOF);
         }
 
-        internal static int singleton_column(lprec lp, int row_nr, ref double?[] column, ref int[] nzlist, double value, ref int maxabs)
+        internal static int singleton_column(lprec lp, int row_nr, ref double[] column, ref int[] nzlist, double value, ref int maxabs)
         {
             int nz = 1;
 
@@ -4190,7 +4192,9 @@ internal static class StringFunctions
                 {
                     for (i = oldcolsalloc + 1; i < colsum; i++)
                     {
-                        lp.var_is_free[i] = 0;
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp.var_is_free[i][0] = 0;
                     }
                 }
 
@@ -4359,7 +4363,7 @@ internal static class StringFunctions
                     {
                         hashtable ht;
 
-                        ht = lp_Hash.copy_hash_table(lp.rowname_hashtab, lp.row_name[0], lp.rows_alloc + 1);
+                        ht = lp_Hash.copy_hash_table(lp.rowname_hashtab, lp.row_name, lp.rows_alloc + 1);
                         if (ht == null)
                         {
                             lp.spx_status = NOMEMORY;
@@ -4584,9 +4588,13 @@ internal static class StringFunctions
                 {
                     for (i = 1; i <= lp.columns; i++)
                     {
-                        if (System.Math.Abs((sbyte)lp.var_is_free[i]) >= @base)
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        if (System.Math.Abs((sbyte)lp.var_is_free[i][0]) >= @base)
                         {
-                            lp.var_is_free[i] += (int)lp_types.my_chsign(lp.var_is_free[i] < 0, delta);
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            //set second [] as 0 (2) for now; need to check at run time
+                            lp.var_is_free[i][0] += (int)lp_types.my_chsign(lp.var_is_free[i][0] < 0, delta);
                         }
                     }
                 }
@@ -4620,7 +4628,9 @@ internal static class StringFunctions
                     }
                     if (lp.var_is_free != null)
                     {
-                        lp.var_is_free[ii] = 0;
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp.var_is_free[ii][0] = 0;
                     }
                     if (lp.best_solution != null)
                     {
@@ -4751,9 +4761,13 @@ internal static class StringFunctions
                         {
                             for (i = 1; i <= lp.columns; i++)
                             {
-                                if (System.Math.Abs((sbyte)lp.var_is_free[i]) >= @base)
+                                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                //set second [] as 0 for now; need to check at run time
+                                if (System.Math.Abs((sbyte)lp.var_is_free[i][0]) >= @base)
                                 {
-                                    lp.var_is_free[i] -= (int)lp_types.my_chsign(lp.var_is_free[i] < 0, delta);
+                                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                    //set second [] as 0 (2) for now; need to check at run time
+                                    lp.var_is_free[i][0] -= (int)lp_types.my_chsign(lp.var_is_free[i][0] < 0, delta);
                                 }
                             }
                         }
@@ -6060,7 +6074,29 @@ internal static class StringFunctions
 
         internal static new void default_basis(lprec lp)
         {
-            throw new NotImplementedException();
+            int i;
+
+            /* Set the slack variables to be basic; note that the is_basic[] array
+               is a helper array filled in presolve() to match var_basic[]. */
+            for (i = 1; i <= lp.rows; i++)
+            {
+                lp.var_basic[i] = i;
+                lp.is_basic[i] = true;
+                lp.is_lower[i] = true;
+            }
+            lp.var_basic[0] = 1; // Set to signal that this is the default basis
+
+            /* Set user variables at their lower bound, including the
+               dummy slack for the objective "constraint" */
+            for (; i <= lp.sum; i++)
+            {
+                lp.is_basic[i] = false;
+                lp.is_lower[i] = true;
+            }
+            lp.is_lower[0] = true;
+
+            set_action(ref lp.spx_action, ACTION_REBASE | ACTION_REINVERT | ACTION_RECOMPUTE);
+            lp.basis_valid = true; // Do not re-initialize basis on entering Solve
         }
 
         internal static new int get_basiscrash(lprec lp)
@@ -6826,7 +6862,7 @@ internal static class StringFunctions
                         d = lp_types.my_chsign(!islower, dcol[varnr]);
 
                         /* Don't bother with uninteresting non-basic variables */
-                        if ((d > -tol) || lp_types.my_unbounded(lp, varnr) || objLpCls.is_fixedvar(lp, varnr)) // Equality slack or a fixed variable ("type 3")
+                        if ((d > -tol) || lp_types.my_unbounded(lp, varnr) || is_fixedvar(lp, varnr)) // Equality slack or a fixed variable ("type 3")
                         {
                             continue;
                         }
@@ -6934,7 +6970,7 @@ internal static class StringFunctions
             }
         }
 
-        internal static int get_basiscolumn(lprec lp, int j, int[] rn, double?[] bj)
+        internal static int get_basiscolumn(lprec lp, int j, int[] rn, double[] bj)
         /* This routine returns sparse vectors for all basis
            columns, including the OF dummy (index 0) and slack columns.
            NOTE that the index usage is nonstandard for lp_solve, since
@@ -7196,7 +7232,7 @@ internal static class StringFunctions
                 }
                 /* Added a test if variable is different from 0 because sometime you get -0 and this
                    is different from 0 on for example INTEL processors (ie 0 != -0 on INTEL !) PN */
-                else if ((objLpCls.is_chsign(lp, 0) == objLpCls.is_chsign(lp, i)) && lp.duals[i] != 0)
+                else if ((is_chsign(lp, 0) == is_chsign(lp, i)) && lp.duals[i] != 0)
                 {
                     lp.duals[i] = lp_types.my_flipsign(lp.duals[i]);
                 }
@@ -7291,13 +7327,13 @@ internal static class StringFunctions
 
         internal static int get_multiprice(lprec lp, bool getabssize)
         {
-            if ((lp.multivars == null) || (lp.multivars.used == 0))
+            if ((lp.multivars == null) || (lp.multivars[0].used == 0))
             {
                 return (0);
             }
             if (getabssize)
             {
-                return (lp.multivars.size);
+                return (lp.multivars[0].size);
             }
             else
             {
@@ -7483,10 +7519,14 @@ internal static class StringFunctions
             int k;
             bool ok = true;
             //ORIGINAL LINE: int *new_index = null;
-            int? new_index = null;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'int[] new_index' to 'int[][] new_index'; need to check at run time
+            int[][] new_index = null;
             double hold;
             //ORIGINAL LINE: double *new_column = null;
-            double? new_column = null;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'int?[] var_is_free' to 'int?[][] var_is_free'; need to check at run time
+            double[][] new_column = null;
             bool scaled;
             bool primal1;
             bool primal2;
@@ -7497,7 +7537,7 @@ internal static class StringFunctions
             /* do not process if already preprocessed */
             if (lp.wasPreprocessed)
             {
-                return (Convert.ToInt32(ok));
+                return ok;
             }
 
             /* Write model statistics and optionally initialize partial pricing structures */
@@ -7622,9 +7662,13 @@ internal static class StringFunctions
                 if (((hold < lp.infinite) && lp_types.my_infinite(lp, lp.orig_lowbo[i])) || (!false && !lp_types.my_infinite(lp, lp.negrange) && (hold < -lp.negrange) && (lp.orig_lowbo[i] <= lp.negrange)))
                 {
                     /* Delete split sibling variable if one existed from before */
-                    if ((lp.var_is_free != null) && (lp.var_is_free[j] > 0))
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    if ((lp.var_is_free != null) && (lp.var_is_free[j][0] > 0))
                     {
-                        del_column(lp, (int)lp.var_is_free[j]);
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        del_column(lp, (lp.var_is_free[j][0] != null) ? Convert.ToInt32(lp.var_is_free[j][0]) : 0);
                     }
                     /* Negate the column / flip to the positive range */
                     lp_matrix.mat_multcol(lp.matA, j, -1, true);
@@ -7635,7 +7679,9 @@ internal static class StringFunctions
                             return false;
                         }
                     }
-                    lp.var_is_free[j] = -j; // Indicator UB and LB are switched, with no helper variable added
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    lp.var_is_free[j][0] = -j; // Indicator UB and LB are switched, with no helper variable added
                     lp.orig_upbo[i] = lp_types.my_flipsign(lp.orig_lowbo[i]);
                     lp.orig_lowbo[i] = lp_types.my_flipsign(hold);
                     /* Check for presence of negative ranged SC variable */
@@ -7650,12 +7696,13 @@ internal static class StringFunctions
                 {
                     if (lp.var_is_free == null)
                     {
-                        if (!lp_utils.allocINT(lp, (int)lp.var_is_free, commonlib.MAX(lp.columns, lp.columns_alloc) + 1, 1))
-                        {
-                            return (0);
-                        }
+                        if (!lp_utils.allocINT(lp, lp.var_is_free, (int)commonlib.MAX(lp.columns, lp.columns_alloc) + 1, 1))
+
+                            return false;
                     }
-                    if (lp.var_is_free[j] <= 0)
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    if (lp.var_is_free[j][0] <= 0)
                     { // If this variable wasn't split yet ...
                         if (lp_SOS.SOS_is_member(lp.SOS, 0, i - lp.rows))
                         { // Added
@@ -7668,7 +7715,7 @@ internal static class StringFunctions
                         {
                             if (!lp_utils.allocREAL(lp, new_column, lp.rows + 1, 0) || !lp_utils.allocINT(lp, new_index, lp.rows + 1, 0))
                             {
-                                ok = 0;
+                                ok = true;
                                 break;
                             }
                         }
@@ -7677,13 +7724,13 @@ internal static class StringFunctions
                         /* full scaling information is preserved */
                         scaled = lp.scaling_used;
                         lp.scaling_used = false;
-                        k = get_columnex(lp, j, ref new_column, ref new_index);
-                        if (!add_columnex(lp, k, ref new_column, ref new_index))
+                        k = get_columnex(lp, j, ref new_column[0], ref new_index);
+                        if (!add_columnex(lp, k, ref new_column[0], ref new_index))
                         {
-                            ok = 0;
+                            ok = true;
                             break;
                         }
-                        lp_matrix.mat_multcol(lp.matA, lp.columns, -1, 1);
+                        lp_matrix.mat_multcol(lp.matA, lp.columns, -1, true);
                         if (scaled)
                         {
                             lp.scalars[lp.rows + lp.columns] = lp.scalars[i];
@@ -7700,19 +7747,27 @@ internal static class StringFunctions
                             if (!set_col_name(lp, lp.columns, ref fieldn))
                             {
                                 /*          if (!set_col_name(lp, lp->columns, get_col_name(lp, j))) { */
-                                ok = 0;
+                                ok = false;
                                 break;
                             }
                         }
                         /* Set (positive) index to the original column's split / helper and back */
-                        lp.var_is_free[j] = lp.columns;
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp.var_is_free[j][0] = lp.columns;
                     }
-                    lp.orig_upbo[lp.rows + (int)lp.var_is_free[j]] = lp_types.my_flipsign(lp.orig_lowbo[i]);
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    lp.orig_upbo[lp.rows + (int)lp.var_is_free[j][0]] = lp_types.my_flipsign(lp.orig_lowbo[i]);
                     lp.orig_lowbo[i] = 0;
 
                     /* Negative index indicates x is split var and -var_is_free[x] is index of orig var */
-                    lp.var_is_free[(int)lp.var_is_free[j]] = -j;
-                    lp.var_type[(int)lp.var_is_free[j]] = lp.var_type[j];
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 (2) for now; need to check at run time
+                    lp.var_is_free[(int)lp.var_is_free[j][0]][0] = -j;
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    lp.var_type[(int)lp.var_is_free[j][0]] = lp.var_type[j];
                 }
                 /* Check for positive ranged SC variables */
                 else if (lp.sc_lobound[j] > 0)
@@ -7750,7 +7805,7 @@ internal static class StringFunctions
 
             lp.wasPreprocessed = true;
 
-            return (Convert.ToInt32(ok));
+            return (ok);
 
         }
 
@@ -7985,7 +8040,8 @@ internal static class StringFunctions
             }
             if (n > 0)
             {
-                lp.report(lp, IMPORTANT, "verify_solution: Iter %.0f %s - %d errors; OF %g, Max @row %d %g\n", (double)get_total_iter(lp), my_if(info == null, "", info), n, err, newmap[ii], errmax);
+                string msg = "verify_solution: Iter %.0f {0} - {1} errors; OF {2}, Max @row {3} {4}\n";
+                lp.report(lp, IMPORTANT, ref msg, (double)get_total_iter(lp), lp_types.my_if(info == null, "", info), n, err, newmap[ii], errmax);
             }
             /*NOT REQUIRED
             // Copy old results back (not possible for inversion) 
@@ -9056,7 +9112,7 @@ internal static class StringFunctions
                     }
 
                     /* Should we do a "strong" pseudo-cost initialization or an incremental update? */
-                    if (pseudostrong && (commonlib.MAX(lp.bb_PseudoCost.LOcost[ii].rownr, lp.bb_PseudoCost.UPcost[ii].rownr) < lp.bb_PseudoCost.updatelimit) && (MAX(lp.bb_PseudoCost.LOcost[ii].colnr, lp.bb_PseudoCost.UPcost[ii].colnr) < 5 * lp.bb_PseudoCost.updatelimit))
+                    if (pseudostrong && (commonlib.MAX(lp.bb_PseudoCost.LOcost[ii].rownr, lp.bb_PseudoCost.UPcost[ii].rownr) < lp.bb_PseudoCost.updatelimit) && (commonlib.MAX(lp.bb_PseudoCost.LOcost[ii].colnr, lp.bb_PseudoCost.UPcost[ii].colnr) < 5 * lp.bb_PseudoCost.updatelimit))
                     {
                         //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
                         //set second [] as 0 for now; need to check at run time
@@ -9201,7 +9257,7 @@ internal static class StringFunctions
 	}
 #endif
                 j = lp.rows + i;
-                if (!lp_SOS.SOS_is_marked(lp.SOS, 0, i) && !lp_SOS.SOS_is_full(lp.SOS, 0, i, 0))
+                if (!lp_SOS.SOS_is_marked(lp.SOS, 0, i) && !lp_SOS.SOS_is_full(lp.SOS, 0, i, false))
                 {
                     /*    if(!SOS_is_marked(lp->SOS, 0, i) && !SOS_is_full(lp->SOS, 0, i, TRUE)) { */
                     if (!intsos || is_int(lp, i))
@@ -9477,7 +9533,9 @@ internal static class StringFunctions
                     //FREE(oldbasis.var_basic);
 
 #if BasisStorageModel
+                    /*NOT REQUIRED
                     FREE(oldbasis.is_basic);
+                    */
 #endif
                     //FREE(oldbasis.is_lower);
                     //FREE(oldbasis);
@@ -9527,12 +9585,16 @@ internal static class StringFunctions
             {
                 i = lp.rows + j;
                 /* Reconstruct strictly negative values */
-                if ((lp.var_is_free != null) && (lp.var_is_free[j] < 0))
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                if ((lp.var_is_free != null) && (lp.var_is_free[j][0] < 0))
                 {
                     /* Check if we have the simple case where the UP and LB are negated and switched */
-                    if (-lp.var_is_free[j] == j)
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    if (-lp.var_is_free[j][0] == j)
                     {
-                        lp_matrix.mat_multcol(lp.matA, j, -1, 1);
+                        lp_matrix.mat_multcol(lp.matA, j, -1, true);
                         hold = lp.orig_upbo[i];
                         lp.orig_upbo[i] = lp_types.my_flipsign(lp.orig_lowbo[i]);
                         lp.orig_lowbo[i] = lp_types.my_flipsign(hold);
@@ -9550,7 +9612,9 @@ internal static class StringFunctions
                         lp->dualstill[i] = my_flipsign(hold); */
                         /* under investigation <peno> */
                         /* Bound switch undone, so clear the status */
-                        lp.var_is_free[j] = 0;
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp.var_is_free[j][0] = 0;
                         /* Adjust negative ranged SC */
                         if (lp.sc_lobound[j] > 0)
                         {
@@ -9560,7 +9624,9 @@ internal static class StringFunctions
                     /* Ignore the split / helper columns (will be deleted later) */
                 }
                 /* Condense values of extra columns of quasi-free variables split in two */
-                else if ((lp.var_is_free != null) && (lp.var_is_free[j] > 0))
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                else if ((lp.var_is_free != null) && (lp.var_is_free[j][0] > 0))
                 {
                     ii = Convert.ToInt32(lp.var_is_free[j]); // Index of the split helper var
                                                              /* if(lp->objfrom[j] == -lp->infinite)
@@ -9631,7 +9697,9 @@ internal static class StringFunctions
             //ORIGINAL LINE: int *workINT = null;
             int[] workINT = null;
             //ORIGINAL LINE: double *pcol,a,infinite,epsvalue,from,till,objfromvalue;
-            double[] pcol;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'double[] pcol' to 'double[][] pcol'; need to check at run time
+            double[][] pcol = null;
             double a;
             double infinite;
             double epsvalue;
@@ -9652,7 +9720,7 @@ internal static class StringFunctions
                 //FREE(lp.objfromvalue);
                 // FREE(lp.dualsfrom);
                 // FREE(lp.dualstill);
-                ok = 0;
+                ok = false;
             }
             else
             {
@@ -9665,41 +9733,53 @@ internal static class StringFunctions
                     objfromvalue = infinite;
                     if (!lp.is_basic[varnr])
                     {
-                        if (!lp_matrix.fsolve(lp, varnr, pcol, workINT, epsvalue, 1.0, 0))
+                        if (!lp_matrix.fsolve(lp, varnr, pcol[0], workINT, epsvalue, 1.0, false))
                         { // construct one column of the tableau
-                            ok = 0;
+                            ok = false;
                             break;
                         }
                         /* Search for the rows(s) which first result in further iterations */
                         for (k = 1; k <= lp.rows; k++)
                         {
-                            if (System.Math.Abs(pcol[k]) > epsvalue)
+                            if (System.Math.Abs(Convert.ToSByte(pcol[k])) > epsvalue)
                             {
-                                a = lp.rhs[k] / pcol[k];
+                                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                //set second [] as 0 for now; need to check at run time
+                                a = lp.rhs[k] / pcol[k][0];
                                 if ((varnr > lp.rows) && (System.Math.Abs(lp.solution[varnr]) <= epsvalue) && (a < objfromvalue) && (a >= lp.lowbo[varnr]))
                                 {
                                     objfromvalue = a;
                                 }
-                                if ((a <= 0.0) && (pcol[k] < 0.0) && (-a < from))
+                                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                //set second [] as 0 for now; need to check at run time
+                                if ((a <= 0.0) && (pcol[k][0] < 0.0) && (-a < from))
                                 {
                                     from = lp_types.my_flipsign(a);
                                 }
-                                if ((a >= 0.0) && (pcol[k] > 0.0) && (a < till))
+                                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                //set second [] as 0 for now; need to check at run time
+                                if ((a >= 0.0) && (pcol[k][0] > 0.0) && (a < till))
                                 {
                                     till = a;
                                 }
                                 if (lp.upbo[lp.var_basic[k]] < infinite)
                                 {
-                                    a = (double)((lp.rhs[k] - lp.upbo[lp.var_basic[k]]) / pcol[k]);
+                                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                    //set second [] as 0 for now; need to check at run time
+                                    a = (double)((lp.rhs[k] - lp.upbo[lp.var_basic[k]]) / pcol[k][0]);
                                     if ((varnr > lp.rows) && (System.Math.Abs(lp.solution[varnr]) <= epsvalue) && (a < objfromvalue) && (a >= lp.lowbo[varnr]))
                                     {
                                         objfromvalue = a;
                                     }
-                                    if ((a <= 0.0) && (pcol[k] > 0.0) && (-a < from))
+                                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                    //set second [] as 0 for now; need to check at run time
+                                    if ((a <= 0.0) && (pcol[k][0] > 0.0) && (-a < from))
                                     {
                                         from = lp_types.my_flipsign(a);
                                     }
-                                    if ((a >= 0.0) && (pcol[k] < 0.0) && (a < till))
+                                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                    //set second [] as 0 for now; need to check at run time
+                                    if ((a >= 0.0) && (pcol[k][0] < 0.0) && (a < till))
                                     {
                                         till = a;
                                     }
@@ -9713,7 +9793,7 @@ internal static class StringFunctions
                             from = till;
                             till = a;
                         }
-                        if ((varnr <= lp.rows) && (!objLpCls.is_chsign(lp, varnr)))
+                        if ((varnr <= lp.rows) && (!is_chsign(lp, varnr)))
                         {
                             a = from;
                             from = till;
@@ -9723,19 +9803,27 @@ internal static class StringFunctions
 
                     if (from != infinite)
                     {
-                        lp.dualsfrom[varnr] = lp.solution[varnr] - lp_scale.unscaled_value(lp, from, varnr);
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp.dualsfrom[varnr][0] = lp.solution[varnr] - lp_scale.unscaled_value(lp, from, varnr);
                     }
                     else
                     {
-                        lp.dualsfrom[varnr] = -infinite;
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp.dualsfrom[varnr][0] = -infinite;
                     }
                     if (till != infinite)
                     {
-                        lp.dualstill[varnr] = lp.solution[varnr] + lp_scale.unscaled_value(lp, till, varnr);
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp.dualstill[varnr][0] = lp.solution[varnr] + lp_scale.unscaled_value(lp, till, varnr);
                     }
                     else
                     {
-                        lp.dualstill[varnr] = infinite;
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp.dualstill[varnr][0] = infinite;
                     }
 
                     if (varnr > lp.rows)
@@ -9760,7 +9848,9 @@ internal static class StringFunctions
                         {
                             objfromvalue = -infinite;
                         }
-                        lp.objfromvalue[varnr - lp.rows] = objfromvalue;
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        lp.objfromvalue[varnr - lp.rows][0] = objfromvalue;
                     }
 
                 }
@@ -9784,13 +9874,19 @@ internal static class StringFunctions
             string memVector = "";
 
             //ORIGINAL LINE: double *OrigObj = null, *drow = null, *prow = null, sign, a, min1, min2, infinite, epsvalue, from, till;
-            double[] OrigObj;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'double[] OrigObj' to 'double[][] OrigObj'; need to check at run time
+            double[][] OrigObj = null;
 
             //ORIGINAL LINE: double *drow = null;
-            double[] drow;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'double[] drow' to 'double[][] drow'; need to check at run time
+            double[][] drow = null;
 
             //ORIGINAL LINE: double *prow = null;
-            double[] prow = null;
+            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+            //changed from 'double[] prow' to 'double[] prow'; need to check at run time
+            double[][] prow = null;
             double sign;
             double a;
             double min1;
@@ -9806,7 +9902,7 @@ internal static class StringFunctions
             // FREE(lp.objtill);
             if (!lp_utils.allocREAL(lp, drow, lp.sum + 1, 1) || !lp_utils.allocREAL(lp, OrigObj, lp.columns + 1, 0) || !lp_utils.allocREAL(lp, prow, lp.sum + 1, 1) || !lp_utils.allocREAL(lp, lp.objfrom, lp.columns + 1, lp_types.AUTOMATIC) || !lp_utils.allocREAL(lp, lp.objtill, lp.columns + 1, lp_types.AUTOMATIC))
             {
-                Abandon:
+                //Abandon:
                 //FREE(drow);
                 //FREE(OrigObj);
                 //FREE(prow);
@@ -9836,8 +9932,7 @@ internal static class StringFunctions
                     {
                         memVector = coltarget.ToString();
                         lp_utils.mempool_releaseVector(lp.workarrays, ref memVector, 0);
-                        //NOTED ISSUE
-                        goto Abandon;
+                        //goto Abandon;
                     }
                 }
                 else
@@ -9846,12 +9941,16 @@ internal static class StringFunctions
 
 
                 memVector = coltarget.ToString();
-                lp_matrix.bsolve(lp, 0, ref drow, ref Parameter, epsvalue * DOUBLEROUND, 1.0);
-                lp_matrix.prod_xA(lp, ref coltarget, ref drow[0], ref Parameter2, epsvalue, 1.0, ref drow[0], ref Parameter2, lp_matrix.MAT_ROUNDDEFAULT | lp_matrix.MAT_ROUNDRC);
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set [] as 0 for now; need to check at run time
+                lp_matrix.bsolve(lp, 0, ref drow[0], ref Parameter, epsvalue * DOUBLEROUND, 1.0);
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 (2) for now; need to check at run time
+                lp_matrix.prod_xA(lp, ref coltarget, ref drow[0][0], ref Parameter2, epsvalue, 1.0, ref drow[0][0], ref Parameter2, lp_matrix.MAT_ROUNDDEFAULT | lp_matrix.MAT_ROUNDRC);
             }
 
             /* original (unscaled) objective function */
-            objLpCls.get_row(lp, 0, ref OrigObj);
+            objLpCls.get_row(lp, 0, ref OrigObj[0]);
             for (i = 1; i <= lp.columns; i++)
             {
                 from = -infinite;
@@ -9860,7 +9959,9 @@ internal static class StringFunctions
                 if (!lp.is_basic[varnr])
                 {
                     /* only the coeff of the objective function of column i changes. */
-                    a = lp_scale.unscaled_mat(lp, drow[varnr], 0, i);
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set second [] as 0 for now; need to check at run time
+                    a = lp_scale.unscaled_mat(lp, drow[varnr][0], 0, i);
                     if (is_maxim(lp))
                     {
                         a = -a;
@@ -9872,11 +9973,15 @@ internal static class StringFunctions
                     }
                     else if (((lp.is_lower[varnr] != false) == (!LpCls.is_maxim(lp))) && (a > -epsvalue))
                     {
-                        from = OrigObj[i] - a; // less than this value gives further iterations
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        from = OrigObj[i][0] - a; // less than this value gives further iterations
                     }
                     else
                     {
-                        till = OrigObj[i] - a; // bigger than this value gives further iterations
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set second [] as 0 for now; need to check at run time
+                        till = OrigObj[i][0] - a; // bigger than this value gives further iterations
                     }
                 }
                 else
@@ -9890,18 +9995,28 @@ internal static class StringFunctions
                     if (row_nr <= lp.rows)
                     { // safety test; should always be found ...
                       /* Construct one row of the tableau */
-                        lp_matrix.bsolve(lp, row_nr, ref prow, ref Parameter, epsvalue * DOUBLEROUND, 1.0);
-                        lp_matrix.prod_xA(lp, ref coltarget, ref prow[0], ref Parameter2, epsvalue, 1.0, ref prow[0], ref Parameter2, lp_matrix.MAT_ROUNDDEFAULT);
+                      //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                      //set [] as 0 for now; need to check at run time
+                        lp_matrix.bsolve(lp, row_nr, ref prow[0], ref Parameter, epsvalue * DOUBLEROUND, 1.0);
+                        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                        //set [] as 0 (2) for now; need to check at run time
+                        lp_matrix.prod_xA(lp, ref coltarget, ref prow[0][0], ref Parameter2, epsvalue, 1.0, ref prow[0][0], ref Parameter2, lp_matrix.MAT_ROUNDDEFAULT);
                         /* sign = my_chsign(is_chsign(lp, row_nr), -1); */
                         sign = lp_types.my_chsign(lp.is_lower[row_nr], -1);
                         min1 = infinite;
                         min2 = infinite;
                         for (l = 1; l <= lp.sum; l++) // search for the column(s) which first results in further iterations
                         {
-                            if ((!lp.is_basic[l]) && (lp.upbo[l] > 0.0) && (System.Math.Abs(prow[l]) > epsvalue) && (drow[l] * (lp.is_lower[l] ? -1 : 1) < epsvalue))
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            //set second [] as 0 (2) for now; need to check at run time
+                            if ((!lp.is_basic[l]) && (lp.upbo[l] > 0.0) && (System.Math.Abs(prow[l][0]) > epsvalue) && (drow[l][0] * (lp.is_lower[l] ? -1 : 1) < epsvalue))
                             {
-                                a = lp_scale.unscaled_mat(lp, System.Math.Abs(drow[l] / prow[l]), 0, i);
-                                if (prow[l] * sign * (lp.is_lower[l] ? 1 : -1) < 0.0 != false != false)
+                                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                //set second [] as 0 (2) for now; need to check at run time
+                                a = lp_scale.unscaled_mat(lp, System.Math.Abs(drow[l][0] / prow[l][0]), 0, i);
+                                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                //set second [] as 0 for now; need to check at run time
+                                if (prow[l][0] * sign * (lp.is_lower[l] ? 1 : -1) < 0.0 != false != false)
                                 {
                                     if (a < min1)
                                     {
@@ -9925,11 +10040,15 @@ internal static class StringFunctions
                         }
                         if (min1 < infinite)
                         {
-                            from = OrigObj[i] - min1;
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            //set second [] as 0 for now; need to check at run time
+                            from = OrigObj[i][0] - min1;
                         }
                         if (min2 < infinite)
                         {
-                            till = OrigObj[i] + min2;
+                            //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                            //set second [] as 0 for now; need to check at run time
+                            till = OrigObj[i][0] + min2;
                         }
                         a = lp.solution[varnr];
                         if (is_maxim(lp))
@@ -9956,8 +10075,12 @@ internal static class StringFunctions
                         }
                     }
                 }
-                lp.objfrom = from;
-                lp.objtill = till;
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set both [] as 0 for now; need to check at run time
+                lp.objfrom[0][0] = from;
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set both [] as 0 for now; need to check at run time
+                lp.objtill[0][0] = till;
             }
             lp_utils.mempool_releaseVector(lp.workarrays, ref memVector, 0);
             //FREE(prow);
@@ -10103,11 +10226,15 @@ internal static class StringFunctions
                 }
                 if (objfrom != null)
                 {
-                    objfrom[0][0] = Convert.ToDouble(lp.objfrom + 1);
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set both [] as 0 for now; need to check at run time
+                    objfrom[0][0] = lp.objfrom[0][0] + 1;
                 }
                 if (objtill != null)
                 {
-                    objtill[0][0] = Convert.ToDouble(lp.objtill + 1);
+                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                    //set both [] as 0 for now; need to check at run time
+                    objtill[0][0] = lp.objtill[0][0] + 1;
                 }
             }
 
@@ -10131,7 +10258,9 @@ internal static class StringFunctions
 
             if (objfromvalue != null)
             {
-                objfromvalue[0][0] = Convert.ToDouble(lp.objfromvalue[0] + 1);
+                //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                //set second [] as 0 for now; need to check at run time
+                objfromvalue[0][0] = Convert.ToDouble(lp.objfromvalue[0][0] + 1);
             }
 
             if (objtillvalue != null)
@@ -10367,7 +10496,7 @@ internal static class StringFunctions
                         if ((lp.int_vars > 0) && (lp_types.my_chsign(is_maxim(lp), lp_types.my_reldiff((lp.best_solution[0] != null) ? Convert.ToDouble(lp.best_solution[0]) : 0,  lp.bb_limitOF)) < -epsvalue))
                         {
                             lp.spx_status = INFEASIBLE;
-                            lp.bb_break = true;
+                            lp.bb_break = 1;
                         }
                     }
                 }
@@ -10430,7 +10559,7 @@ internal static class StringFunctions
             for (i = 0; i < n; i++, matRownr += lp_matrix.matRowColStep, matColnr += lp_matrix.matRowColStep, matValue += lp_matrix.matValueStep)
             {
                 test = lp_scale.unscaled_mat(lp, matValue, matRownr, matColnr);
-                test *= solution[lp.rows + (matColnr)];
+                test *= (solution[lp.rows + (matColnr)] != null) ? Convert.ToDouble(solution[lp.rows + (matColnr)]) : 0; 
 #if UseMaxValueInCheck
 	test = Math.Abs(test);
 	if (test > maxvalue[*matRownr])
@@ -10455,7 +10584,7 @@ internal static class StringFunctions
             for (i = lp.rows + 1; i <= lp.rows + lastcolumn; i++)
             {
 
-                value = solution[i];
+                value = (solution[i] != null) ? Convert.ToDouble(solution[i]) : 0;
 
                 /* Check for case where we are testing an intermediate solution
                    (variables shifted to the origin) */
@@ -10484,7 +10613,7 @@ internal static class StringFunctions
                     if (n < errlimit)
                     {
                         msg = "check_solution: Variable   %s = " + lp_types.RESULTVALUEMASK + " is below its lower bound "+ lp_types.RESULTVALUEMASK + "\n";
-                        lp.report(lp, errlevel, ref msg, objLpCls.get_col_name(lp, i - lp.rows), value, test);
+                        lp.report(lp, errlevel, ref msg, get_col_name(lp, i - lp.rows), value, test);
                     }
                     n++;
                 }
@@ -10501,7 +10630,7 @@ internal static class StringFunctions
                     if (n < errlimit)
                     {
                         msg = "check_solution: Variable   %s = " + lp_types.RESULTVALUEMASK+ " is above its upper bound "+ lp_types.RESULTVALUEMASK+ "\n";
-                        lp.report(lp, errlevel, ref msg, objLpCls.get_col_name(lp, i - lp.rows), value, test);
+                        lp.report(lp, errlevel, ref msg, get_col_name(lp, i - lp.rows), value, test);
                     }
                     n++;
                 }
@@ -10529,12 +10658,12 @@ internal static class StringFunctions
 	}
 #endif
 
-                if (objLpCls.is_chsign(lp, i))
+                if (is_chsign(lp, i))
                 {
                     test = lp_types.my_flipsign(test);
                     test += System.Math.Abs(upbo[i]);
                 }
-                value = solution[i];
+                value = (solution[i] != null) ? Convert.ToDouble(solution[i]) : 0;
                 test = lp_scale.unscaled_value(lp, test, i);
 #if !LegacySlackDefinition
                 value += test;
@@ -10578,8 +10707,8 @@ internal static class StringFunctions
 	}
 #endif
 
-                value = solution[i];
-                if (objLpCls.is_chsign(lp, i))
+                value = (solution[i] != null) ? Convert.ToDouble(solution[i]) : 0;
+                if (is_chsign(lp, i))
                 {
                     test = lp_types.my_flipsign(test);
                 }
