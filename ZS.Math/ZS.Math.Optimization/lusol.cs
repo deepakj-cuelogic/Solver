@@ -716,8 +716,8 @@ public const int LUSOL_IP_ROWCOUNT_L0 = 32;
     /* Sparse matrix data */
     public class LUSOLmat
     {
-        double a;
-        int lenx, indr, indc, indx;
+        internal double[] a;
+        internal int lenx, indr, indc, indx;
     }
 
     

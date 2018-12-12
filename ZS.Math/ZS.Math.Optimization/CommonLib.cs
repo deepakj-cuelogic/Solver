@@ -50,10 +50,13 @@ namespace ZS.Math.Optimization
         public const int LUSOL_INFORM_LUSUCCESS = 0;
         public const int LUSOL_IP_INFORM = 10;
         public const int LUSOL_IP_BTRANCOUNT = 31;
+        public const int LUSOL_RP_SMARTRATIO = 0;
+        public const int LUSOL_IP_ROWCOUNT_L0 = 32
         //END:ADDED BELOW CONSTANT FOR METHOD LU6L which is in lusol6a.cs file
 
         //START:ADDED BELOW CONSTANT FOR METHOD LU1L0 which is in lusol6l0.cs file
         public const int LUSOL_IP_ACCELERATION = 7;
+        public const int LUSOL_AUTOORDER = 2;
         public const int LUSOL_BASEORDER = 0;
         public const int LUSOL_ACCELERATE_L0 = 4;
         public const int LUSOL_INFORM_NOMEMLEFT = 10;

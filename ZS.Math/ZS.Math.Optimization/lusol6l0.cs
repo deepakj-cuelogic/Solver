@@ -89,7 +89,7 @@ namespace ZS.Math.Optimization
             /* Cumulate row counts to get vector offsets; first row is leftmost
                (stick with Fortran array offset for consistency) */
                //NOTED ISSUE
-            mat[0].lenx[0] = 1;
+            mat[0].lenx = 1;
             for (K = 1; K <= LUSOL.m; K++)
             {
                 //NOTED ISSUE
@@ -109,7 +109,7 @@ namespace ZS.Math.Optimization
                 I = LUSOL.indc[L];
                 LL = Convert.ToInt32(lsumr[I]++);
                 //ORIGINAL CODE: mat.a[LL] = LUSOL.a[L];;
-                mat[LL].a = LUSOL.a[L];
+                mat[LL].a[0] = LUSOL.a[L];
                 mat[LL].indr = LUSOL.indr[L];
                 mat[LL].indc = I;
             }
@@ -119,7 +119,7 @@ namespace ZS.Math.Optimization
             for (L = 1; L <= LUSOL.m; L++)
             {
                 //ORIGINAL CODE: K = LUSOL.ip[L];
-                K = LUSOL.ip;
+                K = Convert.ToInt32(LUSOL.ip);
                 //NOTED ISSUE
                 if (mat[K].lenx > mat[K - 1].lenx)
                 {
@@ -183,7 +183,7 @@ namespace ZS.Math.Optimization
                     ///#if ( LUSOLFastSolve) && !( DoTraceL0)
                     L--;
                     //NOTED ISSUE: mat.a and mat.indr instead used mat[0].a and mat[0].indr
-                    for (aptr = mat[0].a + L, jptr = mat[0].indr + L; LEN > 0; LEN--, aptr--, jptr--)
+                    for (aptr = mat[0].a[0] + L, jptr = mat[0].indr + L; LEN > 0; LEN--, aptr--, jptr--)
                     {
                         V[jptr] += VPIV * (aptr);
                     }
@@ -194,10 +194,10 @@ namespace ZS.Math.Optimization
 
                         J = mat[L].indr;
                         ///#if ! DoTraceL0
-                        V[J] += VPIV * mat[L].a;
+                        V[J] += VPIV * mat[L].a[0];
                         ///#else
                         TEMP = V[J];
-                        V[J] += VPIV * mat[L].a;
+                        V[J] += VPIV * mat[L].a[0];
                         //ORIGINAL CODE: System.out.printf("V[%3d] = V[%3d] + L[%d,%d]*V[%3d]\n", J, J, KK, J, KK);
                         Console.WriteLine("{0}",J, J, KK, J, KK);
                         //ORIGINAL CODE: System.out.printf("%6g = %6g + %6g*%6g\n", V[J], TEMP, mat.a[L], VPIV);

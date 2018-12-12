@@ -74,10 +74,10 @@ namespace ZS.Math.Optimization
                     int ntighten = 0;
                     double deltaUL = new double();
 
-                    for (k = 1; k <= lp.nzdrow[0][0]; k++)
+                    for (k = 1; k <= lp.nzdrow[0]; k++)
                     {
                         //Added second array as [0], need to check at runtime.
-                        ii = lp.nzdrow[k][0];
+                        ii = lp.nzdrow[k];
 #if UseMilpSlacksRCF
 		isINT = 0;
 #else
@@ -152,7 +152,9 @@ namespace ZS.Math.Optimization
                 }
                 else if (LpCls.MIP_count(lp) > 0)
                 {
-                    if ((lp.bb_level <= 1) && (lp.bb_varactive == null) && (!lp_utils.allocINT(lp, lp.bb_varactive, lp.columns + 1, 1) || !Convert.ToBoolean(initcuts_BB(lp))))
+                    //ORIGINAL LINE: if ((lp.bb_level <= 1) && (lp.bb_varactive == null) && (!lp_utils.allocINT(lp, lp.bb_varactive, lp.columns + 1, 1) || !Convert.ToBoolean(initcuts_BB(lp))))
+                    //Removed allocINT temo, Need to check at runtime
+                    if ((lp.bb_level <= 1) && (lp.bb_varactive == null))
                     {
                         newBB = pop_BB(newBB);
                     }
@@ -251,9 +253,9 @@ namespace ZS.Math.Optimization
 
                     /* Set direction by OF value; note that a zero-value in
                        the OF gives priority to floor_first = TRUE */
-                    if (objLpCls.is_bb_mode(lp, lp_lib.NODE_GREEDYMODE))
+                    if (LpCls.is_bb_mode(lp, lp_lib.NODE_GREEDYMODE))
                     {
-                        if (objLpCls.is_bb_mode(lp, lp_lib.NODE_PSEUDOCOSTMODE))
+                        if (LpCls.is_bb_mode(lp, lp_lib.NODE_PSEUDOCOSTMODE))
                         {
                             BB.sc_bound = LpCls.get_pseudonodecost(lp.bb_PseudoCost, k, BB.vartype, BB.lastsolution);
                         }
@@ -266,7 +268,7 @@ namespace ZS.Math.Optimization
                         BB.isfloor = (bool)(BB.sc_bound > 0);
                     }
                     /* Set direction by pseudocost (normally used in tandem with NODE_PSEUDOxxxSELECT) */
-                    else if (objLpCls.is_bb_mode(lp, lp_lib.NODE_PSEUDOCOSTMODE))
+                    else if (LpCls.is_bb_mode(lp, lp_lib.NODE_PSEUDOCOSTMODE))
                     {
                         BB.isfloor = (bool)(objLpCls.get_pseudobranchcost(lp.bb_PseudoCost, k, 1) > objLpCls.get_pseudobranchcost(lp.bb_PseudoCost, k, 0));
                         if (LpCls.is_maxim(lp))
@@ -276,7 +278,7 @@ namespace ZS.Math.Optimization
                     }
 
                     /* Check for reversal */
-                    if (objLpCls.is_bb_mode(lp, lp_lib.NODE_BRANCHREVERSEMODE))
+                    if (LpCls.is_bb_mode(lp, lp_lib.NODE_BRANCHREVERSEMODE))
                     {
                         BB.isfloor = !BB.isfloor;
                     }
@@ -402,7 +404,7 @@ namespace ZS.Math.Optimization
                     {
                         if (isINT)
                         {
-                            deltaRC = objLpCls.scaled_floor(lp, varno, lp_scale.unscaled_value(lp, deltaRC, varno) + lprec.epsprimal, 1);
+                            deltaRC = LpCls.scaled_floor(lp, varno, lp_scale.unscaled_value(lp, deltaRC, varno) + lprec.epsprimal, 1);
                         }
                         upbo = lowbo + deltaRC;
                         deltaRC = upbo;
@@ -687,7 +689,7 @@ namespace ZS.Math.Optimization
             /* Check if we should adjust status */
             if (lp.solutioncount > prevsolutions)
             {
-                if ((status == lp_lib.PROCBREAK) || (status == lp_lib.USERABORT) || (status == lp_lib.TIMEOUT) || objLpCls.userabort(lp, -1))
+                if ((status == lp_lib.PROCBREAK) || (status == lp_lib.USERABORT) || (status == lp_lib.TIMEOUT) || LpCls.userabort(lp, -1))
                 {
                     status = lp_lib.SUBOPTIMAL;
                 }

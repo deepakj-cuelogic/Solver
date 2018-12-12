@@ -524,7 +524,7 @@ namespace ZS.Math.Optimization
                                     {
                                         field4 = -field4;
                                     }
-                                    objLpCls.set_rh(lp, row, field4);
+                                    LpCls.set_rh(lp, row, field4);
                                 }
                                 if (items == 6)
                                 {
@@ -534,7 +534,7 @@ namespace ZS.Math.Optimization
                                         {
                                             field6 = -field6;
                                         }
-                                        objLpCls.set_rh(lp, row, field6);
+                                        LpCls.set_rh(lp, row, field6);
                                     }
                                 }
 
@@ -977,8 +977,8 @@ namespace ZS.Math.Optimization
                     {
                         if (LpCls.is_int(lp, @var))
                         {
-                            lower = objLpCls.get_lowbo(lp, @var);
-                            upper = objLpCls.get_upbo(lp, @var);
+                            lower = LpCls.get_lowbo(lp, @var);
+                            upper = LpCls.get_upbo(lp, @var);
                             if ((lower == 10.0 / lp_lib.DEF_INFINITE) && (upper == lp_lib.DEF_INFINITE / 10.0))
                             {
                                 upper = 1.0;
@@ -1354,7 +1354,7 @@ namespace ZS.Math.Optimization
                         a = val1++;
                         if (k == 0)
                         {
-                            string getcolname = objLpCls.get_col_name(lp, i);
+                            string getcolname = LpCls.get_col_name(lp, i);
                             msg = "    {0}";
                             write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname));
                             msg = "  {0}  {1}";
@@ -1487,7 +1487,7 @@ namespace ZS.Math.Optimization
                             write_data(userhandle, write_modeldata, ref msg);
                             putheader = false;
                         }
-                        string getcolname = objLpCls.get_col_name(lp, i);
+                        string getcolname = LpCls.get_col_name(lp, i);
                         msg = " FX BND       {0}  {1}\n";
                         write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), formatnumber12(ref numberbuffer, (double)a));
                     }
@@ -1499,7 +1499,7 @@ namespace ZS.Math.Optimization
                             write_data(userhandle, write_modeldata, ref msg);
                             putheader = false;
                         }
-                        string getcolname = objLpCls.get_col_name(lp, i);
+                        string getcolname = LpCls.get_col_name(lp, i);
                         msg = " BV BND       {0}\n";
                         write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname));
                     }
@@ -1512,7 +1512,7 @@ namespace ZS.Math.Optimization
                             write_data(userhandle, write_modeldata, ref msg);
                             putheader = false;
                         }
-                        string getcolname = objLpCls.get_col_name(lp, i);
+                        string getcolname = LpCls.get_col_name(lp, i);
                         msg = " FR BND       {0}\n";
                         write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname));
                     }
@@ -1530,13 +1530,13 @@ namespace ZS.Math.Optimization
                             }
                             if (lp.orig_lowbo[i] != -lp.infinite)
                             {
-                                string getcolname = objLpCls.get_col_name(lp, i);
+                                string getcolname = LpCls.get_col_name(lp, i);
                                 msg = " LO BND       {0}  {1}\n";
                                 write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), formatnumber12(ref numberbuffer, (double)a));
                             }
                             else
                             {
-                                string getcolname = objLpCls.get_col_name(lp, i);
+                                string getcolname = LpCls.get_col_name(lp, i);
                                 msg = " MI BND       {0}\n";
                                 write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname));
                             }
@@ -1559,20 +1559,20 @@ namespace ZS.Math.Optimization
                             {
                                 if (LpCls.is_int(lp, j))
                                 {
-                                    string getcolname = objLpCls.get_col_name(lp, i);
+                                    string getcolname = LpCls.get_col_name(lp, i);
                                     msg = " SI BND       {0}  {1}\n";
                                     write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), (a < lp.infinite) ? formatnumber12(ref numberbuffer, (double)a) : "            ");
                                 }
                                 else
                                 {
-                                    string getcolname = objLpCls.get_col_name(lp, i);
+                                    string getcolname = LpCls.get_col_name(lp, i);
                                     msg = " SC BND       {0}  {1}\n";
                                     write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), (a < lp.infinite) ? formatnumber12(ref numberbuffer, (double)a) : "            ");
                                 }
                             }
                             else
                             {
-                                string getcolname = objLpCls.get_col_name(lp, i);
+                                string getcolname = LpCls.get_col_name(lp, i);
                                 msg = " UP BND       {0}  {1}\n";
                                 write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getcolname), formatnumber12(ref numberbuffer, (double)a));
                             }
@@ -1596,7 +1596,7 @@ namespace ZS.Math.Optimization
                 write_data(userhandle, write_modeldata, ref msg, SOS.sos_list[i].type, MPSname(ref name0, ref SOS.sos_list[i].name), formatnumber12(ref numberbuffer, (double)SOS.sos_list[i].priority));
                 for (j = 1; j <= SOS.sos_list[i].size; j++)
                 {
-                    string getrowname = objLpCls.get_col_name(lp, SOS.sos_list[i].members[j]);
+                    string getrowname = LpCls.get_col_name(lp, SOS.sos_list[i].members[j]);
                     msg = "    SOS       {0}  {1}\n";
                     write_data(userhandle, write_modeldata, ref msg, MPSname(ref name0, ref getrowname), formatnumber12(ref numberbuffer, (double)SOS.sos_list[i].weights[j]));
                 }
@@ -1991,9 +1991,9 @@ namespace ZS.Math.Optimization
                 /* Check if we have a basic/non-basic variable pair */
                 if ((ib <= lp.sum) && (in1 <= lp.sum))
                 {
-                    getrowcolname = (ib <= lp.rows ? objLpCls.get_row_name(lp, ib) : objLpCls.get_col_name(lp, ib - lp.rows));
+                    getrowcolname = (ib <= lp.rows ? objLpCls.get_row_name(lp, ib) : LpCls.get_col_name(lp, ib - lp.rows));
                     name1 = MPSname(ref name0, ref getrowcolname);
-                    getrowcolname = (in1 <= lp.rows ? objLpCls.get_row_name(lp, in1) : objLpCls.get_col_name(lp, in1 - lp.rows));
+                    getrowcolname = (in1 <= lp.rows ? objLpCls.get_row_name(lp, in1) : LpCls.get_col_name(lp, in1 - lp.rows));
                         name2 = MPSname(ref name0, ref getrowcolname);
                     //ORIGINAL CODE: fprintf(output, " %2s %s  %s\n", (lp.is_lower[in1] ? "XL" : "XU"), name1, name2);
                     writer.Flush();
@@ -2004,7 +2004,7 @@ namespace ZS.Math.Optimization
                 /* Otherwise just write the bound state of the non-basic variable */
                 else if (in1 <= lp.sum)
                 {
-                    getrowcolname = (in1 <= lp.rows ? objLpCls.get_row_name(lp, in1) : objLpCls.get_col_name(lp, in1 - lp.rows));
+                    getrowcolname = (in1 <= lp.rows ? objLpCls.get_row_name(lp, in1) : LpCls.get_col_name(lp, in1 - lp.rows));
                                 name1 = MPSname(ref name0, ref getrowcolname);
                     //ORIGINAL CODE: fprintf(output, " %2s %s\n", (lp.is_lower[in1] ? "LL" : "UL"), name1);
                     writer.Flush();

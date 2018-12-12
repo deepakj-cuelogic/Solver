@@ -2749,7 +2749,7 @@ RetryRow:
             //FREE(SubGrad);
             //FREE(OrigObj);
             //FREE(ModObj);
-            objLpCls.pop_basis(lp, 0);
+            LpCls.pop_basis(lp, false);
 
             lp.do_presolve = oldpresolve;
 

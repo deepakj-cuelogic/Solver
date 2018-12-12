@@ -57,7 +57,7 @@ namespace ZS.Math.Optimization
 
             /* Check if we should apply "smarts" before proceeding to the column matrix creation */
             //NOTED ISSUE
-            if ((LUSOL.luparm[commonlib.LUSOL_IP_ACCELERATION] & commonlib.LUSOL_AUTOORDER) && ((double)System.Math.Sqrt((double)NUMU / LENU) > LUSOL.parmlu[Convert.ToInt32(commonlib.LUSOL_RP_SMARTRATIO)]))
+            if ((LUSOL.luparm[commonlib.LUSOL_IP_ACCELERATION]!=0 & commonlib.LUSOL_AUTOORDER!=0) && ((double)System.Math.Sqrt((double)NUMU / LENU) > LUSOL.parmlu[Convert.ToInt32(commonlib.LUSOL_RP_SMARTRATIO)]))
             {
                 goto Finish;
             }
@@ -87,7 +87,7 @@ namespace ZS.Math.Optimization
             {
                 J = LUSOL.indr[L];
                 LL = lsumc[J]++;
-                mat[LL].a = LUSOL.a[L];
+                mat[LL].a[0] = LUSOL.a[L];
                 mat[LL].indr = J;
                 mat[LL].indc = LUSOL.indc[L];
             }
@@ -173,9 +173,9 @@ namespace ZS.Math.Optimization
             /* Loop over the nz columns of U - from the right, going left. */
             for (K = NRANK; K > 0; K--)
             {
-                I = mat.indx[K];
-                L = mat.lenx[I];
-                L1 = mat.lenx[I - 1];
+                I = mat.indx;
+                L = mat.lenx;
+                L1 = mat.lenx;
                 LEN = L - L1;
                 T = V[I];
                 if (System.Math.Abs(T) <= SMALL)
@@ -190,7 +190,7 @@ namespace ZS.Math.Optimization
                 
                 ///#if xxLUSOLFastSolve
                 L--;
-                for (aptr = mat.a[0] + L, jptr = mat.indc[0] + L; LEN > 0; LEN--, aptr--, jptr--)
+                for (aptr = mat.a[0] + L, jptr = mat.indc + L; LEN > 0; LEN--, aptr--, jptr--)
                 {
                     V[jptr] -= T * aptr;
                 }
@@ -198,7 +198,7 @@ namespace ZS.Math.Optimization
                 for (; LEN > 0; LEN--)
                 {
                     L--;
-                    J = mat.indc[L];
+                    J = mat.indc;
 
                     ///#if ! DoTraceL0
                     V[J] -= T * mat.a[L];
