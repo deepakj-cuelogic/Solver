@@ -592,7 +592,7 @@ namespace ZS.Math.Optimization
         /// <summary>
         /// changed access modifier to internal due to inaccessibility 6/11/18
         /// </summary>
-        internal bool bb_break;           /* Solver working variable; signals break of the B&B */
+        internal byte bb_break;           /* Solver working variable; signals break of the B&B */
         internal bool wasPreprocessed;    /* The solve preprocessing was performed */
         internal bool wasPresolved;       /* The solve presolver was invoked */
         int INTfuture2;

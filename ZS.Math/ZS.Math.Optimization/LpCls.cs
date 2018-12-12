@@ -50,7 +50,7 @@ namespace ZS.Math.Optimization
                 lp.spx_status = USERABORT;
                 if (lp.bb_level > 0)
                 {
-                    lp.bb_break = true;
+                    lp.bb_break = 1;
                 }
             }
             if ((message > 0) && (lp.usermessage != null) && ((lp.msgmask & message) != 0))
@@ -8165,9 +8165,6 @@ internal static class StringFunctions
         { throw new NotImplementedException(); }
 
         internal static new void print_objective(lprec lp)
-        { throw new NotImplementedException(); }
-
-        internal static new void print_lp(lprec lp)
         { throw new NotImplementedException(); }
 
         internal static new void print_tableau(lprec lp)
