@@ -14,7 +14,7 @@ namespace ZS.Math.Optimization
         public static Func<double, double> my_sign = (x) => ((x) < 0 ? -1 : 1);
 
         //ORIGINAL LINE: #define my_if(t, x, y)          ((t) ? (x) : (y))
-        public static Func<bool, double, double, double> my_if = (t, x, y) => ((t) ? (x) : (y));
+        public static Func<bool, object, object, object> my_if = (t, x, y) => ((t) ? (x) : (y));
 
         //ORIGINAL LINE: #define my_reldiff(x, y)       (((x) - (y)) / (1.0 + fabs((REAL) (y))))
         public static Func<double, double, double> my_reldiff = (x, y) => (((x) - (y)) / (1.0 + System.Math.Abs((double)(y))));

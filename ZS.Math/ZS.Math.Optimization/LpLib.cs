@@ -402,21 +402,34 @@ namespace ZS.Math.Optimization
         // changed from double to double[] on 10/12/18
         public double[] full_solution; // sum_alloc+1 : Final solution array expanded for deleted variables
         public double[] edgeVector; // Array of reduced cost scaling norms (DEVEX and Steepest Edge)
-
-        public double[] drow; // sum+1: Reduced costs of the last simplex
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        //changed from 'double[] drow' to 'double[][] drow'; need to check at run time
+        public double[][] drow; // sum+1: Reduced costs of the last simplex
         //ORIGINAL LINE: int *nzdrow;
-        public int[] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        //changed from 'int[] nzdrow' to 'int[][] nzdrow'; need to check at run time
+        public int[][] nzdrow; // sum+1: Indeces of non-zero reduced costs of the last simplex
         public double[] duals; // rows_alloc+1 : The dual variables of the last LP
         public double[] full_duals; // sum_alloc+1: Final duals array expanded for deleted variables
-        public double?[] dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        //changed from 'double[] dualsfrom' to 'double[][] dualsfrom'; need to check at run time
+        public double[][] dualsfrom; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
                                    of the last LP */
-        public double?[] dualstill; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        //changed from 'double[] dualstill' to 'double[][] dualstill'; need to check at run time
+        public double[][] dualstill; /* sum_alloc+1 :The sensitivity on dual variables/reduced costs
                                    of the last LP */
-        public double? objfrom; /* columns_alloc+1 :The sensitivity on objective function
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        //changed from 'double objfrom' to 'double[][] objfrom'; need to check at run time                                   
+        public double[][] objfrom; /* columns_alloc+1 :The sensitivity on objective function
                                    of the last LP */
-        public double? objtill; /* columns_alloc+1 :The sensitivity on objective function
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        //changed from 'double objtill' to 'double[][] objtill'; need to check at run time
+        public double[][] objtill; /* columns_alloc+1 :The sensitivity on objective function
                                    of the last LP */
-        public double?[] objfromvalue; /* columns_alloc+1 :The value of the variables when objective value
+        //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+        //changed from 'double[] objfromvalue' to 'double[][] objfromvalue'; need to check at run time
+        public double[][] objfromvalue; /* columns_alloc+1 :The value of the variables when objective value
                                    is at its from value of the last LP */
         public double[] orig_obj; // Unused pointer - Placeholder for OF not part of B
         public double[] obj; // Special vector used to temporarily change the OF vector
@@ -489,7 +502,9 @@ namespace ZS.Math.Optimization
                                    value replaced by conventional lower bound during solve */
                                     //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                     //ORIGINAL LINE: int *var_is_free;
-        public int?[] var_is_free; // columns+1: Index of twin variable if variable is free
+                                    //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
+                                    //changed from 'int?[] var_is_free' to 'int?[][] var_is_free'; need to check at run time
+        public int[][] var_is_free; // columns+1: Index of twin variable if variable is free
                                    //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
                                    //ORIGINAL LINE: int *var_priority;
                                    /// <summary>
@@ -2298,30 +2313,7 @@ namespace ZS.Math.Optimization
 
         public static void default_basis(lprec lp)
         {
-            int i;
-
-            /* Set the slack variables to be basic; note that the is_basic[] array
-               is a helper array filled in presolve() to match var_basic[]. */
-            for (i = 1; i <= lp.rows; i++)
-            {
-                lp.var_basic[i] = i;
-                lp.is_basic[i] = true;
-                lp.is_lower[i] = true;
-            }
-            lp.var_basic[0] = 1; // Set to signal that this is the default basis
-
-            /* Set user variables at their lower bound, including the
-               dummy slack for the objective "constraint" */
-            for (; i <= lp.sum; i++)
-            {
-                lp.is_basic[i] = false;
-                lp.is_lower[i] = true;
-            }
-            lp.is_lower[0] = true;
-
-            set_action(ref lp.spx_action, ACTION_REBASE | ACTION_REINVERT | ACTION_RECOMPUTE);
-            lp.basis_valid = true; // Do not re-initialize basis on entering Solve
-
+            throw new NotImplementedException();
         }
         public void set_basiscrash(lprec lp, int mode)
         { throw new NotImplementedException(); }
