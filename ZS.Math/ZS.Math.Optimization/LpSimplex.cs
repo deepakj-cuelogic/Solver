@@ -873,7 +873,7 @@ namespace ZS.Math.Optimization
                     do
                     {
                         i++;
-                        colnr = LpPrice.colprim(lp, ref drow[0][0], ref nzdrow[0], (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), i, ref candidatecount, true, ref xviolated);
+                        colnr = LpPrice.colprim(lp, ref drow[0], ref nzdrow[0], (bool)(minit == Convert.ToBoolean(lp_lib.ITERATE_MINORRETRY)), i, ref candidatecount, true, ref xviolated);
                     } while ((colnr == 0) && (i < LpPrice.partial_countBlocks(lp, (bool)!primal)) && LpPrice.partial_blockStep(lp, (bool)!primal));
 
                     /* Handle direct outcomes */
@@ -2282,8 +2282,13 @@ RetryRow:
             if (lp.spx_status == lp_lib.PRESOLVED)
             {
                 status = lp.spx_status;
+                if (!lp_presolve.postsolve(lp, status))
+                {
+                    msg = "spx_solve: Failure during postsolve.\n";
+                    lp.report(lp, lp_lib.SEVERE, ref msg);
+                }
                 //NOTED ISSUE
-                goto Reconstruct;
+                //goto Reconstruct;
             }
             else if (lp.spx_status != lp_lib.RUNNING)
             {
@@ -2316,7 +2321,6 @@ RetryRow:
                 }
 
             /* Restore data related to presolve (mainly a placeholder as of v5.1) */
-            Reconstruct:
                 if (!lp_presolve.postsolve(lp, status))
                 {
                     msg = "spx_solve: Failure during postsolve.\n";
