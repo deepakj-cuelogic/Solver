@@ -1161,7 +1161,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        static internal int mat_appendrow(MATrec mat, int count, double?[] row, int?[] colno, double mult, bool checkrowmode)
+        static internal int mat_appendrow(MATrec mat, int count, double[] row, int?[] colno, double mult, bool checkrowmode)
         {
             int i;
             int j;
@@ -1358,7 +1358,7 @@ namespace ZS.Math.Optimization
 
         /// <summary> FIX_7092efd5-8395-4e93-b63c-1412df391d55 on 19/11/18
         /// </summary>
-        internal static int mat_appendcol(MATrec mat, int count, double?[] column, int?[] rowno, double mult, bool? checkrowmode)
+        internal static int mat_appendcol(MATrec mat, int count, double[] column, int?[] rowno, double mult, bool? checkrowmode)
         {
 
             int i;
@@ -1492,7 +1492,7 @@ namespace ZS.Math.Optimization
                 {
                     ///NOTED ISSUE
                     //double? (column != null) ? Convert.ToDouble(column[0]) : 0 + Convert.ToDouble(mat.rows)
-                    double?[] ccn = new double?[1];
+                    double[] ccn = new double[1];
                     ccn[0] = ((mat.rows != null) ? Convert.ToDouble(mat.rows) : 0) + ((column != null) ? Convert.ToDouble(column[0]) : 0);
                     mat_appendcol(lp.matL, LpCls.get_Lrows(lp), ccn, null, mult, checkrowmode);
                 }

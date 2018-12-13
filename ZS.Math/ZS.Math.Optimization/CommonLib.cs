@@ -788,7 +788,7 @@ namespace ZS.Math.Optimization
         /// ERROR 2 IN PREVIOUS: Cannot apply indexing with[] to an expression of type 'double'	ZS.Math.Optimization
         /// FIX 2_1: changed 'ref double item' to 'ref double[] item'
         /// </summary>
-        public static double sortREALByINT(ref double?[] item, ref int?[] weight, int size, int offset, bool unique)
+        public static double sortREALByINT(ref double[] item, ref int?[] weight, int size, int offset, bool unique)
         {
             int i;
             int ii;

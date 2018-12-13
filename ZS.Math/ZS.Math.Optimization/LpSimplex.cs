@@ -627,7 +627,7 @@ namespace ZS.Math.Optimization
             return (i);
         }
 
-        internal static void eliminate_artificials(lprec lp, ref double?[] prow)
+        internal static void eliminate_artificials(lprec lp, ref double[] prow)
         {
             int i;
             int j;
@@ -733,7 +733,7 @@ namespace ZS.Math.Optimization
             double epsvalue = new double();
             double xviolated = 0.0;
             double cviolated = 0.0;
-            double?[] prow = null;
+            double[] prow = null;
             double[] pcol = null;
             double[][] drow = lp.drow;
             string msg;
@@ -1181,7 +1181,7 @@ namespace ZS.Math.Optimization
                     /* Do a fast update of the reduced costs in preparation for the next iteration */
                     if (minit == lp_lib.ITERATE_MAJORMAJOR)
                     {
-                        LpPrice.update_reducedcosts(lp, primal, lastnr, colnr, pcol, drow[0][0]);
+                        LpPrice.update_reducedcosts(lp, primal, lastnr, colnr, pcol, drow[0]);
                     }
                     ///#endif
 
@@ -1464,8 +1464,13 @@ RetryRow:
                     {
                         double d = 0;
                         i++;
+
                         //NOTED ISSUE:
-                        rownr = LpPrice.rowdual(lp, lp_types.my_if(dualphase1, pcol[0], d), forceoutEQ, true, ref xviolated);
+                        //ORIGINAL LINE: rownr = LpPrice.rowdual(lp, lp_types.my_if(dualphase1, pcol[0], d), forceoutEQ, true, ref xviolated);
+                        //Solution: pass double[] SecondPara to rowdual function, added my_if output to SeconPara, need to check at runtime.
+                        double[] SecondPara = null;
+                        SecondPara[0] = Convert.ToDouble(lp_types.my_if(dualphase1, pcol[0], d));
+                        rownr = LpPrice.rowdual(lp, SecondPara, forceoutEQ, true, ref xviolated);
                     } while ((rownr == 0) && (i < LpPrice.partial_countBlocks(lp, (bool)!primal)) && LpPrice.partial_blockStep(lp, (bool)!primal));
                 }
 
@@ -1815,7 +1820,7 @@ RetryRow:
                         { // NODE_RCOSTFIXING fix
                             LpCls.set_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
                             double d = 0;
-                            colnr = LpPrice.colprim(lp, ref drow[0], ref nzdrow, false, 1, ref candidatecount, false, ref d);
+                            colnr = LpPrice.colprim(lp, ref drow, ref nzdrow, false, 1, ref candidatecount, false, ref d);
                             LpCls.clear_action(ref lp.piv_strategy, lp_lib.PRICE_FORCEFULL);
                             if ((dualoffset == 0) && (colnr > 0))
                             {
