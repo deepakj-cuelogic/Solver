@@ -943,7 +943,7 @@ namespace ZS.Math.Optimization
                     theta = drow[0][0];
                     rownr = LpPrice.rowprim(lp, colnr, ref theta, ref pcol, ref workINT, forceoutEQ, ref cviolated);
 
-                    ///#if AcceptMarginalAccuracy
+                    #if AcceptMarginalAccuracy
                     /* Check for marginal accuracy */
                     if ((rownr > 0) && (xviolated + cviolated < lp.epspivot))
                     {
@@ -957,16 +957,17 @@ namespace ZS.Math.Optimization
                         //NOTED ISSUE
                         goto Optimality;
                     }
-                    else
-                    {
-                        ///#endif
+                    #endif
+                    //REMOVED else statement, need to check at runtime.
+                    //else
+                    //{
 
                         /* See if we can do a straight artificial<->slack replacement (when "colnr" is a slack) */
                         if ((lp.P1extraDim != 0) && (rownr == 0) && (colnr <= lp.rows))
                         {
                             rownr = findAnti_artificial(lp, colnr);
                         }
-                    }
+                    //}
 
                     if (rownr > 0)
                     {

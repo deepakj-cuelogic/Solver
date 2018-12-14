@@ -299,7 +299,7 @@ namespace ZS.Math.Optimization
         internal static double roundToPrecision(double value, double precision)
         {
             //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-            ///#if 1
+            #if ONE
             double vmod = new double();
             int vexp2 = 0;
             int vexp10;
@@ -330,14 +330,14 @@ namespace ZS.Math.Optimization
             }
 
             /* Optionally round with base 2 representation for additional precision */
-            ///#define roundPrecisionBase2
+            //#define roundPrecisionBase2
             //C++ TO JAVA CONVERTER TODO TASK: There is no preprocessor in Java:
-            ///#if roundPrecisionBase2
+            #if roundPrecisionBase2
             //NOTED ISSUE: frexp
             value = frexp(value, vexp2);
-            ///#else
+            #else
             vexp2 = 0;
-            ///#endif
+            #endif
 
             /* Convert to desired precision */
             vexp10 = (int)System.Math.Log10(value);
@@ -352,7 +352,7 @@ namespace ZS.Math.Optimization
                 //NOTED ISSUE: ldexp
                 value = ldexp(value, vexp2);
             }
-            ///#endif
+            #endif
 
             return (value);
 

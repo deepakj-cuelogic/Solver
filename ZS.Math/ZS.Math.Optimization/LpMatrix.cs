@@ -706,7 +706,10 @@ namespace ZS.Math.Optimization
                     if (newcolnr < j)
                     {
                         //NOTED ISSUE
-                        COL_MAT_COLNR(ii) = newcolnr;
+                        //ORIGINAL CODE: COL_MAT_COLNR(ii) = newcolnr;
+                        //ERROR: The left-hand side of an assignment must be a variable, property or indexer
+                        //SOLUTION: newcolnr = COL_MAT_COLNR(ii);
+                        newcolnr = COL_MAT_COLNR(ii);
                     }
                     ii++;
                 }

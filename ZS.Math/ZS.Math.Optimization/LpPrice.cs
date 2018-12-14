@@ -432,8 +432,12 @@ namespace ZS.Math.Optimization
                 {
                     if (!lp.multivars[0].sorted)
                     {
+                        //commonlib.findCompare_func findcomp = compareImprovementQS(current,candidate);
                         //NOTED ISSUE
-                        lp.multivars[0].sorted = commonlib.QS_execute(lp.multivars[0].sortedList, lp.multivars[0].used, (commonlib.findCompare_func)compareImprovementQS, null);
+                        int Parameter = 0;
+                        lp.multivars[0].sorted = commonlib.QS_execute(lp.multivars[0].sortedList, lp.multivars[0].used, (commonlib.findCompare_func)compareImprovementQS , ref Parameter);
+                        
+                        //lp.multivars[0].sorted = commonlib.QS_execute(lp.multivars[0].sortedList, lp.multivars[0].used, findcomp, ref Parameter);
                     }
                     coltarget = multi_indexSet(lp.multivars[0], true);
                 }
