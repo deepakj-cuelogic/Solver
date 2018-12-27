@@ -93,7 +93,17 @@ namespace ZS.Math.Optimization
             (double)(((double)newSize) * (double)MIN(1.33, System.Math.Pow(1.5, System.Math.Abs((sbyte)newSize) / (((double)oldSize + (double)newSize) + 1))));
 
         // ORIGINAL LINE: typedef int (CMP_CALLMODEL findCompare_func)(const void* current, const void* candidate);
-        public delegate int findCompare_func(object current, object candidate);
+        /// <summary> FIX_bed35fa2-3644-4476-93eb-466009d2e532 24/12/18
+        /// PREVIOUS: public delegate int findCompare_func(object current, object candidate);
+        /// ERROR IN PREVIOUS: Cannot convert type 'method' to 'commonlib.findCompare_func'
+        /// FIX 1: changed to public delegate int findCompare_func(params QSORTrec[] current);
+        /// </summary>
+        //public delegate int findCompare_func(QSORTrec current, QSORTrec candidate);
+        public delegate int findCompare_func(params QSORTrec[] current);
+
+        public delegate int findCompare_funcInt(params int[] current);
+
+        public delegate int findCompare_funcStr(params string[] current);
 
         static Func<double, double, object> CMP_COMPARE = (current, candidate) => (current < candidate ? -1 : (current > candidate ? 1 : 0));
         /// <summary> FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
@@ -101,7 +111,7 @@ namespace ZS.Math.Optimization
         /// Please check usage and do changes appropriately 
         /// </summary>
         // ORIGINAL LINE: #define CMP_ATTRIBUTES(item)            (((char *) attributes)+(item)*recsize)
-        static Func<object, object, object, object> CMP_ATTRIBUTES = (attributes, item, recsize) => (((string)attributes) + ((double)item) * (double)recsize);
+        static Func<object, object, object, string> CMP_ATTRIBUTES = (attributes, item, recsize) => (((string)attributes) + ((double)item) * (double)recsize);
         /// <summary>
         /// Not able to find variables in file i.e. tags, tagsize
         /// Please check usage and do changes appropriately 
@@ -241,7 +251,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        internal static int findIndexEx(object target, object attributes, int count, int offset, int recsize, findCompare_func findCompare, byte ascending)
+        internal static int findIndexEx(QSORTrec target, object attributes, int count, int offset, int recsize, findCompare_func findCompare, byte ascending)
         {
             int focusPos;
             int beginPos;
@@ -274,19 +284,19 @@ namespace ZS.Math.Optimization
             compare = 0;
             while (endPos - beginPos > LINEARSEARCH)
             {
-                if (findCompare(target, beginAttrib) == 0)
+                if (findCompare(target, (QSORTrec)beginAttrib) == 0)
                 {
                     focusAttrib = beginAttrib;
                     endPos = beginPos;
                 }
-                else if (findCompare(target, endAttrib) == 0)
+                else if (findCompare(target, (QSORTrec)endAttrib) == 0)
                 {
                     focusAttrib = endAttrib;
                     beginPos = endPos;
                 }
                 else
                 {
-                    compare = findCompare(target, focusAttrib) * order;
+                    compare = findCompare(target, (QSORTrec)focusAttrib) * order;
                     if (compare < 0)
                     {
                         beginPos = focusPos + 1;
@@ -322,11 +332,11 @@ namespace ZS.Math.Optimization
                 focusAttrib = (((string)attributes) + ((double)beginPos) * (double)recsize);    // CMP_ATTRIBUTES(beginPos);
                 if (beginPos == endPos)
                 {
-                    compare = findCompare(target, focusAttrib) * order;
+                    compare = findCompare(target, (QSORTrec)focusAttrib) * order;
                 }
                 else
                 {
-                    while ((beginPos < endPos) && ((compare = findCompare(target, focusAttrib) * order) < 0))
+                    while ((beginPos < endPos) && ((compare = findCompare(target, (QSORTrec)focusAttrib) * order) < 0))
                     {
                         beginPos++;
                         //FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
@@ -376,9 +386,17 @@ namespace ZS.Math.Optimization
         /// Please check usage and do changes appropriately 
         /// </summary>
         // ORIGINAL LINE: int CMP_CALLMODEL compareINT(const void *current, const void *candidate);
-        internal static int compareINT(object current, object candidate)
+        /// <summary> FIX_bed35fa2-3644-4476-93eb-466009d2e532 24/12/18
+        /// PREVIOUS: internal static int compareINT(object current, object candidate)
+        /// {
+        ///     return Convert.ToInt32((CMP_COMPARE((int)current, (int)candidate)));
+        /// }
+        /// ERROR IN PREVIOUS: cannot convert from 'method group' to 'commonlib.findCompare_func'
+        /// FIX 1: current method definition
+        /// </summary>
+        internal static int compareINT(params int[] current)
         {
-            return Convert.ToInt32((CMP_COMPARE((int)current, (int)candidate)));
+            return Convert.ToInt32((CMP_COMPARE(current[0], current[1])));
         }
         /// <summary>
         /// Please check usage and do changes appropriately 
@@ -393,7 +411,7 @@ namespace ZS.Math.Optimization
    but expanded and generalized to hande any object with the use of
    qsort-style comparison operator).  An expanded version is also implemented,
    where interchanges are reflected in a caller-initialized integer "tags" list. */
-        private static void hpsort(object attributes, int count, int offset, int recsize, bool descending, findCompare_func findCompare)
+        private static void hpsort(object attributes, int count, int offset, int recsize, bool descending, findCompare_funcStr findCompare)
         {
             //C++ TO C# CONVERTER NOTE: 'register' variable declarations are not supported in C#:
             //ORIGINAL LINE: register int i, j, k, ir, order;
@@ -459,7 +477,7 @@ namespace ZS.Math.Optimization
                 while (j <= ir)
                 {
                     hold = CMP_ATTRIBUTES(attributes, j, recsize).ToString();
-                    if ((j < ir) && (findCompare(hold, Convert.ToInt32(CMP_ATTRIBUTES(attributes, (j + 1), recsize)) * order) < 0))
+                    if ((j < ir) && (findCompare(hold, CMP_ATTRIBUTES(attributes, (j + 1), recsize)) * order) < 0)
                     {
                         hold += recsize;
                         j++;
@@ -485,7 +503,7 @@ namespace ZS.Math.Optimization
             FREE(save);
             */
         }
-        internal static void hpsortex(object attributes, int count, int offset, int recsize, bool descending, findCompare_func findCompare, ref int[] tags)
+        internal static void hpsortex(object attributes, int count, int offset, int recsize, bool descending, findCompare_funcStr findCompare, ref int[] tags)
         {
             if (count < 2)
             {
@@ -560,11 +578,12 @@ namespace ZS.Math.Optimization
                     while (j <= ir)
                     {
                         hold = CMP_ATTRIBUTES(attributes,j, recsize).ToString();
-                        if ((j < ir) && (findCompare(hold, Convert.ToInt32(CMP_ATTRIBUTES(attributes,(j + 1),recsize)) * order) < 0))
+                        if ((j < ir) && (findCompare(hold, CMP_ATTRIBUTES(attributes,(j + 1),recsize)) * order) < 0)
                         {
                             hold += recsize;
                             j++;
                         }
+                        
                         if (findCompare(save, hold) * order < 0)
                         {
                             /*NOT REQUIRED
@@ -970,7 +989,7 @@ namespace ZS.Math.Optimization
         public int intpar2;
         public int intpar3;
     }
-    public class QSORTrec
+    public class QSORTrec : object
     {
         public QSORTrec1 pvoid2 = new QSORTrec1();
         public QSORTrec2 pvoidreal = new QSORTrec2();

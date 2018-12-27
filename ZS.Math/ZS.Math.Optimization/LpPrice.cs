@@ -435,6 +435,7 @@ namespace ZS.Math.Optimization
                         //commonlib.findCompare_func findcomp = compareImprovementQS(current,candidate);
                         //NOTED ISSUE
                         int Parameter = 0;
+                        //FIX_bed35fa2-3644-4476-93eb-466009d2e532 24/12/18
                         lp.multivars[0].sorted = commonlib.QS_execute(lp.multivars[0].sortedList, lp.multivars[0].used, (commonlib.findCompare_func)compareImprovementQS , ref Parameter);
                         
                         //lp.multivars[0].sorted = commonlib.QS_execute(lp.multivars[0].sortedList, lp.multivars[0].used, findcomp, ref Parameter);
@@ -614,7 +615,7 @@ namespace ZS.Math.Optimization
                 if (collectMP != null)
                 {
                     //NOTED ISSUE
-                    if (addCandidateVar(candidate, current.lp.multivars, (commonlib.findCompare_func)compareImprovementQS, 0) < 0)
+                    if (addCandidateVar(candidate, current.lp.multivars[0], (commonlib.findCompare_func)compareImprovementQS, false) < 0)
                     {
                         return (Action);
                     }
@@ -767,9 +768,20 @@ namespace ZS.Math.Optimization
             return (multi.truncinf && LpCls.is_infinite(multi.lp, multi.lp.upbo[varnr]));
         }
 
-        internal static int compareImprovementQS(QSORTrec current, QSORTrec candidate)
+        /// <summary> FIX_bed35fa2-3644-4476-93eb-466009d2e532 24/12/18
+        /// PREVIOUS: internal static int compareImprovementQS(QSORTrec current, QSORTrec candidate)
+        /// {
+        ///     return (compareImprovementVar((pricerec)current.pvoidint2.ptr, (pricerec)candidate.pvoidint2.ptr));
+        /// }
+        /// ERROR IN PREVIOUS: Cannot convert type 'method' to 'commonlib.findCompare_func'
+        /// FIX 1: changed to current method definition
+        /// </summary>
+        internal static int compareImprovementQS(params object[] current)
         {
-            return (compareImprovementVar((pricerec)current.pvoidint2.ptr, (pricerec)candidate.pvoidint2.ptr));
+            if (current.Length == 2)
+                return (compareImprovementVar((pricerec)(current[0] as QSORTrec).pvoidint2.ptr, (pricerec)(current[1] as QSORTrec).pvoidint2.ptr));
+            else
+                return 0;
         }
         internal static int compareImprovementVar(pricerec current, pricerec candidate)
         {
@@ -2111,7 +2123,7 @@ namespace ZS.Math.Optimization
             {
                 //ORIGINAL LINE: longsteps.sorted = commonlib.QS_execute(longsteps.sortedList, longsteps.used, (findCompare_func)compareSubstitutionQS, inspos);
                 //NOTED ISSUE:
-                longsteps.sorted = commonlib.QS_execute(longsteps.sortedList, longsteps.used, (commonlib.findCompare_func)compareSubstitutionQS, inspos);
+                longsteps.sorted = commonlib.QS_execute(longsteps.sortedList, longsteps.used, (commonlib.findCompare_func)compareSubstitutionQS, ref inspos);
                 longsteps.dirty = (bool)(inspos > 0);
                 if (longsteps.dirty)
                 {
@@ -2125,17 +2137,20 @@ namespace ZS.Math.Optimization
                   - Check if we should replace an incumbent when the list is not full, there is no room
                     for improvement, but the current candidate is better than an incumbent. */
             //NOTED ISSUE:
-            inspos = addCandidateVar(candidate, longsteps, (commonlib.findCompare_func)compareSubstitutionQS, 1);
+            inspos = addCandidateVar(candidate, longsteps, (commonlib.findCompare_func)compareSubstitutionQS, true);
 
             /* 4. Recompute steps and objective, and (if relevant) determine if we
                   may be suboptimal in relation to an incumbent MILP solution. */
             return ((bool)(inspos >= 0) && ((isbatch == true) || multi_recompute(longsteps, inspos, isphase2, true)));
         }
 
-        internal static int compareSubstitutionQS(QSORTrec current, QSORTrec candidate)
+        internal static int compareSubstitutionQS(params QSORTrec[] current)
         {
-            return (compareBoundFlipVar((pricerec)current.pvoidint2.ptr, (pricerec)candidate.pvoidint2.ptr));
+            if (current.Length == 2)
+                return (compareBoundFlipVar((pricerec)current[0].pvoidint2.ptr, (pricerec)current[1].pvoidint2.ptr));
             /*  return( compareSubstitutionVar((pricerec *) current->self, (pricerec *) candidate->self) ); */
+            else
+                return 0;
         }
 
         internal static int compareBoundFlipVar(pricerec current, pricerec candidate)
