@@ -105,6 +105,8 @@ namespace ZS.Math.Optimization
 
         public delegate int findCompare_funcStr(params string[] current);
 
+        public delegate int findCompare_funcObj(params object[] current);
+
         static Func<double, double, object> CMP_COMPARE = (current, candidate) => (current < candidate ? -1 : (current > candidate ? 1 : 0));
         /// <summary> FIX_f2848dbd-7f97-4103-bea5-ba91f8eb29ce 28/11/18
         /// Not able to find variables in file i.e. attributes, recsize
@@ -394,9 +396,9 @@ namespace ZS.Math.Optimization
         /// ERROR IN PREVIOUS: cannot convert from 'method group' to 'commonlib.findCompare_func'
         /// FIX 1: current method definition
         /// </summary>
-        internal static int compareINT(params int[] current)
+        internal static int compareINT(params object[] current)
         {
-            return Convert.ToInt32((CMP_COMPARE(current[0], current[1])));
+            return Convert.ToInt32((CMP_COMPARE(Convert.ToDouble(current[0]), Convert.ToDouble(current[1]))));
         }
         /// <summary>
         /// Please check usage and do changes appropriately 
@@ -411,7 +413,7 @@ namespace ZS.Math.Optimization
    but expanded and generalized to hande any object with the use of
    qsort-style comparison operator).  An expanded version is also implemented,
    where interchanges are reflected in a caller-initialized integer "tags" list. */
-        private static void hpsort(object attributes, int count, int offset, int recsize, bool descending, findCompare_funcStr findCompare)
+        private static void hpsort(object attributes, int count, int offset, int recsize, bool descending, findCompare_funcObj findCompare)
         {
             //C++ TO C# CONVERTER NOTE: 'register' variable declarations are not supported in C#:
             //ORIGINAL LINE: register int i, j, k, ir, order;
@@ -503,7 +505,7 @@ namespace ZS.Math.Optimization
             FREE(save);
             */
         }
-        internal static void hpsortex(object attributes, int count, int offset, int recsize, bool descending, findCompare_funcStr findCompare, ref int[] tags)
+        internal static void hpsortex(object attributes, int count, int offset, int recsize, bool descending, findCompare_funcObj findCompare, ref int[] tags)
         {
             if (count < 2)
             {
