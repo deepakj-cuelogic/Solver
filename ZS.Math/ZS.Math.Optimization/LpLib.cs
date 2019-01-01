@@ -1953,7 +1953,8 @@ namespace ZS.Math.Optimization
         public void lp_solve_version(ref int? majorversion, ref int? minorversion, ref int? release, ref int? build)
         { throw new NotImplementedException(); }
 
-        public lprec make_lp(int rows, int columns)
+
+        private lprec make_lp(int rows, int columns)
         { throw new NotImplementedException(); }
         public byte resize_lp(lprec lp, int rows, int columns)
         { throw new NotImplementedException(); }
@@ -1977,7 +1978,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         /* Copy or dualize the lp */
 
-        public void delete_lp(lprec lp)
+        private void delete_lp(lprec lp)
         { throw new NotImplementedException(); }
         public void free_lp(lprec[] plp)
         { throw new NotImplementedException(); }
@@ -2034,7 +2035,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public void set_maxim(lprec lp)
+        private void set_maxim(lprec lp)
         { throw new NotImplementedException(); }
         public void set_minim(lprec lp)
         { throw new NotImplementedException(); }
@@ -2229,7 +2230,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public double get_lowbo(lprec lp, int colnr)
         { throw new NotImplementedException(); }
-        public byte set_bounds(lprec lp, int colnr, double lower, double upper)
+        private byte set_bounds(lprec lp, int colnr, double lower, double upper)
         { throw new NotImplementedException(); }
         public byte set_unbounded(lprec lp, int colnr)
         { throw new NotImplementedException(); }
@@ -2243,7 +2244,7 @@ namespace ZS.Math.Optimization
         {
             throw new NotImplementedException();
         }
-        public byte set_binary(lprec lp, int colnr, bool must_be_bin)
+        private byte set_binary(lprec lp, int colnr, bool must_be_bin)
         { throw new NotImplementedException(); }
         public byte is_binary(lprec lp, int colnr)
         { throw new NotImplementedException(); }
@@ -2292,7 +2293,7 @@ namespace ZS.Math.Optimization
         /* Set/Get the name of a constraint row */
         /* Get added by KE */
 
-        public byte set_col_name(lprec lp, int colnr, ref string new_name)
+        private byte set_col_name(lprec lp, int colnr, ref string new_name)
         { throw new NotImplementedException(); }
         internal string get_col_name(lprec lp, int colnr)
         { throw new NotImplementedException(); }
@@ -2338,7 +2339,7 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         /* returns TRUE if the vector in values is a feasible solution to the lp */
 
-        public int solve(lprec lp)
+        private int solve(lprec lp)
         { throw new NotImplementedException(); }
         /* Solve the problem */
 
@@ -2400,7 +2401,7 @@ namespace ZS.Math.Optimization
         public bool write_freeMPS(lprec lp, FileStream output)
         { throw new NotImplementedException(); }
 
-        public bool write_lp(lprec lp, ref string filename)
+        private bool write_lp(lprec lp, ref string filename)
         { throw new NotImplementedException(); }
         public bool write_LP(lprec lp, FileStream output)
         { throw new NotImplementedException(); }
@@ -2458,7 +2459,7 @@ namespace ZS.Math.Optimization
         public byte set_outputfile(lprec lp, ref string filename)
         { throw new NotImplementedException(); }
 
-        public void set_verbose(lprec lp, int verbose)
+        private void set_verbose(lprec lp, int verbose)
         { throw new NotImplementedException(); }
         public int get_verbose(lprec lp)
         { throw new NotImplementedException(); }
@@ -2659,7 +2660,7 @@ namespace ZS.Math.Optimization
         public long get_total_iter(lprec lp)
         { throw new NotImplementedException(); }
 
-        public double get_objective(lprec lp)
+        private double get_objective(lprec lp)
         { throw new NotImplementedException(); }
         public double get_working_objective(lprec lp)
         { throw new NotImplementedException(); }

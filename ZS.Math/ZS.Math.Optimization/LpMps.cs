@@ -116,7 +116,7 @@ namespace ZS.Math.Optimization
                 objlp_report.report(lp, lp_lib.IMPORTANT, ref msg);
                 if (newlp[0] == null)
                 {
-                    lp_lib objlp_lib = new lp_lib();
+                    LpCls objlp_lib = new LpCls();
                     objlp_lib.delete_lp(lp);
                 }
                 return (CompleteStatus);

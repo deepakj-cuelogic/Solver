@@ -2794,7 +2794,7 @@ RetryRow:
 
                 /* 4. Delete the helper heuristic */
                 hlp.matL = null;
-                LpCls.delete_lp(hlp);
+                objLpCls.delete_lp(hlp);
             }
 
             lp.timeheuristic = commonlib.timeNow();

@@ -212,7 +212,7 @@ namespace ZS.Math.Optimization
             }
         }
 
-        internal new void set_maxim(lprec lp)
+        public void set_maxim(lprec lp)
         {
             set_sense(lp, true);
         }
@@ -223,7 +223,7 @@ namespace ZS.Math.Optimization
         }
 
 
-        internal new lprec make_lp(int rows, int columns)
+        public lprec make_lp(int rows, int columns)
         {
             lprec lp;
 
@@ -1140,7 +1140,7 @@ namespace ZS.Math.Optimization
             return (lp_matrix.mat_nonzeros(lp.matA));
         }
 
-        internal new bool set_bounds(lprec lp, int colnr, double lower, double upper)
+        public bool set_bounds(lprec lp, int colnr, double lower, double upper)
         {
             if ((colnr > lp.columns) || (colnr < 1))
             {
@@ -3454,7 +3454,7 @@ namespace ZS.Math.Optimization
             return (objlp_MPS.MPS_writehandle(lp, MPSFREE, output));
         }
 
-        internal new bool write_lp(lprec lp, ref string filename)
+        public bool write_lp(lprec lp, ref string filename)
         {
             lp_wlp objlp_wlp = new lp_wlp();
             return (objlp_wlp.LP_writefile(lp, ref filename));
@@ -3506,7 +3506,7 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
 
-        internal new bool set_col_name(lprec lp, int colnr, ref string new_name)
+        public bool set_col_name(lprec lp, int colnr, ref string new_name)
         {
             lp_report objlp_report = new lp_report();
             if ((colnr > lp.columns + 1) || (colnr < 1))
@@ -4456,14 +4456,14 @@ internal static class StringFunctions
             throw new NotImplementedException();
         }
 
-        internal static new void free_lp(lprec[] plp)
+        internal new void free_lp(lprec[] plp)
         {
             if (plp != null)
             {
                 lprec lp = plp[0];
                 if (lp != null)
                 {
-                    delete_lp(lp);
+                   delete_lp(lp);
                 }
                 plp[0] = null;
             }
@@ -6167,7 +6167,7 @@ internal static class StringFunctions
             return true;
         }
 
-        internal new bool set_binary(lprec lp, int colnr, bool must_be_bin)
+        public bool set_binary(lprec lp, int colnr, bool must_be_bin)
         {
             bool status = false;
 
@@ -6186,12 +6186,12 @@ internal static class StringFunctions
             return (status);
         }
 
-        internal new void set_verbose(lprec lp, int verbose)
+        public void set_verbose(lprec lp, int verbose)
         {
             lp.verbose = verbose;
         }
 
-        internal new int solve(lprec lp)
+        public int solve(lprec lp)
         {
 #if FPUexception
   catchFPU(_EM_INVALID | _EM_ZERODIVIDE | _EM_OVERFLOW | _EM_UNDERFLOW);
@@ -6392,7 +6392,7 @@ internal static class StringFunctions
             return (relgap);
         }
 
-        internal new static double get_objective(lprec lp)
+        public double get_objective(lprec lp)
         {
             lp_report objlp_report = new lp_report();
             if (lp.spx_status == OPTIMAL)
@@ -6567,7 +6567,7 @@ internal static class StringFunctions
         }
 
 
-        internal static new void delete_lp(lprec lp)
+        public void delete_lp(lprec lp)
         {
             if (lp == null)
                 return;
