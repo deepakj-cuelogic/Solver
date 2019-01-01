@@ -2019,7 +2019,9 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public byte set_obj_fn(lprec lp, ref double row)
         { throw new NotImplementedException(); }
-        public byte set_obj_fnex(lprec lp, int count, ref double row, ref int colno)
+
+         
+        private byte set_obj_fnex(lprec lp, int count, ref double[] row, ref int[] colno)
         { throw new NotImplementedException(); }
         /* set the objective function (Row 0) of the matrix */
         public byte str_set_obj_fn(lprec lp, ref string row_string)
@@ -2044,14 +2046,14 @@ namespace ZS.Math.Optimization
             throw new NotImplementedException();
         }
         /* Set optimization direction for the objective function */
-
-        public bool add_constraint(lprec lp, ref double?[] row, int constr_type, double rh)
+        
+        public bool add_constraint(lprec lp, ref double[] row, int constr_type, double rh)
         { throw new NotImplementedException(); }
 
         /// <summary>
         /// changed from ref int colno to ref int? colno on 12/11/18
         /// </summary>
-        public byte add_constraintex(lprec lp, int count, ref double row, ref int? colno, int constr_type, double rh)
+        private bool add_constraintex(lprec lp, int count, ref double?[] row, ref int?[] colno, int constr_type, double rh)
         { throw new NotImplementedException(); }
         internal bool set_add_rowmode(lprec lp, bool turnon)
         { throw new NotImplementedException(); }
@@ -2666,8 +2668,8 @@ namespace ZS.Math.Optimization
         { throw new NotImplementedException(); }
         public double get_var_dualresult(lprec lp, int index)
         { throw new NotImplementedException(); }
-
-        public byte get_variables(lprec lp, ref double @var)
+        
+        private bool get_variables(lprec lp, ref double[] @var)
         { throw new NotImplementedException(); }
         public byte get_ptr_variables(lprec lp, double[][] @var)
         { throw new NotImplementedException(); }

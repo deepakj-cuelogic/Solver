@@ -9,7 +9,7 @@ using System.Text;
 
 namespace ZS.Math.Optimization
 {
-    class LpCls : lprec
+    public class LpCls : lprec
 
     {
         public const int PricerDefaultOpt = 1;
@@ -1039,7 +1039,7 @@ namespace ZS.Math.Optimization
         /// changed from 'ref double row' to ref double[] row FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
         /// changed from 'object colno' to 'int?[] colno' FIX_90b96e5c-2dba-4335-95bd-b1fcc95f1b55 19/11/18
         /// </summary>
-        private bool add_constraintex(lprec lp, int count, ref double[] row, int?[] colno, int constr_type, double rh)
+        public bool add_constraintex(lprec lp, int count, ref double[] row, int?[] colno, int constr_type, double rh)
         {
             int n;
             bool status = false;
@@ -1443,7 +1443,7 @@ namespace ZS.Math.Optimization
             }
         }
 
-        internal new int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, int?[] sosvars, double? weights)
+        public new int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, int?[] sosvars, double? weights)
         {
             SOSrec SOS;
             int k;
@@ -2180,7 +2180,7 @@ namespace ZS.Math.Optimization
             int i;
             string p;
             string newp = "";
-            double?[] aRow = null;
+            double[] aRow =new double[lp.columns];
             bool status = false;
             lp_report objlp_report = new lp_report();
             LpCls objLpCls = new LpCls();
@@ -3539,7 +3539,7 @@ namespace ZS.Math.Optimization
             return true;
         }
 
-        internal new bool set_add_rowmode(lprec lp, bool turnon)
+        public new bool set_add_rowmode(lprec lp, bool turnon)
         {
             if ((lp.solvecount == 0) && (turnon ^ lp.matA.is_roworder))
                 return (lp_matrix.mat_transpose(lp.matA));
@@ -6125,7 +6125,7 @@ internal static class StringFunctions
             return ((bool)(lp.var_basic[0] != lp_types.AUTOMATIC));
         }
 
-        private bool set_obj_fnex(lprec lp, int count, double[] row, int[] colno)
+        public bool set_obj_fnex(lprec lp, int count, ref double[] row, ref int[] colno)
         {
             bool chsgn = is_maxim(lp);
             int i;
@@ -6409,7 +6409,7 @@ internal static class StringFunctions
             return ((lp.best_solution[0] != null) ? Convert.ToDouble(lp.best_solution[0]) : 0);
         }
 
-        internal bool get_variables(lprec lp, double @var)
+        public bool get_variables(lprec lp, ref double[] @var)
         {
             lp_report objlp_report = new lp_report();
             if (lp.spx_status == OPTIMAL)
