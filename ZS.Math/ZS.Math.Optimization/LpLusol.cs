@@ -62,11 +62,11 @@ namespace ZS.Math.Optimization
         {
             if ((lp.bb_bounds != null && lp.bb_bounds.UBzerobased) || (variable <= lp.rows))
             {
-                return ((bool)(lp.upbo[variable] < lprec.epsprimal));
+                return ((bool)(lp.upbo[variable] < new lprec().epsprimal));
             }
             else
             {
-                return ((bool)(lp.upbo[variable] - lp.lowbo[variable] < lprec.epsprimal));
+                return ((bool)(lp.upbo[variable] - lp.lowbo[variable] < new lprec().epsprimal));
             }
             if (!myblas.is_nativeBLAS())
             {

@@ -67,7 +67,7 @@ namespace ZS.Math.Optimization
         /// Not able to find value assignment
         /// </summary>
 #if true
-        public const double PRESOLVE_EPSVALUE = (0.1 * lprec.epsprimal);
+        public static double PRESOLVE_EPSVALUE = (0.1 * new lprec().epsprimal);
 #else
             public const double PRESOLVE_EPSVALUE = lprec.epsvalue;
 #endif
