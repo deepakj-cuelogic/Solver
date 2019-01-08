@@ -372,7 +372,7 @@ namespace ZS.Math.Optimization
             upbo = BB.upbo[varno];
             rangeLU = upbo - lowbo;
 
-            if (rangeLU > new lprec().epsprimal)
+            if (rangeLU > lprec.epsprimal)
             {
 #if ONE
 	deltaOF = lp.rhs[0] - lp.bb_workOF;
@@ -404,7 +404,7 @@ namespace ZS.Math.Optimization
                     {
                         if (isINT)
                         {
-                            deltaRC = LpCls.scaled_floor(lp, varno, lp_scale.unscaled_value(lp, deltaRC, varno) + new lprec().epsprimal, 1);
+                            deltaRC = LpCls.scaled_floor(lp, varno, lp_scale.unscaled_value(lp, deltaRC, varno) + lprec.epsprimal, 1);
                         }
                         upbo = lowbo + deltaRC;
                         deltaRC = upbo;
@@ -414,7 +414,7 @@ namespace ZS.Math.Optimization
                     {
                         if (isINT)
                         {
-                            deltaRC = LpCls.scaled_ceil(lp, varno, lp_scale.unscaled_value(lp, deltaRC, varno) + new lprec().epsprimal, 1);
+                            deltaRC = LpCls.scaled_ceil(lp, varno, lp_scale.unscaled_value(lp, deltaRC, varno) + lprec.epsprimal, 1);
                         }
                         lowbo = upbo - deltaRC;
                         deltaRC = lowbo;
@@ -422,19 +422,19 @@ namespace ZS.Math.Optimization
                     }
 
                     /* Check and set feasibility status */
-                    if ((isfeasible != null) && (upbo - lowbo < -new lprec().epsprimal))
+                    if ((isfeasible != null) && (upbo - lowbo < -lprec.epsprimal))
                     {
                         isfeasible = false;
                     }
 
                     /* Flag that we can fix the variable by returning the relation code negated */
-                    else if (System.Math.Abs(upbo - lowbo) < new lprec().epsprimal)
+                    else if (System.Math.Abs(upbo - lowbo) < lprec.epsprimal)
                     {
                         i = -i;
                     }
                     if (newbound != null)
                     {
-                        lp_types.my_roundzero(deltaRC, new lprec().epsprimal);
+                        lp_types.my_roundzero(deltaRC, lprec.epsprimal);
                         newbound = deltaRC;
                     }
                 }

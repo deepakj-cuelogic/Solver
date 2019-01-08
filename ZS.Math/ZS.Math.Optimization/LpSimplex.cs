@@ -1736,7 +1736,7 @@ RetryRow:
                     /* Check if we are INFEASIBLE for the case that the dual is used
                        as phase 1 before the primal simplex phase 2 */
                     double Parameter = 0;
-                    if (inP1extra && (colnr < 0) && !LpCls.isPrimalFeasible(lp, new lprec().epsprimal, null, ref Parameter))
+                    if (inP1extra && (colnr < 0) && !LpCls.isPrimalFeasible(lp, lprec.epsprimal, null, ref Parameter))
                     {
                         if (lp.bb_totalnodes == 0)
                         {
@@ -1898,7 +1898,7 @@ RetryRow:
                     {
                         int Para1 = 0;
                         double Para2 = 0;
-                        dualfeasible = LpCls.isDualFeasible(lp, new lprec().epsprimal, ref Para1, dualinfeasibles, Para2);
+                        dualfeasible = LpCls.isDualFeasible(lp, lprec.epsprimal, ref Para1, dualinfeasibles, Para2);
                         if (dualfeasible)
                         {
                             dualphase1 = true;
@@ -2006,14 +2006,14 @@ RetryRow:
                 {
                     lp.fixedvars++;
                 }
-                if ((lp.upbo[i] < lp.infinite) && (lp.upbo[i] > new lprec().epsprimal))
+                if ((lp.upbo[i] < lp.infinite) && (lp.upbo[i] > lprec.epsprimal))
                 {
                     lp.boundedvars++;
                 }
             }
             for (; i <= lp.sum; i++)
             {
-                if ((lp.upbo[i] < lp.infinite) && (lp.upbo[i] > new lprec().epsprimal))
+                if ((lp.upbo[i] < lp.infinite) && (lp.upbo[i] > lprec.epsprimal))
                 {
                     lp.boundedvars++;
                 }
@@ -2059,14 +2059,14 @@ RetryRow:
             {
 
                 /* Check for dual and primal feasibility */
-                dualfeasible = isbb != null || LpCls.isDualFeasible(lp, new lprec().epsprimal, ref boundflip_count, infeasibles, dualoffset);
+                dualfeasible = isbb != null || LpCls.isDualFeasible(lp, lprec.epsprimal, ref boundflip_count, infeasibles, dualoffset);
 
                 /* Recompute if the dual feasibility check included bound flips */
                 if (LpCls.is_action(lp.spx_action, lp_lib.ACTION_RECOMPUTE))
                 {
                     LpCls.recompute_solution(lp, lp_lib.INITSOL_USEZERO);
                 }
-                primalfeasible = LpCls.isPrimalFeasible(lp, new lprec().epsprimal, null, ref primaloffset);
+                primalfeasible = LpCls.isPrimalFeasible(lp, lprec.epsprimal, null, ref primaloffset);
 
                 if (LpCls.userabort(lp, -1))
                 {
@@ -2519,12 +2519,12 @@ RetryRow:
                     {
                         if (lp.lag_con_type[i] == lp_lib.EQ)
                         {
-                            if (System.Math.Abs(hold) > new lprec().epsprimal)
+                            if (System.Math.Abs(hold) > lprec.epsprimal)
                             {
                                 LagFeas = false;
                             }
                         }
-                        else if (hold < -new lprec().epsprimal)
+                        else if (hold < -lprec.epsprimal)
                         {
                             LagFeas = false;
                         }

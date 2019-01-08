@@ -309,7 +309,7 @@ namespace ZS.Math.Optimization
             lp.columns = columns;
             lp.sum = rows + columns;
             varmap_clear(lp);
-            lp.matA = lp_matrix.mat_create(lp, rows, columns, new lprec().epsvalue);
+            lp.matA = lp_matrix.mat_create(lp, rows, columns, lprec.epsvalue);
             lp.matL = null;
             lp.invB = null;
             lp.duals = null;
@@ -1151,7 +1151,7 @@ namespace ZS.Math.Optimization
             /// <summary>
             /// changed from lp.epsvalue to lprec.epsvalue on 13/11/18
             /// </summary>
-            if (System.Math.Abs(upper - lower) < new lprec().epsvalue)
+            if (System.Math.Abs(upper - lower) < lprec.epsvalue)
             {
                 if (lower < 0)
                 {
@@ -1443,7 +1443,7 @@ namespace ZS.Math.Optimization
             }
         }
 
-        public new int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, int?[] sosvars, double? weights)
+        public static int add_SOS(lprec lp, ref string name, int sostype, int priority, int count, int?[] sosvars, double?[] weights)
         {
             SOSrec SOS;
             int k;
@@ -1495,7 +1495,7 @@ namespace ZS.Math.Optimization
             /// ERROR 2: cannot convert from 'ref double?' to 'ref double'
             /// FIX 2: changed create_SOSrec parameter from 'ref double weights' to 'ref double? weights'
             /// </summary>
-            SOS = lp_SOS.create_SOSrec(lp.SOS, ref name, sostype, priority, count, ref sosvars, ref weights);
+            SOS = lp_SOS.create_SOSrec(lp.SOS, ref name, sostype, priority, count, ref sosvars, ref weights[0]);
             k = lp_SOS.append_SOSgroup(lp.SOS, SOS);
 
             return (k);
@@ -2672,7 +2672,7 @@ namespace ZS.Math.Optimization
                 return false;
             }
 
-            return ((bool)(((lp.var_type[colnr] & ISINTEGER)) && (get_lowbo(lp, colnr) == 0) && (System.Math.Abs(get_upbo(lp, colnr) - 1) < new lprec().epsprimal)));
+            return ((bool)(((lp.var_type[colnr] & ISINTEGER)) && (get_lowbo(lp, colnr) == 0) && (System.Math.Abs(get_upbo(lp, colnr) - 1) < lprec.epsprimal)));
         }
 
         internal new bool is_unbounded(lprec lp, int colnr)
@@ -2715,7 +2715,7 @@ namespace ZS.Math.Optimization
             double[] obj = lp.obj;
 
             //ORIGINAL LINE: register REAL epsvalue = lp->epsvalue;
-            double epsvalue = new lprec().epsvalue;
+            double epsvalue = lprec.epsvalue;
 
             /* Compute offset over the specified objective indeces (step 2) */
             if (coltarget != null)
@@ -3240,7 +3240,7 @@ namespace ZS.Math.Optimization
             }
 
             /* Round the values (should not be greater than the factor used in bfp_pivotRHS) */
-            lp_utils.roundVector(ref lp.rhs, lp.rows, new lprec().epsvalue);
+            lp_utils.roundVector(ref lp.rhs, lp.rows, lprec.epsvalue);
 
             clear_action(ref lp.spx_action, ACTION_RECOMPUTE);
         }
@@ -3303,7 +3303,7 @@ namespace ZS.Math.Optimization
                 {
                     if (LpCls.is_constr_type(lp, i, EQ))
                     {
-                        theta = lp_utils.rand_uniform(lp, new lprec().epsvalue);
+                        theta = lp_utils.rand_uniform(lp, lprec.epsvalue);
                     }
                     else
                     {
@@ -3969,7 +3969,7 @@ internal static class StringFunctions
 
             double rhs = new double();
             double? sdegen = new double();
-            double epsmargin = new lprec().epsprimal;
+            double epsmargin = lprec.epsprimal;
 
             sdegen = 0;
             ndegen = 0;
@@ -4009,7 +4009,7 @@ internal static class StringFunctions
             double x = lp.rhs[rownr];
             double lb = 0; // Primal feasibility tolerance
             double ub = lp.upbo[colnr];
-            double eps = new lprec().epsprimal;
+            double eps = lprec.epsprimal;
 
             /* Compute theta for the primal simplex */
             HarrisScalar *= eps;
@@ -5340,7 +5340,7 @@ internal static class StringFunctions
             /* Test if it is possible to do a cheap "minor iteration"; i.e. set entering
                variable to its opposite bound, without entering the basis - which is
                obviously not possible for fixed variables! */
-            epsmargin = new lprec().epsprimal;
+            epsmargin = lprec.epsprimal;
             enteringFromUB = !(islower);
             enteringUB = lp.upbo[varin];
             leavingUB = lp.upbo[varout];
@@ -5405,7 +5405,7 @@ internal static class StringFunctions
             {
 
                 /*    pivot = epsmargin; */
-                pivot = new lprec().epsdual;
+                pivot = lprec.epsdual;
                 /* #define v51mode */
                 /* Enable this for v5.1 operation mode */
 #if v51mode
@@ -5879,9 +5879,9 @@ internal static class StringFunctions
                     return (false);
             }
 
-            lp.epsvalue = SPX_RELAX * DEF_EPSVALUE;
-            lp.epsprimal = SPX_RELAX * DEF_EPSPRIMAL;
-            lp.epsdual = SPX_RELAX * DEF_EPSDUAL;
+            lprec.epsvalue = SPX_RELAX * DEF_EPSVALUE;
+            lprec.epsprimal = SPX_RELAX * DEF_EPSPRIMAL;
+            lprec.epsdual = SPX_RELAX * DEF_EPSDUAL;
             lp.epspivot = SPX_RELAX * DEF_EPSPIVOT;
             lp.epssolution = MIP_RELAX * DEF_EPSSOLUTION;
             lp.epsint = MIP_RELAX * DEF_EPSINT;
@@ -6326,7 +6326,7 @@ internal static class StringFunctions
         */
         {
             double epsvalue;
-            double offset = new lprec().epsprimal;
+            double offset = lprec.epsprimal;
             double refvalue = lp.infinite;
             double testvalue = lp.solution[0];
             bool ismax = is_maxim(lp);
@@ -7000,11 +7000,11 @@ internal static class StringFunctions
             }
             else if ((varnr <= lp.rows) || (lp.bb_bounds.UBzerobased == true))
             {
-                return ((bool)(lp.upbo[varnr] < new lprec().epsvalue));
+                return ((bool)(lp.upbo[varnr] < lprec.epsvalue));
             }
             else
             {
-                return ((bool)(lp.upbo[varnr] - lp.lowbo[varnr] < new lprec().epsvalue));
+                return ((bool)(lp.upbo[varnr] - lp.lowbo[varnr] < lprec.epsvalue));
             }
         }
 
@@ -7130,7 +7130,7 @@ internal static class StringFunctions
                 {
                     if (lp.matL == null)
                     {
-                        lp.matL = lp_matrix.mat_create(lp, newsize, lp.columns, new lprec().epsvalue);
+                        lp.matL = lp_matrix.mat_create(lp, newsize, lp.columns, lprec.epsvalue);
                     }
                     else
                     {
@@ -7325,7 +7325,7 @@ internal static class StringFunctions
             for (i = 1; i <= lp.sum; i++)
             {
                 value = lp_scale.scaled_value(lp, lp.duals[i] / scale0, i);
-                lp_types.my_roundzero(value, new lprec().epsprimal);
+                lp_types.my_roundzero(value, lprec.epsprimal);
                 lp.duals[i] = value;
                 if (i <= lp.rows)
                 {
@@ -7930,7 +7930,7 @@ internal static class StringFunctions
                     }
 
                     mv = get_mat_byindex(lp, jb, true, false);
-                    if (System.Math.Abs(lp_types.my_reldiff(mv, rh)) > new lprec().epsprimal)
+                    if (System.Math.Abs(lp_types.my_reldiff(mv, rh)) > lprec.epsprimal)
                     {
                         break;
                     }
@@ -7940,7 +7940,7 @@ internal static class StringFunctions
 #if false
 //      if((fabs(my_reldiff(tv, rh)) > lp->epsprimal) || (bv != 0))
 #else
-                    if ((srh * (tv - rh) < -new lprec().epsprimal) || (bv != 0))
+                    if ((srh * (tv - rh) < -lprec.epsprimal) || (bv != 0))
                     {
 #endif
                         break;
@@ -8051,7 +8051,7 @@ internal static class StringFunctions
                 //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18
                 //set second [] (3) as 0 for now; need to check at run time
                 err = System.Math.Abs(lp_types.my_reldiff(oldrhs[oldmap[i][0]][0], lp.rhs[newmap[i][0]]));
-                if (err > new lprec().epsprimal)
+                if (err > lprec.epsprimal)
                 {
                     n++;
                     if (err > errmax)
@@ -8452,7 +8452,7 @@ internal static class StringFunctions
                     rowval = System.Math.Abs(rowval) * intfrac;
                     rowval += rowval * lp.epsmachine;
                     rowval = lp_utils.modf(rowval, inthold);
-                    if (rowval < new lprec().epsprimal)
+                    if (rowval < lprec.epsprimal)
                     {
                         intval++;
                         if (intval == 1)
@@ -8480,7 +8480,7 @@ internal static class StringFunctions
             int j;
             int ncols = lp.columns;
             double f;
-            double epsvalue = new lprec().epsprimal;
+            double epsvalue = lprec.epsprimal;
             LpCls objLpCls = new LpCls();
 
             basi = 0;
@@ -9250,7 +9250,7 @@ internal static class StringFunctions
                     /* Select better, check for ties, and split by proximity to 0.5 */
                     if (hold > bestval)
                     {
-                        if ((hold > bestval + new lprec().epsprimal) || (System.Math.Abs(lp.solution[i] % holdINT) - 0.5) < System.Math.Abs(lp.solution[bestvar] % holdINT) - 0.5)
+                        if ((hold > bestval + lprec.epsprimal) || (System.Math.Abs(lp.solution[i] % holdINT) - 0.5) < System.Math.Abs(lp.solution[bestvar] % holdINT) - 0.5)
                         {
                             bestval = hold;
                             bestvar = i;
@@ -9447,7 +9447,7 @@ internal static class StringFunctions
                     /* Select better, check for ties, and split by proximity to 0.5*sc_lobound */
                     if (hold > bestval)
                     {
-                        if ((bestvar == 0) || (hold > bestval + new lprec().epsprimal) || (System.Math.Abs((lp.solution[i] / scval) % holdINT) - 0.5) < System.Math.Abs((lp.solution[bestvar] / get_pseudorange(lp.bb_PseudoCost, bestvar - lp.rows, BB_SC)) % holdINT) - 0.5)
+                        if ((bestvar == 0) || (hold > bestval + lprec.epsprimal) || (System.Math.Abs((lp.solution[i] / scval) % holdINT) - 0.5) < System.Math.Abs((lp.solution[bestvar] / get_pseudorange(lp.bb_PseudoCost, bestvar - lp.rows, BB_SC)) % holdINT) - 0.5)
                         {
                             bestval = hold;
                             bestvar = i;
@@ -10342,7 +10342,7 @@ internal static class StringFunctions
             int j;
             int basi;
             double f;
-            double epsvalue = new lprec().epsprimal;
+            double epsvalue = lprec.epsprimal;
             double[] solution = null;
             //C++ TO C# CONVERTER TODO TASK: C# does not have an equivalent to pointers to value types:
             //ORIGINAL LINE: double *value;
@@ -10714,7 +10714,7 @@ internal static class StringFunctions
 #else
                 hold = plusum[i] - negsum[i];
 #endif
-                if (hold < new lprec().epsvalue)
+                if (hold < lprec.epsvalue)
                 {
                     hold = 1;
                 }
@@ -10773,7 +10773,7 @@ internal static class StringFunctions
 #else
                 hold = plusum[i] - negsum[i];
 #endif
-                if (hold < new lprec().epsvalue)
+                if (hold < lprec.epsvalue)
                 {
                     hold = 1;
                 }
@@ -11059,7 +11059,7 @@ internal static class StringFunctions
 
                 /* Standardize coefficients to 1 if necessary */
                 rh = get_rh(lp, i);
-                if (System.Math.Abs(lp_types.my_reldiff(rh, 1)) > new lprec().epsprimal)
+                if (System.Math.Abs(lp_types.my_reldiff(rh, 1)) > lprec.epsprimal)
                 {
                     set_rh(lp, i, 1);
                     //FIX_6ad741b5-fc42-4544-98cc-df9342f14f9c 27/11/18

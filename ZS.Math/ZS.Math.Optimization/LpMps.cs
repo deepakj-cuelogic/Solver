@@ -909,7 +909,7 @@ namespace ZS.Math.Optimization
 
                                     /* Define a new SOS instance */
 
-                                    SOS = objLpCls.add_SOS(lp, ref field3, (int)row, SOS, 0, null, null);
+                                    SOS = LpCls.add_SOS(lp, ref field3, (int)row, SOS, 0, null, null);
                                 }
                                 /* Otherwise, add set members to the active SOS */
                                 else

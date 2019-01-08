@@ -55,7 +55,7 @@ namespace ZS.Math.Optimization
         internal static void compute_reducedcosts(lprec lp, bool? isdual, int row_nr, ref int[] coltarget, bool? dosolve, ref double[] prow, ref int[] nzprow, ref double[] drow, ref int[] nzdrow, int roundmode)
         {
             LpCls objLpCls = new LpCls();
-            double epsvalue = new lprec().epsvalue; // Any larger value can produce a suboptimal result
+            double epsvalue = lprec.epsvalue; // Any larger value can produce a suboptimal result
             roundmode |= lp_matrix.MAT_ROUNDRC;
 
             if (isdual != null)
@@ -94,7 +94,7 @@ namespace ZS.Math.Optimization
                     }
                     int? nzidx = (lp.bsolveIdx != null) ? Convert.ToInt32(lp.bsolveIdx) : 0;
                     lp_matrix.bsolve(lp, 0, ref rhsvector, ref nzidx, epsvalue * lp_lib.DOUBLEROUND, 1.0);
-                    if (isdual == null && (row_nr == 0) && (lp.improve != 0 && lp_lib.IMPROVE_SOLUTION != 0) && !LpCls.refactRecent(lp) && serious_facterror(lp, ref rhsvector[0], lp.rows, new lprec().epsvalue))
+                    if (isdual == null && (row_nr == 0) && (lp.improve != 0 && lp_lib.IMPROVE_SOLUTION != 0) && !LpCls.refactRecent(lp) && serious_facterror(lp, ref rhsvector[0], lp.rows, lprec.epsvalue))
                     {
                         lp.set_action(ref lp.spx_action, lp_lib.ACTION_REINVERT);
                     }
@@ -224,7 +224,7 @@ namespace ZS.Math.Optimization
             {
                 multi.active = 1;
                 multi.lp = lp;
-                multi.epszero = new lprec().epsprimal;
+                multi.epszero = lprec.epsprimal;
                 multi.truncinf = truncinf;
             }
 
@@ -321,7 +321,7 @@ namespace ZS.Math.Optimization
             double f;
             double sinfeas;
             double xinfeas;
-            double epsvalue = new lprec().epsdual;
+            double epsvalue = lprec.epsdual;
             pricerec current = new pricerec();
             pricerec candidate = new pricerec();
             bool collectMP = false;
@@ -332,7 +332,7 @@ namespace ZS.Math.Optimization
 
             /* Identify pivot column according to pricing strategy; set
                entering variable initial threshold reduced cost value to "0" */
-            current.pivot = new lprec().epsprimal; // Minimum acceptable improvement
+            current.pivot = lprec.epsprimal; // Minimum acceptable improvement
             current.varno = 0;
             current.lp = lp;
             current.isdual = false;
@@ -651,9 +651,9 @@ namespace ZS.Math.Optimization
             double candidatepivot = System.Math.Abs(candidate.pivot);
 
             ///#if Paranoia
-            return ((bool)((candidate.varno > 0) && (candidatepivot > new lprec().epsvalue)));
+            return ((bool)((candidate.varno > 0) && (candidatepivot > lprec.epsvalue)));
             ///#else
-            return ((bool)(candidatepivot > new lprec().epsvalue));
+            return ((bool)(candidatepivot > lprec.epsvalue));
             ///#endif
         }
 
@@ -847,7 +847,7 @@ namespace ZS.Math.Optimization
                 ///#if false
                 //    else if (testvalue < -margin)
                 ///#else
-                else if (testvalue < new lprec().epsvalue)
+                else if (testvalue < lprec.epsvalue)
                     ///#endif
                     result = lp_types.COMP_PREFERINCUMBENT;
 
@@ -1007,7 +1007,7 @@ namespace ZS.Math.Optimization
                                                           /* Numerical errors can interact to cause non-convergence, and the
                                                             idea is to relax the tolerance to account for this and only
                                                             marginally weakening the (user-specified) tolerance. */
-                if ((sfeas - xfeas) < f * new lprec().epsprimal)
+                if ((sfeas - xfeas) < f * lprec.epsprimal)
                 {
                     testOK = false;
                 }
@@ -1106,7 +1106,7 @@ namespace ZS.Math.Optimization
 
             /* Find unconditional non-zeros and optionally compute relative size of epspivot */
             epspivot = lp.epspivot;
-            epsvalue = new lprec().epsvalue;
+            epsvalue = lprec.epsvalue;
             Hlimit = 0;
             Htheta = 0;
             k = 0;
@@ -1208,7 +1208,7 @@ namespace ZS.Math.Optimization
                 if (Hpass == 1)
                 {
                     Hlimit = lp.infinite; // Don't apply any limit in the first pass
-                    Heps = epspivot / new lprec().epsprimal; // Scaled to lp->epsprimal used in compute_theta()
+                    Heps = epspivot / lprec.epsprimal; // Scaled to lp->epsprimal used in compute_theta()
                 }
                 else
                 {
@@ -1233,7 +1233,7 @@ namespace ZS.Math.Optimization
                     candidate.varno = i;
 
                     /*i =*/
-                    LpCls.compute_theta(lp, i, ref candidate.theta, isupper, (double)lp_types.my_if(lp.upbo[lp.var_basic[i]] < new lprec().epsprimal, Heps / 10, Heps), true);
+                    LpCls.compute_theta(lp, i, ref candidate.theta, isupper, (double)lp_types.my_if(lp.upbo[lp.var_basic[i]] < lprec.epsprimal, Heps / 10, Heps), true);
 
                     if (System.Math.Abs(candidate.theta) >= lp.infinite)
                     {
@@ -1252,7 +1252,7 @@ namespace ZS.Math.Optimization
                     if (forceoutEQ)
                     {
                         p = candidate.pivot;
-                        if (lp.upbo[lp.var_basic[i]] < new lprec().epsprimal)
+                        if (lp.upbo[lp.var_basic[i]] < lprec.epsprimal)
                         {
                             /* Give an extra early boost to equality slack elimination, if specified */
                             if (forceoutEQ == Convert.ToBoolean(DefineConstants.AUTOMATIC))
@@ -1661,7 +1661,7 @@ namespace ZS.Math.Optimization
             {
                 rhvec = lp.rhs;
             }
-            epsvalue = new lprec().epsdual;
+            epsvalue = lprec.epsdual;
             current.pivot = -epsvalue; // Initialize leaving variable threshold; "less than 0"
             current.theta = 0;
             current.varno = 0;
@@ -1861,7 +1861,7 @@ namespace ZS.Math.Optimization
 #if MachinePrecRoundRHS
   REAL epsvalue = lp.epsmachine;
 #else
-            double epsvalue = new lprec().epsvalue;
+            double epsvalue = lprec.epsvalue;
 #endif
             pricerec current = new pricerec();
             pricerec candidate = new pricerec();
@@ -2481,7 +2481,7 @@ namespace ZS.Math.Optimization
             score /= bestcand.pivot;
             score = lp_types.my_chsign(!lp.is_lower[multi.active], score);
 
-            if (lp.spx_trace && (System.Math.Abs(score) > 1 / new lprec().epsprimal))
+            if (lp.spx_trace && (System.Math.Abs(score) > 1 / lprec.epsprimal))
             {
                 msg = "multi_enteringvar: A very large Theta %g was generated (pivot %g)\n";
                 lp.report(lp, lp_lib.IMPORTANT, ref msg, score, bestcand.pivot);

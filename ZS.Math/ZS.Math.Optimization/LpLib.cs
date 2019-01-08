@@ -629,19 +629,19 @@ namespace ZS.Math.Optimization
         /// Assign to zero due to unaccesible to other class
         /// TODO: Please check assignment as per logic
         /// </summary>
-        public double epsvalue = 0;           /* Input data precision / rounding of data values to 0 */
+        public static double epsvalue = 0;           /* Input data precision / rounding of data values to 0 */
 
         /// <summary>
         /// Assign to zero due to unaccesible to other class
         /// TODO: Please check assignment as per logic
         /// </summary>
-        public double epsprimal = 0;          /* For rounding RHS values to 0/infeasibility */
+        public static double epsprimal = 0;          /* For rounding RHS values to 0/infeasibility */
 
         /// <summary>
         /// Assign to zero due to unaccesible to other class
         /// TODO: Please check assignment as per logic
         /// </summary>
-        public double epsdual = 0;            /* For rounding reduced costs to zero */
+        public static double epsdual = 0;            /* For rounding reduced costs to zero */
 
 
 
@@ -1843,11 +1843,11 @@ namespace ZS.Math.Optimization
 
         /* Precision macros                                                                       */
         /* -------------------------------------------------------------------------------------- */
-        public double PREC_REDUCEDCOST = new lprec().epsvalue;
-        public double PREC_IMPROVEGAP = new lprec().epsdual;
-        public double PREC_SUBSTFEASGAP = new lprec().epsprimal;
+        public double PREC_REDUCEDCOST = lprec.epsvalue;
+        public double PREC_IMPROVEGAP = lprec.epsdual;
+        public double PREC_SUBSTFEASGAP = lprec.epsprimal;
 #if true
-        public double PREC_BASICSOLUTION = new lprec().epsvalue;  /* Zero-rounding of RHS/basic solution vector */
+        public double PREC_BASICSOLUTION = lprec.epsvalue;  /* Zero-rounding of RHS/basic solution vector */
 #else
         public const double PREC_BASICSOLUTION   = lprec.epsmachine;  /* Zero-rounding of RHS/basic solution vector */
 #endif
