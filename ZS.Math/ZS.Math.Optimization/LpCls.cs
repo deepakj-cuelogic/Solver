@@ -5920,7 +5920,12 @@ internal static class StringFunctions
         { throw new NotImplementedException(); }
 
         internal static new void set_pivoting(lprec lp, int piv_rule)
-        { throw new NotImplementedException(); }
+        {
+            /* Set new pivoting strategy */
+            lp.piv_strategy = piv_rule;
+            string msg = "set_pivoting: Pricing strategy set to '%s'\n";
+            lp.report(lp, DETAILED, ref msg, get_str_piv_rule(get_piv_rule(lp)));
+        }
 
         internal static new int get_pivoting(lprec lp)
         { throw new NotImplementedException(); }
